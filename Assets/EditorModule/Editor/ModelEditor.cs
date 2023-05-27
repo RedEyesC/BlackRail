@@ -1,0 +1,183 @@
+﻿
+using System.Collections.Generic;
+using System.IO;
+using UnityEditor;
+using UnityEngine;
+
+namespace GameEditor
+
+{
+    public class ModelEditor
+    {
+
+        static readonly string ModelRawPath = "Assets/RawData/model/";
+        static readonly string ModelResPath = "Assets/Resources/model/";
+
+        [MenuItem("Assets/GameEditor/导出模型", false, 900)]
+        static void ExportModelInfo()
+        {
+            foreach (var obj in Selection.objects)
+            {
+                string path = AssetDatabase.GetAssetPath(obj);
+                ExportModelInfo(path);
+            }
+        }
+
+        [MenuItem("Assets/GameEditor/导出模型", true)]
+        static bool ValidExportModelInfo()
+        {
+            foreach (var obj in Selection.gameObjects)
+            {
+                string path = AssetDatabase.GetAssetPath(obj);
+                if (path.Contains(ModelRawPath) && AssetDatabase.IsValidFolder(path))
+                {
+                    continue;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public static void ExportModelInfo(string path)
+        {
+            string name = GetModelName(path);
+
+            GameObject go = null;
+
+            DirectoryInfo dirInfo = new DirectoryInfo(path);
+            foreach (var file in dirInfo.GetFiles())
+            {
+                if (file.Extension.ToLower() == ".fbx")
+                {
+                    GameObject pref = AssetDatabase.LoadAssetAtPath<GameObject>(path + "/" + file.Name);
+                    go = GameObject.Instantiate(pref);
+                    break;
+                }
+            }
+            string modelName = GetModelName(path);
+            string avatarResPath = ModelResPath + modelName + "/";
+            ExportAvatar(go, avatarResPath);
+
+            string meshResPath = ModelResPath + modelName + "/";
+            ExportMesh(go,meshResPath);
+
+            string textureResPath = ModelResPath + modelName + "/";
+            ExportMaterial(go, path, ModelResPath, textureResPath);
+
+            string resPrefabPath = ModelResPath + modelName + "/"; 
+
+            ExportModel(go,path,resPrefabPath);
+
+            GameObject.DestroyImmediate(go);
+
+            Debug.LogFormat("{0} 导出完成！！", name);
+        }
+
+        public static string GetModelName(string path)
+        {
+            if (path.Contains(ModelRawPath))
+            {
+                path = path.Replace(ModelRawPath,"");
+                if (path.Contains("/"))
+                    path = path.Remove(path.IndexOf("/"));
+                return path;
+            }
+            return null;
+        }
+
+        static void ExportAvatar(GameObject go, string savePath)
+        {
+            Avatar avatar = null;
+
+            Animator anim = go.GetComponentInChildren<Animator>();
+            if (anim)
+                avatar = anim.avatar;
+
+            if (avatar == null)
+                return;
+
+            Avatar newAvatar = GameObject.Instantiate<Avatar>(avatar);
+            string newAvPath = savePath + avatar.name + ".asset";
+
+
+            CommonUtility.CreateFolder(newAvPath.Remove(newAvPath.LastIndexOf("/")));
+            CommonUtility.CreateAssetEx2(newAvatar, newAvPath);
+
+            anim.avatar = AssetDatabase.LoadAssetAtPath<Avatar>(newAvPath);
+        }
+
+
+
+        static void ExportMesh(GameObject go,string savePath)
+        {
+            Dictionary<string, string> meshMap = new Dictionary<string, string>();
+
+            SkinnedMeshRenderer[] skRendererArr = go.GetComponentsInChildren<SkinnedMeshRenderer>();
+            for (int i = 0; i < skRendererArr.Length; i++)
+            {
+                var skinMeshRender = skRendererArr[i];
+                Mesh mesh = skinMeshRender.sharedMesh;
+                string meshPath = savePath + mesh.name + ".asset";
+                meshMap.Add(mesh.name, meshPath);
+                ExportMeshAsset(mesh, meshPath);
+                skRendererArr[i].sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+            }
+
+            MeshFilter[] meshFltArr = go.GetComponentsInChildren<MeshFilter>();
+            for (int i = 0; i < meshFltArr.Length; i++)
+            {
+                var meshFilter = meshFltArr[i];
+                Mesh mesh = meshFilter.sharedMesh;
+                string meshPath = savePath + mesh.name + ".asset";
+                ExportMeshAsset(mesh, meshPath);
+                meshFltArr[i].sharedMesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+            }
+        }
+
+        static void ExportMeshAsset(Mesh mesh, string meshPath)
+        {
+            Mesh newMesh = GameObject.Instantiate<Mesh>(mesh);
+
+            CommonUtility.CreateFolder(meshPath.Remove(meshPath.LastIndexOf("/")));
+            CommonUtility.CreateAssetEx(newMesh, meshPath);
+        }
+
+        static void ExportMaterial(GameObject go, string rawPath, string savePath, string textureResPath)
+        {
+            //TODO
+            //AssetDatabase.Refresh();
+        }
+
+        static void ExportModel(GameObject go,string rawPath,string savePath)
+        {
+            string modelName = GetModelName(rawPath);
+
+            Renderer[] rendererArr = go.GetComponentsInChildren<Renderer>();
+            for (int i = 0; i < rendererArr.Length; i++)
+            {
+                rendererArr[i].receiveShadows = false;
+                rendererArr[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                rendererArr[i].lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
+                rendererArr[i].reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+       
+            }
+
+            Animator anim = go.GetComponent<Animator>();
+            if (anim)
+            {
+                string avatarPath = ModelResPath + modelName + "/" + anim.avatar.name + ".asset";
+                if (File.Exists(avatarPath))
+                {
+                    anim.avatar = AssetDatabase.LoadAssetAtPath<Avatar>(avatarPath);
+                }
+            }
+
+            string modelPath = savePath;
+            CommonUtility.CreatePrefab(go, modelPath);
+            AssetDatabase.Refresh();
+        }
+    }
+}
