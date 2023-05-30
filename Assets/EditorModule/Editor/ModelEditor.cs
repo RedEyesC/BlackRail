@@ -12,6 +12,8 @@ namespace GameEditor
 
         static readonly string ModelRawPath = "Assets/RawData/model/";
         static readonly string ModelResPath = "Assets/Resources/model/";
+        static readonly string AnimRawPath = "Assets/RawData/anim/";
+        static readonly string AnimResPath = "Assets/Resources/anim/";
         static readonly string ModelDefaultShader = "Character/Default/Default";
 
         [MenuItem("Assets/GameEditor/导出模型", false, 900)]
@@ -27,7 +29,7 @@ namespace GameEditor
         [MenuItem("Assets/GameEditor/导出模型", true)]
         static bool ValidExportModelInfo()
         {
-            foreach (var obj in Selection.gameObjects)
+            foreach (var obj in Selection.objects)
             {
                 string path = AssetDatabase.GetAssetPath(obj);
                 if (path.Contains(ModelRawPath) && AssetDatabase.IsValidFolder(path))
@@ -41,6 +43,54 @@ namespace GameEditor
             }
             return true;
         }
+
+
+        [MenuItem("Assets/GameEditor/导出动画", false, 900)]
+        static void ExportModelAnim()
+        {
+            foreach (var obj in Selection.objects)
+            {
+                string path = AssetDatabase.GetAssetPath(obj);
+                ExportModelAnim(path);
+            }
+        }
+
+        [MenuItem("Assets/GameEditor/导出动画", true)]
+        static bool ValidExportModelAnim()
+        {
+            foreach (var obj in Selection.objects)
+            {
+                string path = AssetDatabase.GetAssetPath(obj);
+                if (path.Contains(AnimRawPath) && AssetDatabase.IsValidFolder(path))
+                {
+                    continue;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public static void ExportModelAnim(string path)
+        {
+
+            DirectoryInfo dirInfo = new DirectoryInfo(path);
+            foreach (var file in dirInfo.GetFiles())
+            {
+                if (file.Extension.ToLower() == ".fbx")
+                {
+                    string rawPath = path + "/" + file.Name;
+                    string savePath = AnimResPath;
+                    ExportAnim(rawPath,savePath );
+                }
+            }
+
+            Debug.LogFormat("{0} Export Anim Success！！", path);
+        }
+
+
 
         public static void ExportModelInfo(string path)
         {
@@ -73,7 +123,7 @@ namespace GameEditor
 
             GameObject.DestroyImmediate(go);
 
-            Debug.LogFormat("{0} Export Success！！", modelName);
+            Debug.LogFormat("{0} Export Model Success！！", modelName);
         }
 
         public static string GetModelName(string path)
@@ -199,6 +249,32 @@ namespace GameEditor
             string modelPath = savePath;
             CommonUtility.CreatePrefab(go, modelPath);
             AssetDatabase.Refresh();
+        }
+
+        static void ExportAnim(string rawPath, string savePath)
+        {
+            Object[] objs = AssetDatabase.LoadAllAssetsAtPath(rawPath);
+            foreach (Object o in objs)
+            {
+                if (o is AnimationClip)
+                {
+                   
+                    //fbx内存在一部分不会在unity显示的，需要剔除
+                    if (o.name.Contains("_preview"))
+                    {
+                        continue;
+                    }
+
+                    AnimationClip clip = (AnimationClip)o;
+                    AnimationClip newClip = new AnimationClip();
+
+                    EditorUtility.CopySerialized(clip, newClip);
+                    CommonUtility.CreateFolder(savePath);
+                    string resAnimPath = savePath + clip.name + ".anim";
+                    CommonUtility.CreateAssetEx2(newClip, resAnimPath);
+                }
+            }
+                  
         }
     }
 }
