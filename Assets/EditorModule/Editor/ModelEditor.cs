@@ -12,6 +12,7 @@ namespace GameEditor
 
         static readonly string ModelRawPath = "Assets/RawData/model/";
         static readonly string ModelResPath = "Assets/Resources/model/";
+        static readonly string ModelDefaultShader = "Character/Default/Default";
 
         [MenuItem("Assets/GameEditor/导出模型", false, 900)]
         static void ExportModelInfo()
@@ -43,7 +44,6 @@ namespace GameEditor
 
         public static void ExportModelInfo(string path)
         {
-            string name = GetModelName(path);
 
             GameObject go = null;
 
@@ -58,31 +58,29 @@ namespace GameEditor
                 }
             }
             string modelName = GetModelName(path);
-            string avatarResPath = ModelResPath + modelName + "/";
+            string avatarResPath = ModelResPath + modelName + "/avatar/";
             ExportAvatar(go, avatarResPath);
 
-            string meshResPath = ModelResPath + modelName + "/";
-            ExportMesh(go,meshResPath);
+            string meshResPath = ModelResPath + modelName + "/mesh/";
+            ExportMesh(go, meshResPath);
 
-            string textureResPath = ModelResPath + modelName + "/";
+            string textureResPath = ModelResPath + modelName + "/materials/";
             ExportMaterial(go, path, ModelResPath, textureResPath);
 
-            string resPrefabPath = ModelResPath + modelName + "/"; 
+            string resPrefabPath = ModelResPath + modelName + "/";
 
-            ExportModel(go,path,resPrefabPath);
+            ExportModel(go, path, resPrefabPath);
 
             GameObject.DestroyImmediate(go);
 
-            Debug.LogFormat("{0} 导出完成！！", name);
+            Debug.LogFormat("{0} Export Success！！", modelName);
         }
 
         public static string GetModelName(string path)
         {
             if (path.Contains(ModelRawPath))
             {
-                path = path.Replace(ModelRawPath,"");
-                if (path.Contains("/"))
-                    path = path.Remove(path.IndexOf("/"));
+                path = path.Replace(ModelRawPath, "");
                 return path;
             }
             return null;
@@ -104,14 +102,14 @@ namespace GameEditor
 
 
             CommonUtility.CreateFolder(newAvPath.Remove(newAvPath.LastIndexOf("/")));
-            CommonUtility.CreateAssetEx2(newAvatar, newAvPath);
+            CommonUtility.CreateAssetEx(newAvatar, newAvPath);
 
             anim.avatar = AssetDatabase.LoadAssetAtPath<Avatar>(newAvPath);
         }
 
 
 
-        static void ExportMesh(GameObject go,string savePath)
+        static void ExportMesh(GameObject go, string savePath)
         {
             Dictionary<string, string> meshMap = new Dictionary<string, string>();
 
@@ -147,11 +145,34 @@ namespace GameEditor
 
         static void ExportMaterial(GameObject go, string rawPath, string savePath, string textureResPath)
         {
-            //TODO
-            //AssetDatabase.Refresh();
+            Renderer[] rendererArr = go.GetComponentsInChildren<Renderer>();
+            for (int k = 0; k < rendererArr.Length; k++)
+            {
+                Material[] mats = rendererArr[k].sharedMaterials;
+                Material[] newMats = new Material[mats.Length];
+                for (int j = 0; j < mats.Length; j++)
+                {
+
+                    Material mat;
+                    mat = new Material(Shader.Find(ModelDefaultShader))
+                    { name = mats[j].name, };
+
+
+                    string newMatPath = textureResPath + mat.name + ".mat";
+                    CommonUtility.CreateFolder(newMatPath.Remove(newMatPath.LastIndexOf("/")));
+                    AssetDatabase.CreateAsset(mat, newMatPath);
+
+                    Material newMat = AssetDatabase.LoadAssetAtPath<Material>(newMatPath);
+                    newMats[j] = newMat;
+
+                }
+                rendererArr[k].sharedMaterials = newMats;
+            }
+
+            AssetDatabase.Refresh();
         }
 
-        static void ExportModel(GameObject go,string rawPath,string savePath)
+        static void ExportModel(GameObject go, string rawPath, string savePath)
         {
             string modelName = GetModelName(rawPath);
 
@@ -162,7 +183,7 @@ namespace GameEditor
                 rendererArr[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 rendererArr[i].lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
                 rendererArr[i].reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-       
+
             }
 
             Animator anim = go.GetComponent<Animator>();
