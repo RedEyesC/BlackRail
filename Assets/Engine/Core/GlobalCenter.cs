@@ -51,7 +51,6 @@ namespace GameFramework.Runtime
         /// </summary>
         /// <typeparam name="T">要获取的游戏框架模块类型。</typeparam>
         /// <returns>要获取的游戏框架模块。</returns>
-        /// <remarks>如果要获取的游戏框架模块不存在，则自动创建该游戏框架模块。</remarks>
         public static T GetModule<T>() where T : class
         {
             Type interfaceType = typeof(T);
@@ -80,7 +79,6 @@ namespace GameFramework.Runtime
         /// </summary>
         /// <param name="moduleType">要获取的游戏框架模块类型。</param>
         /// <returns>要获取的游戏框架模块。</returns>
-        /// <remarks>如果要获取的游戏框架模块不存在，则自动创建该游戏框架模块。</remarks>
         private static GameModule GetModule(Type moduleType)
         {
             foreach (GameModule module in s_GameModules)
@@ -91,7 +89,7 @@ namespace GameFramework.Runtime
                 }
             }
 
-            return CreateModule(moduleType);
+            return null;
         }
 
         /// <summary>
