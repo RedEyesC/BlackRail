@@ -34,9 +34,9 @@ namespace GameFramework.Runtime
 
         protected override void OnEnd()
         {
-           
             mBundleInfo.OnAssetObjLoaded(mRequest.AssetName);
             mRequest.OnTaskFinish(mBundleInfo.IsAssetObjLoaded(mRequest.AssetName));
+            mRequest.OnRequestFinish();
         }
 
         protected override void OnReset()

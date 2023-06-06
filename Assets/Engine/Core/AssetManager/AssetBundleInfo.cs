@@ -27,12 +27,9 @@ namespace GameFramework.Runtime
         private bool mResourceMode = false;
         private List<AssetBundleInfo> mDirDepsBundleList = new List<AssetBundleInfo>();
         
-        private AssetBundle mAssetBundle = null;
         private Dictionary<string, Object> mAssetObjMap = new Dictionary<string, Object>();
 
-        private bool mAtlasDescLoaded = false;
 
-        private AssetBundleCreateRequest mAssetBundleRequest = null;
         private Dictionary<string, AsyncOperation> mAssetRequestMap = new Dictionary<string, AsyncOperation>();
 
         private static int sAssetBundleNum = 0;
@@ -45,7 +42,6 @@ namespace GameFramework.Runtime
         {
             State = AssetState.Unload;
             AssetBundleName = name;
-            mAssetBundle = null;
             mResourceMode = resourceMode;
         }
 
@@ -162,18 +158,10 @@ namespace GameFramework.Runtime
             }
             else
             {
-                if (mResourceMode)
-                {
-                    string path = AssetBundleName.Remove(AssetBundleName.LastIndexOf(".")) + "/" + assetName;
-                    oper = Resources.LoadAsync(path);
-                }
-                else
-                {
-                    if (mAssetBundle == null)
-                        return null;
 
-                    oper = mAssetBundle.LoadAssetAsync(assetName);
-                }
+                string path = AssetBundleName.Remove(AssetBundleName.LastIndexOf(".")) + "/" + assetName;
+                oper = Resources.LoadAsync(path);
+
 
                 mAssetRequestMap.Add(assetName, oper);
             }
@@ -207,7 +195,7 @@ namespace GameFramework.Runtime
             }
         }
 
-        public bool TryUnload()
+        public bool TryUnloadAsset(string assetName)
         {
             if (mRefCount > 0)
                 return true;
@@ -226,22 +214,6 @@ namespace GameFramework.Runtime
             return false;
         }
 
-        public bool TryUnloadAsset(string assetName)
-        {
-
-            UnityEngine.Object obj;
-            if (mAssetObjMap.TryGetValue(assetName, out obj))
-            {
-                mAssetObjMap.Remove(assetName);
-                if (obj)
-                {
-                    Resources.UnloadAsset(obj);
-                }
-            }
-
-            return true;
-        }
-
         public void UnloadSelf()
         {
             if (State != AssetState.Loaded)
@@ -249,19 +221,18 @@ namespace GameFramework.Runtime
                 Debug.LogErrorFormat("Invalid Unload Bundle {0}", AssetBundleName);
             }
 
-            if (mAssetBundle != null)
+            UnityEngine.Object obj;
+            if (mAssetObjMap.TryGetValue(AssetBundleName, out obj))
             {
-                mAssetBundle.Unload(true);
-                mAssetBundle = null;
+                mAssetObjMap.Remove(AssetBundleName);
+                if (obj)
+                {
+                    Resources.UnloadAsset(obj);
+                }
             }
-
             State = AssetState.Unload;
-            mAssetBundleRequest = null;
             mAssetObjMap.Clear();
             mAssetRequestMap.Clear();
-
-            mAtlasDescLoaded = false;
-
             --sAssetBundleNum;
         }
 

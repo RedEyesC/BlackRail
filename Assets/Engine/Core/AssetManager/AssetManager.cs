@@ -17,7 +17,7 @@ namespace GameFramework.Runtime
 
         private Dictionary<string, List<string>> mDependencyMap = new Dictionary<string, List<string>>();
 
-        private int overTime = 2;
+        private int overTime = 5;
         private LinkedListNode<AssetTask> mCurTaskNode = null;
         private LinkedList<AssetTask> mTaskList = new LinkedList<AssetTask>();
         private Stack<LinkedListNode<AssetTask>> mTaskNodeCache = new Stack<LinkedListNode<AssetTask>>();
@@ -41,14 +41,8 @@ namespace GameFramework.Runtime
             mWatch.Start();
             mCurTaskNode = mTaskList.First;
             LinkedListNode<AssetTask> tmpNode = null;
-            // 这个Update+while循环就是一直在等待 链头(First)task 完成
-            // 加IsOverTime是为了防止某些资源加载太久，while循环卡住Update
-            // 同类型的任务操作可以 在同一帧的Update同步进行
-            // 每次Update都会从 链头 开始检查，task是否完成
-            int taskMask = 0;
             while ((mCurTaskNode != null)
-                 && (!IsOverTime())
-                 && ((taskMask = CanExcute(mCurTaskNode.Value, mCurTaskNode.Previous == null, taskMask)) > 0))
+                 && (!IsOverTime()))
             {
                 if (mCurTaskNode.Value.Update())
                 {
@@ -65,7 +59,6 @@ namespace GameFramework.Runtime
                     mCurTaskNode = mCurTaskNode.Next;
                 }
             }
-            //UnityEngine.Debug.LogFormat("UpdateTask {0} {1}", AssetTask.CurTaskCount, mTaskList.Count);
             mWatch.Stop();
         }
 
@@ -130,6 +123,7 @@ namespace GameFramework.Runtime
                 if (item.Value.IsLoaded)
                     item.Value.UnloadSelf();
             }
+
             mBundleInfoMap.Clear();
 
             mCurTaskNode = null;
@@ -175,9 +169,7 @@ namespace GameFramework.Runtime
         public int LoadAssetAsync(string bundleName, string assetName, bool needDownwload, System.Action<int, bool> callback = null)
         {
             AssetBundleInfo bundleInfo = GetBundleInfo(bundleName);
-            AssetRequest req = CreateAssetRequest();
-            req.InitLoadAssetRequest(bundleInfo, assetName, needDownwload);
-            req.SetRequestFinishCallBack(callback);
+            AssetRequest req = CreateAssetRequest(bundleInfo, assetName, AssetRequestType.LoadOne,needDownwload,callback);
             req.ProcessRequest();
             return req.RequestID;
         }
@@ -185,9 +177,7 @@ namespace GameFramework.Runtime
         public int UnLoadAssetAsync(string bundleName, string assetName, System.Action<int, bool> callback = null)
         {
             AssetBundleInfo bundleInfo = GetBundleInfo(bundleName);
-            AssetRequest req = CreateAssetRequest();
-            req.InitUnLoadAssetRequest(bundleInfo, assetName);
-            req.SetRequestFinishCallBack(callback);
+            AssetRequest req = CreateAssetRequest(bundleInfo, assetName, AssetRequestType.UnloadOne, false, callback);
             req.ProcessRequest();
             return req.RequestID;
         }
@@ -238,14 +228,15 @@ namespace GameFramework.Runtime
         #endregion
 
         #region Asset Request
-        private AssetRequest CreateAssetRequest()
+        private AssetRequest CreateAssetRequest(AssetBundleInfo bundleInfo, string assetName, AssetRequestType type, bool needDownload = false, System.Action<int, bool> callback = null)
         {
             AssetRequest req = null;
             if (mAssetRequestCache.Count > 0)
                 req = mAssetRequestCache.Dequeue();
             else
-                req = new AssetRequest();
+                req = new AssetRequest(bundleInfo,assetName,type,needDownload);
 
+            req.SetRequestFinishCallBack(callback);
             req.RequestID = ++mAssetReqID;
             req.SetTaskFinishCallBack(OnRequestFinish);
             mAssetRequestMap.Add(req.RequestID, req);
@@ -271,22 +262,6 @@ namespace GameFramework.Runtime
             req.Reset();
 
             mAssetRequestCache.Enqueue(req);
-        }
-
-        private int CanExcute(AssetTask task, bool firstTask, int taskMask)
-        {
-            if (firstTask)
-                return task.TaskType;
-
-            int mask = taskMask & task.BanSelfRunTaskMask;
-            if (mask > 0)
-            {
-                return -1;
-            }
-            else
-            {
-                return task.TaskType | taskMask;
-            }
         }
         #endregion
 

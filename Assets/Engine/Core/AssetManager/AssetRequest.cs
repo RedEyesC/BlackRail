@@ -4,15 +4,17 @@ using System.Collections.Generic;
 
 namespace GameFramework.Runtime
 {
+    public enum AssetRequestType
+    {
+        LoadOne,
+        UnloadOne,
+        Download,
+    }
+
     public class AssetRequest
     {
    
-        public enum AssetRequestType
-        {
-            LoadOne,
-            UnloadOne,
-            Download,
-        }
+
 
         public int RequestID { get; set; }
 
@@ -38,28 +40,16 @@ namespace GameFramework.Runtime
 
         #region Initial
 
-        public void InitLoadAssetRequest(AssetBundleInfo bundleInfo, string assetName, bool needDownload)
+        public AssetRequest(AssetBundleInfo bundleInfo, string assetName, AssetRequestType type, bool needDownload = false)
         {
             BundleInfo = bundleInfo;
             AssetName = assetName;
             NeedDownload = needDownload;
-            RequestType = AssetRequestType.LoadOne;
+            RequestType = type;
             IsRunning = true;
 
             TryAddBundleRef(bundleInfo, RequestType);
         }
-        
-        public void InitUnLoadAssetRequest(AssetBundleInfo bundleInfo, string assetName)
-        {
-            BundleInfo = bundleInfo;
-            AssetName = assetName;
-            RequestType = AssetRequestType.UnloadOne;
-            IsRunning = true;
-            AutoRelease = true;
-            
-            TryAddBundleRef(bundleInfo, RequestType);
-        }
-
 
         private void TryAddBundleRef(AssetBundleInfo bundleInfo, AssetRequestType requestType)
         {
@@ -121,8 +111,7 @@ namespace GameFramework.Runtime
         {
             IsRunning = false;
             IsSuccess = success;
-            //UnityEngine.Debug.LogFormat("AssetRequest  OnTaskFinish 11111111 " + success.ToString());
-
+       
             if (TaskFinishCallBack != null)
                 TaskFinishCallBack(this);
         }
@@ -139,11 +128,9 @@ namespace GameFramework.Runtime
 
         public void OnRequestFinish()
         {
-            //UnityEngine.Debug.Log("AssetRequest UpdateFinishRequest " + RequestID + "   " + AssetName);
-
+         
             if (RequestFinishCallBack != null)
             {
-                //UnityEngine.Debug.Log("AssetRequest UpdateFinishRequest 4444444444" + RequestID);
                 RequestFinishCallBack(RequestID, IsSuccess);
                 RequestFinishCallBack = null;
             }
