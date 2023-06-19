@@ -14,6 +14,7 @@ namespace GameFramework.Runtime
         void Start()
         {
             GlobalCenter.CreateInstance();
+            GlobalCenter.Init();
             GlobalCenter.Start();
         }
 

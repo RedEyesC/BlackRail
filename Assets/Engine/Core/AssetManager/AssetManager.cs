@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 namespace GameFramework.Runtime
 {
-    public class AssetManager : Singleton<AssetManager>
+    public class AssetManager : GameModule
     {
         private bool mIsResourceMode = false;
         private Dictionary<string, AssetBundleInfo> mBundleInfoMap = new Dictionary<string, AssetBundleInfo>();
@@ -25,17 +25,12 @@ namespace GameFramework.Runtime
         private Stopwatch mWatch = new Stopwatch();
 
 
-        public static AssetManager GetInstance()
-        {
-            return Instance;
-        }
-
-        public void Start()
+        public override void Start()
         {
             mIsResourceMode = true;
         }
 
-        public void Update()
+        public override void Update(float elapseSeconds, float realElapseSeconds)
         {
             mWatch.Reset();
             mWatch.Start();
@@ -62,7 +57,7 @@ namespace GameFramework.Runtime
             mWatch.Stop();
         }
 
-        public void Stop(bool isRestart = false)
+        public  override void Destroy()
         {
             mAssetRequestMap.Clear();
             mFinishRequestQueue.Clear();
@@ -70,7 +65,7 @@ namespace GameFramework.Runtime
       
             foreach (var item in mBundleInfoMap)
             {
-                if (item.Value.IsLoaded && (!isRestart))
+                if (item.Value.IsLoaded)
                 {
                     item.Value.UnloadSelf();
                 }
@@ -186,7 +181,7 @@ namespace GameFramework.Runtime
         public void UnLoadUnuseAsset()
         {
             UnloadUnuseAssetTask task = new UnloadUnuseAssetTask();
-            Instance.AddTask(task);
+            this.AddTask(task);
         }
 
 

@@ -49,7 +49,7 @@ namespace GameFramework.Runtime
         {
             if (depsList != null && depsList.Count > 0)
             {
-                AssetManager mgr = AssetManager.Instance;
+                AssetManager mgr = GlobalCenter.GetModule<AssetManager>();
                 for (int i = 0; i < depsList.Count; i++)
                 {
                     AssetBundleInfo info = mgr.GetBundleInfo(depsList[i]);
@@ -276,7 +276,7 @@ namespace GameFramework.Runtime
                     }
 
                     LoadAssetTask task = new LoadAssetTask(this,req);
-                    AssetManager.Instance.AddTask(task);
+                    GlobalCenter.GetModule<AssetManager>().AddTask(task);
                     break;
                 case AssetState.Loading:
                     break;
@@ -290,7 +290,7 @@ namespace GameFramework.Runtime
         private void StartUnloadAsset()
         {
             UnLoadAssetTask task = new UnLoadAssetTask(this);
-            AssetManager.Instance.AddTask(task);
+            GlobalCenter.GetModule<AssetManager>().AddTask(task);
         }
     }
     #endregion

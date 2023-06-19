@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace GameFramework.Runtime
 {
@@ -7,6 +8,15 @@ namespace GameFramework.Runtime
     {
         private static readonly LinkedList<GameModule> s_GameModules = new LinkedList<GameModule>();
 
+        /// <summary>
+        /// 所有游戏框架模块初始化。
+        /// </summary>
+        public static void Init()
+        {
+            CreateModule<AssetManager>();
+            CreateModule<UIManager>();
+            
+        }
 
         /// <summary>
         /// 所有游戏框架模块唤醒。
@@ -54,21 +64,18 @@ namespace GameFramework.Runtime
         public static T GetModule<T>() where T : class
         {
             Type interfaceType = typeof(T);
-            if (!interfaceType.IsInterface)
-            {
-                //throw new GameFrameworkException(Utility.Text.Format("You must get module by interface, but '{0}' is not.", interfaceType.FullName));
-            }
+
 
             if (!interfaceType.FullName.StartsWith("GameFramework.", StringComparison.Ordinal))
             {
-                //throw new GameFrameworkException(Utility.Text.Format("You must get a Game Framework module, but '{0}' is not.", interfaceType.FullName));
+                Debug.LogErrorFormat("You must get a Game Framework module, but '{0}' is not.", interfaceType.FullName);
             }
 
             string moduleName = String.Format("{0}.{1}", interfaceType.Namespace, interfaceType.Name.Substring(1));
             Type moduleType = Type.GetType(moduleName);
             if (moduleType == null)
             {
-                //throw new GameFrameworkException(Utility.Text.Format("Can not find Game Framework module type '{0}'.", moduleName));
+                Debug.LogErrorFormat("Can not find Game Framework module type '{0}'.", moduleName);
             }
 
             return GetModule(moduleType) as T;
@@ -95,6 +102,31 @@ namespace GameFramework.Runtime
         /// <summary>
         /// 创建游戏框架模块。
         /// </summary>
+        /// <typeparam name="T">要创建的游戏框架模块类型。</typeparam>
+        /// <returns>要创建的游戏框架模块类型。</returns>
+        public static T CreateModule<T>() where T : class
+        {
+            Type interfaceType = typeof(T);
+
+            if (!interfaceType.FullName.StartsWith("GameFramework.", StringComparison.Ordinal))
+            {
+                Debug.LogErrorFormat("You must get a Game Framework module, but '{0}' is not.", interfaceType.FullName);
+            }
+
+            string moduleName = String.Format("{0}.{1}", interfaceType.Namespace, interfaceType.Name.Substring(1));
+            Type moduleType = Type.GetType(moduleName);
+            if (moduleType == null)
+            {
+                Debug.LogErrorFormat("Can not find Game Framework module type '{0}'.", moduleName);
+            }
+
+            return CreateModule(moduleType) as T;
+
+        }
+
+        /// <summary>
+        /// 创建游戏框架模块。
+        /// </summary>
         /// <param name="moduleType">要创建的游戏框架模块类型。</param>
         /// <returns>要创建的游戏框架模块。</returns>
         private static GameModule CreateModule(Type moduleType)
@@ -102,7 +134,7 @@ namespace GameFramework.Runtime
             GameModule module = (GameModule)Activator.CreateInstance(moduleType);
             if (module == null)
             {
-                //throw new GameFrameworkException(Utility.Text.Format("Can not create module '{0}'.", moduleType.FullName));
+                Debug.LogErrorFormat("Can not create module '{0}'.", moduleType.FullName);
             }
 
             LinkedListNode<GameModule> current = s_GameModules.First;

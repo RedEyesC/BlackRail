@@ -4,7 +4,7 @@ using UnityEngine.EventSystems;
 
 namespace GameFramework.Runtime
 {
-    public class UIManager : Singleton<UIManager>
+    public class UIManager :GameModule
     {
         public static Vector2 ResolutionSize = new Vector2(1280.0f, 720.0f);
 
@@ -15,17 +15,13 @@ namespace GameFramework.Runtime
         private float mScaleFactor = 1.0f;
         private Vector2 mUISize;
         
-        public static UIManager GetInstance()
-        {
-            return Instance;
-        }
 
         public Camera GetCamera()
         {
             return mCamera;
         }
 
-        public void Start()
+        public override void Start()
         {
             GameObject camObj = new GameObject("_UICamera");
             mCamera = CreateUICamera(camObj);
@@ -86,6 +82,16 @@ namespace GameFramework.Runtime
             mCopyUIRootTrans.gameObject.SetActive(false);
         }
 
+        public override void Update(float elapseSeconds, float realElapseSeconds)
+        {
+
+        }
+
+        public override void Destroy()
+        {
+
+        }
+
         private Camera CreateUICamera(GameObject obj)
         {
             Camera cam = obj.AddComponent<Camera>();
@@ -105,6 +111,7 @@ namespace GameFramework.Runtime
 
             return cam;
         }
+
 
         public void CreateLayout(string bundleName, string assetName)
         {

@@ -14,8 +14,6 @@ namespace GameFramework.Runtime
     public class AssetRequest
     {
    
-
-
         public int RequestID { get; set; }
 
         public AssetRequestType RequestType { get; private set; }
@@ -91,13 +89,13 @@ namespace GameFramework.Runtime
                     {
                         BundleInfo.StartLoadAsset();
                         LoadAssetTask task = new LoadAssetTask(BundleInfo, this);
-                        AssetManager.Instance.AddTask(task);
+                        GlobalCenter.GetModule<AssetManager>().AddTask(task);
                     }
                     break;
                 case AssetRequestType.UnloadOne:
                 {
                     UnLoadAssetTask task = new UnLoadAssetTask(BundleInfo, this);
-                    AssetManager.Instance.AddTask(task);
+                        GlobalCenter.GetModule<AssetManager>().AddTask(task);
                 }
                     break;
                 default:
