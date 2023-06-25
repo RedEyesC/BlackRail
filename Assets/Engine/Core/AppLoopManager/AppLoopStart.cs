@@ -1,6 +1,6 @@
 ﻿namespace GameFramework.Runtime
 {
-    public class AppLoop_Start : StateBase
+    public class AppLoopStart : StateBase
     {
         public override string GetID()
         {
