@@ -15,7 +15,8 @@ namespace GameFramework.Runtime
         {
             CreateModule<AssetManager>();
             CreateModule<UIManager>();
-            
+            CreateModule<AppLoopManager>();
+
         }
 
         /// <summary>
