@@ -1,6 +1,6 @@
 ﻿namespace GameFramework.Runtime
 {
-    public class AppLoopManager : GameModule
+    internal class GameLoopManager : GameModule
     {
         private StateMachine _StateMachine;
 

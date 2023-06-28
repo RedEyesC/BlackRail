@@ -1,12 +1,14 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace GameFramework.Runtime
 {
-    public class GlobalCenter : Singleton<GlobalCenter>
+    public class GameCenter : Singleton<GameCenter>
     {
         private static readonly LinkedList<GameModule> _GameModules = new LinkedList<GameModule>();
+
 
 
 
@@ -15,11 +17,7 @@ namespace GameFramework.Runtime
         /// </summary>
         public static void Start()
         {
-            CreateModule<AssetManager>();
-            CreateModule<UIManager>();
-            CreateModule<ScriptManager>();
-
-            CreateModule<AppLoopManager>();
+            CreateModule<GameLoopManager>();
 
             foreach (GameModule module in _GameModules)
             {

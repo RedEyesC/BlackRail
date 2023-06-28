@@ -1,6 +1,6 @@
 ﻿namespace GameFramework.Runtime
 {
-    public class AppLoopStart : StateBase
+    internal class GameLoopStart : StateBase
     {
         public override string GetID()
         {
@@ -9,7 +9,7 @@
 
         public override void StateEnter()
         {
-            GlobalCenter.GetModule<ScriptManager>().CallGameStart();
+            
         }
     }
 }
