@@ -113,8 +113,9 @@ namespace GameFramework.Runtime
         }
 
 
-        public void CreateLayout(string bundleName, string assetName)
+        public GameObject CreateLayout(string bundleName, string assetName)
         {
+            GameObject panelObject = new GameObject("UIPanel");
             //desc = AssetManager.Instance.GetAssetObjWithType<UIPrefabDesc>(bundleName, assetName);
             //if (desc == null)
             //    return null;
@@ -125,7 +126,7 @@ namespace GameFramework.Runtime
             //if (t == null)
             //    return null;
 
-            //return t;
+            return panelObject;
         }
 
         public void AddToRoot(Transform t, Transform root)
