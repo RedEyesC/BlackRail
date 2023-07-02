@@ -1,6 +1,6 @@
 ﻿namespace GameFramework.Runtime
 {
-    internal class MoudleCenter : GameModule
+    internal class ModuleCenter : GameModule
     {
         public override void Destroy()
         {
