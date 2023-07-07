@@ -6,12 +6,15 @@
 
         public override void Start()
         {
-            this._StateMachine = new StateMachine();
+            _StateMachine = new StateMachine();
+            _StateMachine.AddState(new AppLoopStart());
+
+            _StateMachine.ChangeState("start");
         }
 
         public override void Update(float elapseSeconds, float realElapseSeconds)
         {
-            this._StateMachine.Update(elapseSeconds, realElapseSeconds);
+            _StateMachine.Update(elapseSeconds, realElapseSeconds);
         }
 
         public override void Destroy()

@@ -4,9 +4,10 @@ using System.Diagnostics;
 
 namespace GameFramework.Runtime
 {
+    public delegate void RequestCallBack(int reqID, bool isSuccess);
+
     public class AssetManager : GameModule
     {
-        private bool mIsResourceMode = false;
         private Dictionary<string, AssetBundleInfo> mBundleInfoMap = new Dictionary<string, AssetBundleInfo>();
 
         private int mAssetReqID = 0;
@@ -27,7 +28,7 @@ namespace GameFramework.Runtime
 
         public override void Start()
         {
-            mIsResourceMode = true;
+          
         }
 
         public override void Update(float elapseSeconds, float realElapseSeconds)
@@ -101,7 +102,6 @@ namespace GameFramework.Runtime
                 if (info != null)
                 {
                     info.ClearDependency();
-                    info.ResetDownloadState();
                     info.InitDependency(item.Value);
                 }
             }
@@ -132,7 +132,7 @@ namespace GameFramework.Runtime
 
         private bool IsOverTime()
         {
-            return mWatch.ElapsedMilliseconds > this.overTime;
+            return mWatch.ElapsedMilliseconds > overTime;
         }
 
         public void AddTask(AssetTask task)
@@ -161,27 +161,46 @@ namespace GameFramework.Runtime
         #endregion
 
         #region Request Load Asset
-        public int LoadAssetAsync(string bundleName, string assetName, bool needDownwload, System.Action<int, bool> callback = null)
+        public int LoadAssetAsync(string bundleName, string assetName, RequestCallBack callback = null)
         {
             AssetBundleInfo bundleInfo = GetBundleInfo(bundleName);
-            AssetRequest req = CreateAssetRequest(bundleInfo, assetName, AssetRequestType.LoadOne,needDownwload,callback);
+            AssetRequest req = CreateAssetRequest(bundleInfo, assetName, AssetRequestType.LoadOne,callback);
             req.ProcessRequest();
             return req.RequestID;
         }
 
-        public int UnLoadAssetAsync(string bundleName, string assetName, System.Action<int, bool> callback = null)
+        public int LoadAllAssetAsync(string bundleName, string assetName,RequestCallBack callback = null)
         {
             AssetBundleInfo bundleInfo = GetBundleInfo(bundleName);
-            AssetRequest req = CreateAssetRequest(bundleInfo, assetName, AssetRequestType.UnloadOne, false, callback);
+            AssetRequest req = CreateAssetRequest(bundleInfo, assetName, AssetRequestType.LoadAll, callback);
             req.ProcessRequest();
             return req.RequestID;
         }
 
+
+        public int UnLoadAssetAsync(string bundleName, string assetName, RequestCallBack callback = null)
+        {
+            AssetBundleInfo bundleInfo = GetBundleInfo(bundleName);
+            AssetRequest req = CreateAssetRequest(bundleInfo, assetName, AssetRequestType.UnloadOne, callback);
+            req.ProcessRequest();
+            return req.RequestID;
+        }
+
+        public void UnLoad(int reqID)
+        {
+            AssetRequest req = GetAssetRequest(reqID);
+            if (req != null)
+            {
+                req.IsCancel = true;
+                if (!req.IsRunning)
+                    FreeLoadRequest(req);
+            }
+        }
 
         public void UnLoadUnuseAsset()
         {
             UnloadUnuseAssetTask task = new UnloadUnuseAssetTask();
-            this.AddTask(task);
+            AddTask(task);
         }
 
 
@@ -205,31 +224,36 @@ namespace GameFramework.Runtime
         public AssetBundleInfo GetBundleInfo(string bundleName)
         {
             AssetBundleInfo info = null;
-            if (mBundleInfoMap.TryGetValue(bundleName, out info))
+            if (!mBundleInfoMap.TryGetValue(bundleName, out info))
             {
-                return info;
-            }
-            else
-            {
-                info = new AssetBundleInfo(bundleName, mIsResourceMode);
+                info = new AssetBundleInfo(bundleName);
                 mBundleInfoMap.Add(bundleName, info);
 
                 List<string> depList = null;
                 mDependencyMap.TryGetValue(bundleName, out depList);
                 info.InitDependency(depList);
+              
             }
+   
             return info;
         }
         #endregion
 
         #region Asset Request
-        private AssetRequest CreateAssetRequest(AssetBundleInfo bundleInfo, string assetName, AssetRequestType type, bool needDownload = false, System.Action<int, bool> callback = null)
+        private AssetRequest GetAssetRequest(int reqID)
+        {
+            AssetRequest req = null;
+            mAssetRequestMap.TryGetValue(reqID, out req);
+            return req;
+        }
+
+        private AssetRequest CreateAssetRequest(AssetBundleInfo bundleInfo, string assetName, AssetRequestType type,RequestCallBack  callback = null)
         {
             AssetRequest req = null;
             if (mAssetRequestCache.Count > 0)
                 req = mAssetRequestCache.Dequeue();
             else
-                req = new AssetRequest(bundleInfo,assetName,type,needDownload);
+                req = new AssetRequest(bundleInfo,assetName,type);
 
             req.SetRequestFinishCallBack(callback);
             req.RequestID = ++mAssetReqID;

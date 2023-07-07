@@ -15,8 +15,11 @@ namespace GameFramework.Runtime
         /// </summary>
         public static void Start()
         {
+            CreateModule<TimerManager>();
+
             CreateModule<AssetManager>();
             CreateModule<UIManager>();
+           
             CreateModule<ScriptManager>();
 
             CreateModule<AppLoopManager>();
@@ -69,7 +72,7 @@ namespace GameFramework.Runtime
                 Debug.LogErrorFormat("You must get a Game Framework module, but '{0}' is not.", interfaceType.FullName);
             }
 
-            string moduleName = String.Format("{0}.{1}", interfaceType.Namespace, interfaceType.Name.Substring(1));
+            string moduleName = String.Format("{0}.{1}", interfaceType.Namespace, interfaceType.Name);
             Type moduleType = Type.GetType(moduleName);
             if (moduleType == null)
             {
@@ -111,7 +114,7 @@ namespace GameFramework.Runtime
                 Debug.LogErrorFormat("You must get a Game Framework module, but '{0}' is not.", interfaceType.FullName);
             }
 
-            string moduleName = String.Format("{0}.{1}", interfaceType.Namespace, interfaceType.Name.Substring(1));
+            string moduleName = String.Format("{0}.{1}", interfaceType.Namespace, interfaceType.Name);
             Type moduleType = Type.GetType(moduleName);
             if (moduleType == null)
             {

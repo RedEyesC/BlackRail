@@ -8,7 +8,7 @@ namespace GameFramework.Runtime
 
         void Awake()
         {
-            GameObject.DontDestroyOnLoad(this);
+            //GameObject.DontDestroyOnLoad(this);
         }
         // Start is called before the first frame update
         void Start()

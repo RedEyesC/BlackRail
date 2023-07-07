@@ -10,7 +10,6 @@ namespace GameFramework.Runtime
 
         private GameObject mUIRoot = null;
         private Transform mUIRootTrans = null;
-        private Transform mCopyUIRootTrans = null;
         private Camera mCamera = null;
         private float mScaleFactor = 1.0f;
         private Vector2 mUISize;
@@ -23,11 +22,12 @@ namespace GameFramework.Runtime
 
         public override void Start()
         {
-            GameObject camObj = new GameObject("_UICamera");
+            //创建ui相机
+            GameObject camObj = new GameObject("UICamera");
             mCamera = CreateUICamera(camObj);
-            Object.DontDestroyOnLoad(camObj);
+            camObj.SetParent(GameObject.Find("_AppRoot"), false);
 
-            mUIRoot = new GameObject("_UIRoot");
+            mUIRoot = new GameObject("UIRoot");
             mUIRoot.layer = LayerMask.NameToLayer("UI");
 
             Canvas canvas = mUIRoot.AddComponent<Canvas>();
@@ -52,34 +52,32 @@ namespace GameFramework.Runtime
             
             mUIRootTrans = mUIRoot.transform;
             mUIRootTrans.position = Vector3.zero;
-            mUIRootTrans.SetParent(camObj.transform, false);
+            
+            mUIRoot.SetParent(GameObject.Find("_AppRoot"), false);
 
-            GameObject ev = new GameObject("_EventSystem");
-            ev.AddComponent<EventSystem>();
-            ev.AddComponent<StandaloneInputModule>();
-            GameObject.DontDestroyOnLoad(ev);
+            //GameObject ev = new GameObject("_EventSystem");
+            //ev.AddComponent<EventSystem>();
+            //ev.AddComponent<StandaloneInputModule>();
+            //GameObject.DontDestroyOnLoad(ev);
 
-            float aspectRatio = screenWidth / screenHeight;
-            float designedAspectRatio = ResolutionSize.x / ResolutionSize.y;
-            if (aspectRatio < designedAspectRatio)
-                mScaleFactor = 1.0f / (((ResolutionSize.x / screenWidth) * screenHeight) / ResolutionSize.y);
-            else
-                mScaleFactor = 1.0f;
+            //float aspectRatio = screenWidth / screenHeight;
+            //float designedAspectRatio = ResolutionSize.x / ResolutionSize.y;
+            //if (aspectRatio < designedAspectRatio)
+            //    mScaleFactor = 1.0f / (((ResolutionSize.x / screenWidth) * screenHeight) / ResolutionSize.y);
+            //else
+            //    mScaleFactor = 1.0f;
 
-            if (scaleX > scaleY)
-            {
-                mUISize.y = ResolutionSize.y;
-                mUISize.x = screenWidth / screenHeight * ResolutionSize.y;
-            }
-            else
-            {
-                mUISize.x = ResolutionSize.x;
-                mUISize.y = screenHeight / screenWidth * ResolutionSize.x;
-            }
+            //if (scaleX > scaleY)
+            //{
+            //    mUISize.y = ResolutionSize.y;
+            //    mUISize.x = screenWidth / screenHeight * ResolutionSize.y;
+            //}
+            //else
+            //{
+            //    mUISize.x = ResolutionSize.x;
+            //    mUISize.y = screenHeight / screenWidth * ResolutionSize.x;
+            //}
 
-            mCopyUIRootTrans = GameObject.Instantiate(mUIRootTrans, camObj.transform, false);
-            mCopyUIRootTrans.gameObject.name = "_UIRootCopy";
-            mCopyUIRootTrans.gameObject.SetActive(false);
         }
 
         public override void Update(float elapseSeconds, float realElapseSeconds)

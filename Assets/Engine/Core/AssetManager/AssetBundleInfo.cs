@@ -20,6 +20,10 @@ namespace GameFramework.Runtime
             Downloaded,
         }
 
+
+        private static int sAssetBundleNum = 0;
+        public static int AssetBundleNum { get { return sAssetBundleNum; } }
+
         public string AssetBundleName { get; private set; }
         public AssetState State { get; private set; }
 
@@ -32,17 +36,11 @@ namespace GameFramework.Runtime
 
         private Dictionary<string, AsyncOperation> mAssetRequestMap = new Dictionary<string, AsyncOperation>();
 
-        private static int sAssetBundleNum = 0;
-        public static int AssetBundleNum { get { return sAssetBundleNum; } }
 
-        private DownloadState mDownloadState = DownloadState.None;
-        private bool mDownloadSuccess = false;
-
-        public AssetBundleInfo(string name, bool resourceMode)
+        public AssetBundleInfo(string name)
         {
             State = AssetState.Unload;
             AssetBundleName = name;
-            mResourceMode = resourceMode;
         }
 
         public void InitDependency(List<string> depsList)
@@ -63,11 +61,6 @@ namespace GameFramework.Runtime
             mDirDepsBundleList.Clear();
         }
 
-        public void ResetDownloadState()
-        {
-            mDownloadState = DownloadState.None;
-            mDownloadSuccess = false;
-        }
 
         #region Get Asset
         public bool IsAssetObjLoaded(string name)

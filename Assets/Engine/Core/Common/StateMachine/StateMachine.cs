@@ -31,7 +31,7 @@ namespace GameFramework.Runtime
 
         public void ChangeState(string id)
         {
-            UnityEngine.Debug.Log("GameStateMachine ChangeState " + id.ToString());
+ 
             StateBase newState = mStateMap[id];
             if (newState != null)
             {

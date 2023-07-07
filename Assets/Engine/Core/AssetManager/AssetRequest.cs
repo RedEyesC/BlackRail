@@ -7,13 +7,14 @@ namespace GameFramework.Runtime
     public enum AssetRequestType
     {
         LoadOne,
+        LoadAll,
         UnloadOne,
         Download,
     }
 
     public class AssetRequest
     {
-   
+
         public int RequestID { get; set; }
 
         public AssetRequestType RequestType { get; private set; }
@@ -28,21 +29,21 @@ namespace GameFramework.Runtime
         public bool NeedDownload { get; private set; }
 
         private Action<AssetRequest> TaskFinishCallBack = null;
-        private Action<int, bool> RequestFinishCallBack = null;
-        
+        private RequestCallBack RequestFinishCallBack = null;
+
         private static HashSet<int> s_AddBundleRefRequestTypeSet = new HashSet<int>()
         {
             (int) AssetRequestType.LoadOne,
-        
+
         };
 
         #region Initial
 
-        public AssetRequest(AssetBundleInfo bundleInfo, string assetName, AssetRequestType type, bool needDownload = false)
+        public AssetRequest(AssetBundleInfo bundleInfo, string assetName, AssetRequestType type)
         {
             BundleInfo = bundleInfo;
             AssetName = assetName;
-            NeedDownload = needDownload;
+
             RequestType = type;
             IsRunning = true;
 
@@ -56,7 +57,7 @@ namespace GameFramework.Runtime
                 BundleInfo.AddRef();
             }
         }
-        
+
         private void TryDelBundleRef(AssetBundleInfo bundleInfo, AssetRequestType requestType)
         {
             if (s_AddBundleRefRequestTypeSet.Contains((int)requestType))
@@ -93,10 +94,11 @@ namespace GameFramework.Runtime
                     }
                     break;
                 case AssetRequestType.UnloadOne:
-                {
-                    UnLoadAssetTask task = new UnLoadAssetTask(BundleInfo, this);
+                    {
+                        UnLoadAssetTask task = new UnLoadAssetTask(BundleInfo, this);
                         GlobalCenter.GetModule<AssetManager>().AddTask(task);
-                }
+
+                    }
                     break;
                 default:
                     break;
@@ -109,7 +111,7 @@ namespace GameFramework.Runtime
         {
             IsRunning = false;
             IsSuccess = success;
-       
+
             if (TaskFinishCallBack != null)
                 TaskFinishCallBack(this);
         }
@@ -119,14 +121,14 @@ namespace GameFramework.Runtime
             TaskFinishCallBack = callback;
         }
 
-        public void SetRequestFinishCallBack(Action<int, bool> callback)
+        public void SetRequestFinishCallBack(RequestCallBack callback)
         {
             RequestFinishCallBack = callback;
         }
 
         public void OnRequestFinish()
         {
-         
+
             if (RequestFinishCallBack != null)
             {
                 RequestFinishCallBack(RequestID, IsSuccess);
