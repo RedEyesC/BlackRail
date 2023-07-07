@@ -1,15 +1,23 @@
-﻿namespace GameFramework.Runtime
+﻿using System.Collections.Generic;
+
+namespace GameFramework.Runtime
 {
 
     internal abstract class BaseView : UIBase
     {
-        public object[] _OpenParams;
+        protected object[] _OpenParams;
+
+        protected int _CacheTime = 60;
+        private int _CacheTimeID = 0;
+
+        private List<int> _RefPackageReqList = new List<int>();
+        private int _RefPackageReqFinishNum;
 
         protected bool IsOpen
         {
             get
             {
-                return this._State == "open";
+                return _State == "open";
             }
         }
 
@@ -17,84 +25,73 @@
 
         public void Open(params object[] paramList)
         {
-            if (this.IsOpen)
+            if (IsOpen)
             {
-                this.ShowLayout();
+                ShowLayout();
                 return;
             }
-            this._OpenParams = paramList;
+            _OpenParams = paramList;
 
-            if (this._State == "close")
+            if (_State == "close")
             {
 
-                this._State = "loading ";
-                this.LoadPackage();
+                _State = "loading ";
+                LoadPackage();
             }
-            else if (this._State == "caching")
+            else if (_State == "caching")
             {
 
-                this.ClearCacheTimer();
+                ClearCacheTimer();
 
-                this._State = "open";
-                this.ShowLayout();
-                this.OnLayoutCreated();
+                _State = "open";
+                ShowLayout();
+                OnLayoutCreated();
             }
 
         }
 
-        public void Close(bool? immediately){
-        //    this.clearPage()
-        //if (this._state === 'open')
-        //    {
-        //        this.doPreClose()
+        public void Close(bool immediately)
+        {
 
-        //    super.close()
+            if (_State == "open")
+            {
+                base.Close();
+                OnClose();
 
-        //    this.onClose()
+                SetVisible(false);
 
-        //    if (!this.notAddMgr)
-        //        {
-        //            ViewMgr.getInstance().removeView(this)
-        //    }
 
-        //        this.visible = false
+                if ((_CacheTime <= 0) || immediately)
+                {
+                    UnLoadRes();
+                    _State = "close";
+                }
+                else
+                {
+                    if (_CacheTimeID == 0)
+                    {
+                        _CacheTimeID = GlobalCenter.GetModule<TimerManager>().SetTimeout(() =>
+                        {
+                            UnLoadRes();
+                            _State = "close";
+                            ClearCacheTimer();
+                        }, _CacheTime);
+                    }
 
-        //    this.fireEvent('view.closeView', this)
+                    _State = "caching";
+                }
 
-        //    if (this._cacheTime <= 0 || immediately)
-        //        {
-        //            this.unLoadRes()
-        //        this._state = 'close'
-        //    }
-        //        else
-        //        {
-        //            if (!this._cacheTimeID)
-        //            {
-        //                this._cacheTimeID = global.Timer.setTimeout(() => {
-        //                    this.unLoadRes()
-        //                    this._state = 'close'
-        //                    this.__clearTimer()
-        //                }, this._cacheTime)
-        //            }
-
-        //            this._state = 'caching'
-        //      }
-
-        //        global.AudioMgr.playSound('ui002')
-        //}
-        //    else if (this._state === 'loading')
-        //    {
-        //        this.doPreClose()
-  
-        //    this.unLoadRes()
-        //      this._state = 'close'
-        //  }
-        //}
-    }
+            }
+            else if (_State == "loading")
+            {
+                UnLoadRes();
+                _State = "close";
+            }
+        }
 
         protected void ShowLayout()
         {
-            this._Root.SetActive(true);
+            SetVisible(true);
 
             //TODO 有个banLayer的逻辑？？
 
@@ -111,26 +108,85 @@
             //}
         }
 
-        protected void LoadPackage() {
-        
-        
-        
+        private void LoadPackage()
+        {
+            _RefPackageReqList.Clear();
+            _RefPackageReqFinishNum = 0;
+
+            string path = Utils.GetUIPackPath(_PackageName);
+
+            int id = GlobalCenter.GetModule<AssetManager>().LoadAssetAsync(path, _ComName,OnLoadResFinish);
+
+            _RefPackageReqList.Add(id);
         }
+
+        private void OnLoadResFinish(int requestID, bool isSuccess)
+        {
+            _RefPackageReqFinishNum++;
+
+            if (_RefPackageReqFinishNum != _RefPackageReqList.Count)
+            {
+                return;
+            }
+
+            if (_Root)
+            {
+                this.CreateLayout();
+            }
+        }
+
+        private void UnLoadRes()
+        {
+            DestroyLayout();
+            UnLoadPackage();
+        }
+
+
+        private void DestroyLayout()
+        {
+
+        }
+
+        private void UnLoadPackage()
+        {
+
+            if (_RefPackageReqList.Count > 0)
+            {
+
+                foreach (var id in _RefPackageReqList)
+                {
+                    GameCenter.GetModule<AssetManager>().UnLoad(id);
+                }
+
+                _RefPackageReqList.Clear();
+
+            }
+
+        }
+
         private void ClearCacheTimer()
         {
-            //if (this._cacheTimeID)
-            //{
-            //    global.Timer.clearTimer(this._cacheTimeID)
-            //    this._cacheTimeID = null
-            //}
+            if (_CacheTimeID > 0)
+            {
+                GlobalCenter.GetModule<TimerManager>().ClearTimer(_CacheTimeID);
+                _CacheTimeID = 0;
+            }
         }
 
         protected override void OnLayoutCreated()
         {
             base.OnLayoutCreated();
 
-            this.OnOpen(this._OpenParams);
+            OnOpen(_OpenParams);
 
+        }
+
+        public void SetVisible(bool val)
+        {
+            if (_Root)
+            {
+                _Root.SetActive(val);
+            }
         }
     }
 }

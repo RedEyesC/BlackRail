@@ -3,9 +3,9 @@
     //UIState = 'open' | 'caching' | 'loading' | 'close'
     internal abstract class UIBase
     {
-        protected string _PackageName;
-        protected string _ComName;
-        protected string _State;
+        protected  string _PackageName;
+        protected  string _ComName;
+        protected string _State = "close";
         protected int _LayerName;
 
         protected UnityEngine.GameObject _Root;
@@ -13,36 +13,40 @@
 
         protected abstract void OnOpen(params object[] paramList);
 
+        protected virtual void Close() { }
+
         protected abstract void OnClose();
 
         public void SetLayer(int layer)
         {
-            this._LayerName = layer;
-            this.SetLayerInternal();
+            _LayerName = layer;
+            SetLayerInternal();
         }
 
         private void SetLayerInternal()
         {
-            this._Root.layer = this._LayerName;
+            _Root.layer = _LayerName;
         }
 
         protected void CreateLayout(){
 
-            if (!this._Root)
+            if (!_Root)
             {
-                this._Root = GlobalCenter.GetModule<UIManager>().CreateLayout(this._PackageName, this._ComName);
-                this.OnLayoutCreated();
+                _Root = GlobalCenter.GetModule<UIManager>().CreateLayout(_PackageName, _ComName);
+                OnLayoutCreated();
             }
             else
             {
-                this.OnLayoutCreated();
+                OnLayoutCreated();
             }
 
         }
 
         protected virtual void OnLayoutCreated()
         {
-            this.SetLayerInternal();
+            SetLayerInternal();
         }
+
+
     }
 }
