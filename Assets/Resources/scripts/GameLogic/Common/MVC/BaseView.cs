@@ -3,6 +3,9 @@
 namespace GameFramework.Runtime
 {
 
+
+
+
     internal abstract class BaseView : UIBase
     {
         protected object[] _OpenParams;
@@ -17,7 +20,7 @@ namespace GameFramework.Runtime
         {
             get
             {
-                return _State == "open";
+                return _State == UIState.Open;
             }
         }
 
@@ -32,18 +35,18 @@ namespace GameFramework.Runtime
             }
             _OpenParams = paramList;
 
-            if (_State == "close")
+            if (_State == UIState.Close)
             {
 
-                _State = "loading ";
+                _State = UIState.Loading;
                 LoadPackage();
             }
-            else if (_State == "caching")
+            else if (_State == UIState.Caching)
             {
 
                 ClearCacheTimer();
 
-                _State = "open";
+                _State = UIState.Open;
                 ShowLayout();
                 OnLayoutCreated();
             }
@@ -53,7 +56,7 @@ namespace GameFramework.Runtime
         public void Close(bool immediately)
         {
 
-            if (_State == "open")
+            if (_State == UIState.Open)
             {
                 base.Close();
                 OnClose();
@@ -64,7 +67,7 @@ namespace GameFramework.Runtime
                 if ((_CacheTime <= 0) || immediately)
                 {
                     UnLoadRes();
-                    _State = "close";
+                    _State = UIState.Close;
                 }
                 else
                 {
@@ -73,19 +76,19 @@ namespace GameFramework.Runtime
                         _CacheTimeID = GlobalCenter.GetModule<TimerManager>().SetTimeout(() =>
                         {
                             UnLoadRes();
-                            _State = "close";
+                            _State = UIState.Close;
                             ClearCacheTimer();
                         }, _CacheTime);
                     }
 
-                    _State = "caching";
+                    _State = UIState.Caching;
                 }
 
             }
-            else if (_State == "loading")
+            else if (_State == UIState.Loading)
             {
                 UnLoadRes();
-                _State = "close";
+                _State = UIState.Close;
             }
         }
 
@@ -115,7 +118,7 @@ namespace GameFramework.Runtime
 
             string path = Utils.GetUIPackPath(_PackageName);
 
-            int id = GlobalCenter.GetModule<AssetManager>().LoadAssetAsync(path, _ComName,OnLoadResFinish);
+            int id = GlobalCenter.GetModule<AssetManager>().LoadAssetAsync(path, null,null,OnLoadResFinish);
 
             _RefPackageReqList.Add(id);
         }

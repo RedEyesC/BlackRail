@@ -3,9 +3,17 @@
     //UIState = 'open' | 'caching' | 'loading' | 'close'
     internal abstract class UIBase
     {
+        protected enum UIState
+        {
+            Open,
+            Close,
+            Caching,
+            Loading
+        }
+
         protected  string _PackageName;
         protected  string _ComName;
-        protected string _State = "close";
+        protected  UIState  _State = UIState.Close;
         protected int _LayerName;
 
         protected UnityEngine.GameObject _Root;
