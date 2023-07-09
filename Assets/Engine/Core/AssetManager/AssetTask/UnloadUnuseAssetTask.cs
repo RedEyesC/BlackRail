@@ -6,7 +6,7 @@ namespace GameFramework.Runtime
 
     public class UnloadUnuseAssetTask : AssetTask
     {
-        private AsyncOperation mAsyncOperate = null;
+        private AsyncOperation _AsyncOperate = null;
 
         public UnloadUnuseAssetTask()
         {
@@ -14,14 +14,14 @@ namespace GameFramework.Runtime
 
         protected override bool OnStart()
         {
-            mAsyncOperate = Resources.UnloadUnusedAssets();
+            _AsyncOperate = Resources.UnloadUnusedAssets();
             return true;
         }
 
         protected override bool OnUpdate()
         {
-            if (mAsyncOperate != null)
-                return mAsyncOperate.isDone;
+            if (_AsyncOperate != null)
+                return _AsyncOperate.isDone;
             return true;
         }
 
@@ -32,13 +32,12 @@ namespace GameFramework.Runtime
 
         protected override void OnReset()
         {
-            mAsyncOperate = null;
+            _AsyncOperate = null;
         }
 
-        private static readonly int mTaskType = (int)AssetTaskType.UnloadUnuseAsset;
-        private static readonly int mBanSelfRunTaskMask = 0;
-        public override int TaskType { get { return mTaskType; } }
-        public override int BanSelfRunTaskMask { get { return mBanSelfRunTaskMask; } }
-        public override bool IsCommonTask { get { return true; } }
+        private static readonly int _TaskType = (int)AssetTaskType.UnloadUnuseAsset;
+
+        public override int TaskType { get { return _TaskType; } }
+
     }
 }

@@ -1,157 +1,114 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System;
 
 namespace GameFramework.Runtime
 {
     public delegate void RequestCallBack(int reqID, bool isSuccess);
 
+
     public class AssetManager : GameModule
     {
-        private Dictionary<string, AssetBundleInfo> mBundleInfoMap = new Dictionary<string, AssetBundleInfo>();
 
-        private int mAssetReqID = 0;
-        private Dictionary<int, AssetRequest> mAssetRequestMap = new Dictionary<int, AssetRequest>();
-        private Queue<AssetRequest> mAssetRequestCache = new Queue<AssetRequest>();
 
-        private Queue<int> mFinishRequestQueue = new Queue<int>();
+        private int _AssetReqID = 0;
+        private Dictionary<int, AssetRequest> _AssetRequestMap = new Dictionary<int, AssetRequest>();
+        private Queue<AssetRequest> _AssetRequestCache = new Queue<AssetRequest>();
 
-        private Dictionary<string, List<string>> mDependencyMap = new Dictionary<string, List<string>>();
+        private Queue<int> _FinishRequestQueue = new Queue<int>();
 
-        private int overTime = 5;
-        private LinkedListNode<AssetTask> mCurTaskNode = null;
-        private LinkedList<AssetTask> mTaskList = new LinkedList<AssetTask>();
-        private Stack<LinkedListNode<AssetTask>> mTaskNodeCache = new Stack<LinkedListNode<AssetTask>>();
+        private LinkedListNode<AssetTask> _CurTaskNode = null;
+        private LinkedList<AssetTask> _TaskList = new LinkedList<AssetTask>();
+        private Stack<LinkedListNode<AssetTask>> _TaskNodeCache = new Stack<LinkedListNode<AssetTask>>();
 
         private Stopwatch mWatch = new Stopwatch();
 
+        private struct LoadAssetInfo
+        {
+
+
+        }
 
         public override void Start()
         {
-          
+
         }
 
         public override void Update(float elapseSeconds, float realElapseSeconds)
         {
-            mWatch.Reset();
-            mWatch.Start();
-            mCurTaskNode = mTaskList.First;
+
+            _CurTaskNode = _TaskList.First;
             LinkedListNode<AssetTask> tmpNode = null;
-            while ((mCurTaskNode != null)
-                 && (!IsOverTime()))
+            while ((_CurTaskNode != null))
+
             {
-                if (mCurTaskNode.Value.Update())
+                if (_CurTaskNode.Value.Update())
                 {
-                    mCurTaskNode.Value.Reset();
-                    tmpNode = mCurTaskNode;
-                    mCurTaskNode = mCurTaskNode.Next;
-                    mTaskList.Remove(tmpNode);
+                    _CurTaskNode.Value.Reset();
+                    tmpNode = _CurTaskNode;
+                    _CurTaskNode = _CurTaskNode.Next;
+                    _TaskList.Remove(tmpNode);
                     tmpNode.Value = null;
                     //把使用完的节点压入缓存队列，等待下次复用
-                    mTaskNodeCache.Push(tmpNode);
+                    _TaskNodeCache.Push(tmpNode);
                 }
                 else
                 {
-                    mCurTaskNode = mCurTaskNode.Next;
-                }
-            }
-            mWatch.Stop();
-        }
-
-        public  override void Destroy()
-        {
-            mAssetRequestMap.Clear();
-            mFinishRequestQueue.Clear();
-            mDependencyMap.Clear();
-      
-            foreach (var item in mBundleInfoMap)
-            {
-                if (item.Value.IsLoaded)
-                {
-                    item.Value.UnloadSelf();
-                }
-            }
-
-            mBundleInfoMap.Clear();
-
-
-            mAssetReqID = 0;
-            mAssetRequestCache.Clear();
-
-
-            mCurTaskNode = null;
-            mTaskList.Clear();
-            mTaskNodeCache.Clear();
-     
-
-        }
-
-        public void AddDependency(string bundleName, List<string> depList)
-        {
-            if (!mDependencyMap.ContainsKey(bundleName))
-            {
-                mDependencyMap.Add(bundleName, depList);
-            }
-        }
-
-        public void ResetBundleDepdency()
-        {
-            foreach (var item in mDependencyMap)
-            {
-                AssetBundleInfo info = GetBundleInfo(item.Key);
-                if (info != null)
-                {
-                    info.ClearDependency();
-                    info.InitDependency(item.Value);
+                    _CurTaskNode = _CurTaskNode.Next;
                 }
             }
         }
+
+        public override void Destroy()
+        {
+            _AssetRequestMap.Clear();
+            _FinishRequestQueue.Clear();
+
+            _AssetReqID = 0;
+            _AssetRequestCache.Clear();
+
+
+            _CurTaskNode = null;
+            _TaskList.Clear();
+            _TaskNodeCache.Clear();
+
+
+        }
+
 
         public void Restart()
         {
-            mAssetRequestMap.Clear();
-            mFinishRequestQueue.Clear();
-            mDependencyMap.Clear();
+            _AssetRequestMap.Clear();
+            _FinishRequestQueue.Clear();
 
-            foreach (var item in mBundleInfoMap)
-            {
-                if (item.Value.IsLoaded)
-                    item.Value.UnloadSelf();
-            }
 
-            mBundleInfoMap.Clear();
-
-            mCurTaskNode = null;
-            mTaskList.Clear();
-            mTaskNodeCache.Clear();
+            _CurTaskNode = null;
+            _TaskList.Clear();
+            _TaskNodeCache.Clear();
 
         }
 
 
         #region Asset Task
 
-        private bool IsOverTime()
-        {
-            return mWatch.ElapsedMilliseconds > overTime;
-        }
-
         public void AddTask(AssetTask task)
         {
-            if (mTaskNodeCache.Count > 0)
+            if (_TaskNodeCache.Count > 0)
             {
-                LinkedListNode<AssetTask> node = mTaskNodeCache.Pop();
+                LinkedListNode<AssetTask> node = _TaskNodeCache.Pop();
                 node.Value = task;
-                mTaskList.AddLast(node);
+                _TaskList.AddLast(node);
             }
             else
             {
-                mTaskList.AddLast(task);
+                _TaskList.AddLast(task);
             }
         }
 
         public int GetTaskNum()
         {
-            return mTaskList.Count;
+            return _TaskList.Count;
         }
 
         public void SetMaxTaskNum(int n)
@@ -161,27 +118,24 @@ namespace GameFramework.Runtime
         #endregion
 
         #region Request Load Asset
-        public int LoadAssetAsync(string bundleName, string assetName, RequestCallBack callback = null)
+        public int LoadAssetAsync(string assetName, Type assetType, int priority = 1000, RequestCallBack callback = null)
         {
-            AssetBundleInfo bundleInfo = GetBundleInfo(bundleName);
-            AssetRequest req = CreateAssetRequest(bundleInfo, assetName, AssetRequestType.LoadOne,callback);
+            AssetRequest req = CreateAssetRequest(assetName, assetType, priority, callback, AssetRequestType.LoadOne);
             req.ProcessRequest();
             return req.RequestID;
         }
 
-        public int LoadAllAssetAsync(string bundleName, string assetName,RequestCallBack callback = null)
+        public int LoadAllAssetAsync(string assetName, Type assetType, int priority = 1000, RequestCallBack callback = null)
         {
-            AssetBundleInfo bundleInfo = GetBundleInfo(bundleName);
-            AssetRequest req = CreateAssetRequest(bundleInfo, assetName, AssetRequestType.LoadAll, callback);
+            AssetRequest req = CreateAssetRequest(assetName, assetType, priority, callback, AssetRequestType.LoadAll);
             req.ProcessRequest();
             return req.RequestID;
         }
 
 
-        public int UnLoadAssetAsync(string bundleName, string assetName, RequestCallBack callback = null)
+        public int UnLoadAssetAsync(string assetName, Type assetType, int priority = 1000, RequestCallBack callback = null)
         {
-            AssetBundleInfo bundleInfo = GetBundleInfo(bundleName);
-            AssetRequest req = CreateAssetRequest(bundleInfo, assetName, AssetRequestType.UnloadOne, callback);
+            AssetRequest req = CreateAssetRequest(assetName, assetType, priority, callback, AssetRequestType.UnloadOne);
             req.ProcessRequest();
             return req.RequestID;
         }
@@ -203,62 +157,32 @@ namespace GameFramework.Runtime
             AddTask(task);
         }
 
-
-        public void DelAssetRef(string bundleName, string assetName)
-        {
-            AssetBundleInfo bundlInfo = null;
-            if (mBundleInfoMap.TryGetValue(bundleName, out bundlInfo))
-            {
-                bundlInfo.DelAssetRef(assetName);
-            }
-        }
-
-        #endregion
-
-        #region Get Bundle Asset
-        public int GetBundleNum()
-        {
-            return AssetBundleInfo.AssetBundleNum;
-        }
-
-        public AssetBundleInfo GetBundleInfo(string bundleName)
-        {
-            AssetBundleInfo info = null;
-            if (!mBundleInfoMap.TryGetValue(bundleName, out info))
-            {
-                info = new AssetBundleInfo(bundleName);
-                mBundleInfoMap.Add(bundleName, info);
-
-                List<string> depList = null;
-                mDependencyMap.TryGetValue(bundleName, out depList);
-                info.InitDependency(depList);
-              
-            }
-   
-            return info;
-        }
         #endregion
 
         #region Asset Request
         private AssetRequest GetAssetRequest(int reqID)
         {
             AssetRequest req = null;
-            mAssetRequestMap.TryGetValue(reqID, out req);
+            _AssetRequestMap.TryGetValue(reqID, out req);
             return req;
         }
 
-        private AssetRequest CreateAssetRequest(AssetBundleInfo bundleInfo, string assetName, AssetRequestType type,RequestCallBack  callback = null)
+        private AssetRequest CreateAssetRequest(string assetName, Type assetType, int priority, RequestCallBack callback, AssetRequestType type)
         {
-            AssetRequest req = null;
-            if (mAssetRequestCache.Count > 0)
-                req = mAssetRequestCache.Dequeue();
-            else
-                req = new AssetRequest(bundleInfo,assetName,type);
 
-            req.SetRequestFinishCallBack(callback);
-            req.RequestID = ++mAssetReqID;
-            req.SetTaskFinishCallBack(OnRequestFinish);
-            mAssetRequestMap.Add(req.RequestID, req);
+            AssetInfo info = new AssetInfo(assetName, assetType, priority);
+
+
+            AssetRequest req = null;
+            if (_AssetRequestCache.Count > 0)
+                req = _AssetRequestCache.Dequeue();
+            else
+                req = new AssetRequest(info, type, OnRequestFinish);
+
+            req.RequestID = ++_AssetReqID;
+            req.SetTaskFinishCallBack(callback);
+
+            _AssetRequestMap.Add(req.RequestID, req);
 
             return req;
         }
@@ -268,19 +192,19 @@ namespace GameFramework.Runtime
             if (req.IsCancel)
                 FreeLoadRequest(req);
             else
-                mFinishRequestQueue.Enqueue(req.RequestID);
+                _FinishRequestQueue.Enqueue(req.RequestID);
         }
 
         private void FreeLoadRequest(AssetRequest req)
         {
-            if (mAssetRequestMap.ContainsKey(req.RequestID))
+            if (_AssetRequestMap.ContainsKey(req.RequestID))
             {
-                mAssetRequestMap.Remove(req.RequestID);
+                _AssetRequestMap.Remove(req.RequestID);
             }
 
             req.Reset();
 
-            mAssetRequestCache.Enqueue(req);
+            _AssetRequestCache.Enqueue(req);
         }
         #endregion
 

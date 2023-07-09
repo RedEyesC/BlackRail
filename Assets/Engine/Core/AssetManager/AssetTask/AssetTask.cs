@@ -11,8 +11,8 @@ namespace GameFramework.Runtime
             DonwloadBundle = 1 << 2,
             UnLoadAsset = 1 << 3,
         }
-        private bool mRunning = false;
-        private bool mDone = false;
+        private bool _Running = false;
+        private bool _Done = false;
 
 
         private static int CurTaskNum = 0;
@@ -50,38 +50,32 @@ namespace GameFramework.Runtime
         }
 
         public abstract int TaskType { get; }
-        public abstract int BanSelfRunTaskMask { get; }
-        public abstract bool IsCommonTask { get; }
 
         public bool Update()
         {
-            if (!mRunning)
+            if (!_Running)
             {
-                if (!IsCommonTask || CurTaskNum < MaxTaskNum)
+                if (CurTaskNum < MaxTaskNum)
                 {
                     if (OnStart())
                     {
-                        mRunning = true;
-
-                        if (IsCommonTask)
-                            ++CurTaskNum;
+                        _Running = true;
+                        ++CurTaskNum;
                     }
                 }
                 return false;
             }
 
-            bool done = mDone;
+            bool done = _Done;
             if (!done)
             {
-                mDone = OnUpdate();
+                _Done = OnUpdate();
             }
 
             if (done)
             {
-                mRunning = false;
-
-                if (IsCommonTask)
-                    --CurTaskNum;
+                _Running = false;
+                --CurTaskNum;
 
                 OnEnd();
                 return true;
@@ -98,9 +92,9 @@ namespace GameFramework.Runtime
 
         public void Reset()
         {
-            mDone = false;
+            _Done = false;
             OnReset();
         }
-   
+
     }
 }

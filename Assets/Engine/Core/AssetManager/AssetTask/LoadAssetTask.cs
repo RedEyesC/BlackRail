@@ -6,22 +6,22 @@ namespace GameFramework.Runtime
 
     public class LoadAssetTask : AssetTask
     {
-        private AssetBundleInfo mBundleInfo = null;
-        private AsyncOperation mAsyncOperate = null;
-        private AssetRequest mRequest = null;
+        private AssetInfo _AssetInfo = null;
+        private AsyncOperation _AsyncOperate = null;
+        private AssetRequest _Request = null;
 
-     
-        public LoadAssetTask(AssetBundleInfo bundleInfo, AssetRequest req)
+
+        public LoadAssetTask(AssetInfo assetInfo, AssetRequest req)
         {
-            mBundleInfo = bundleInfo;
-            mRequest = req;
+            _AssetInfo = assetInfo;
+            _Request = req;
         }
 
         protected override bool OnStart()
         {
-            if (mBundleInfo.IsLoaded && mBundleInfo.IsDependencesLoaded)
+            if (_AssetInfo.IsLoaded)
             {
-                mAsyncOperate = mBundleInfo.LoadAssetAsync(mRequest.AssetName);
+                _AsyncOperate = _AssetInfo.LoadAssetAsync(_AssetInfo.AssetName);
                 return true;
             }
             return false;
@@ -29,30 +29,26 @@ namespace GameFramework.Runtime
 
         protected override bool OnUpdate()
         {
-            return mAsyncOperate == null || mAsyncOperate.isDone;
+            return _AsyncOperate == null || _AsyncOperate.isDone;
         }
 
         protected override void OnEnd()
         {
-            mBundleInfo.OnAssetObjLoaded(mRequest.AssetName);
-            mRequest.OnTaskFinish(mBundleInfo.IsAssetObjLoaded(mRequest.AssetName));
-            mRequest.OnRequestFinish();
+            _AssetInfo.OnAssetObjLoaded();
+            _Request.OnTaskFinish(_AssetInfo.IsAssetObjLoaded());
+            _Request.OnRequestFinish();
         }
 
         protected override void OnReset()
         {
-            mBundleInfo = null;
-            mAsyncOperate = null;
-            mRequest = null;
+            _AssetInfo = null;
+            _AsyncOperate = null;
+            _Request = null;
         }
 
         private static readonly int mTaskType = (int)AssetTaskType.LoadAsset;
-        private static readonly int mBanSelfRunTaskMask = (int) AssetTaskType.UnloadUnuseAsset;
-        public override int TaskType { get { return mTaskType; } }
-        public override int BanSelfRunTaskMask { get { return mBanSelfRunTaskMask; } }
-        public override bool IsCommonTask { get { return true; } }
 
-        public AssetRequest LoadRequest { get { return mRequest; } }
-        public AssetBundleInfo BundleInfo { get { return mBundleInfo; } }
+        public override int TaskType { get { return mTaskType; } }
+
     }
 }

@@ -9,15 +9,15 @@ namespace GameFramework.Runtime
     // 可能的问题：其他地方也引用了这个资源？所以要保证这个资源只在streaming中用
     public class UnLoadAssetTask : AssetTask
     {
-        private AssetBundleInfo mBundleInfo = null;
-        private AssetRequest mRequest = null;
+        private AssetInfo _AssetInfo = null;
+        private AssetRequest _Request = null;
 
         //private Stopwatch mWatch = new Stopwatch();
 
-        public UnLoadAssetTask(AssetBundleInfo bundleInfo, AssetRequest req = null)
+        public UnLoadAssetTask(AssetInfo assetInfo, AssetRequest req = null)
         {
-            mBundleInfo = bundleInfo;
-            mRequest = req;
+            _AssetInfo = assetInfo;
+            _Request = req;
         }
 
         protected override bool OnStart()
@@ -27,29 +27,25 @@ namespace GameFramework.Runtime
 
         protected override bool OnUpdate()
         {
-            return mBundleInfo.TryUnloadAsset(mRequest.AssetName);
+            return _AssetInfo.TryUnloadAsset();
         }
 
         protected override void OnEnd()
         {
- 
-            mRequest.OnTaskFinish(true);
+
+            _Request.OnTaskFinish(true);
         }
 
         protected override void OnReset()
         {
             //mWatch.Reset();
-            mBundleInfo = null;
-            mRequest = null;
+            _AssetInfo = null;
+            _Request = null;
         }
 
         private static readonly int mTaskType = (int)AssetTaskType.UnLoadAsset;
-        private static readonly int mBanSelfRunTaskMask = (int) AssetTaskType.UnloadUnuseAsset;
-        public override int TaskType { get { return mTaskType; } }
-        public override int BanSelfRunTaskMask { get { return mBanSelfRunTaskMask; } }
-        public override bool IsCommonTask { get { return true; } }
 
-        public AssetRequest LoadRequest { get { return mRequest; } }
-        public AssetBundleInfo BundleInfo { get { return mBundleInfo; } }
+        public override int TaskType { get { return mTaskType; } }
+
     }
 }
