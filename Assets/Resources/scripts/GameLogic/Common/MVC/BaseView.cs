@@ -95,20 +95,6 @@ namespace GameFramework.Runtime
         protected void ShowLayout()
         {
             SetVisible(true);
-
-            //TODO 有个banLayer的逻辑？？
-
-            //if (engine.isUnity)
-            //{
-            //    if (this._uiPanel)
-            //    {
-            //        this._uiPanel.SetSortingOrder(this._uiOrder, true)
-            //    }
-            //}
-            //else
-            //{
-            //    ViewMgr.getInstance().addViewRoot(this)
-            //}
         }
 
         private void LoadPackage()
