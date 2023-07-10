@@ -28,7 +28,7 @@ namespace GameFramework.Runtime
 
         protected abstract void OnOpen(params object[] paramList);
 
-        protected virtual void Close() { }
+        protected virtual void Close(bool immediately) { }
 
         protected abstract void OnClose();
 
@@ -53,12 +53,32 @@ namespace GameFramework.Runtime
 
             OnLayoutCreated();
  
+        }
+
+        protected void DestroyLayout()
+        {
+
+            if (!_Root)
+            {
+                GlobalCenter.GetModule<UIManager>().DestroyLayout(_Root);
+                _Root = null;
+            }
 
         }
 
         protected virtual void OnLayoutCreated()
         {
             SetLayerInternal();
+        }
+
+        protected UnityEngine.Transform GetChild(string name)
+        {
+            if (_Root != null)
+            {
+                return _Root.transform.Find(name);
+            }
+
+            return null;
         }
 
 

@@ -53,12 +53,12 @@ namespace GameFramework.Runtime
 
         }
 
-        public void Close(bool immediately)
+        protected override void Close(bool immediately = false)
         {
 
             if (_State == UIState.Open)
             {
-                base.Close();
+                base.Close(immediately);
                 OnClose();
 
                 SetVisible(false);
@@ -144,12 +144,6 @@ namespace GameFramework.Runtime
             UnLoadPackage();
         }
 
-
-        private void DestroyLayout()
-        {
-
-        }
-
         private void UnLoadPackage()
         {
 
@@ -179,6 +173,8 @@ namespace GameFramework.Runtime
         protected override void OnLayoutCreated()
         {
             base.OnLayoutCreated();
+
+            _State = UIState.Open;
 
             OnOpen(_OpenParams);
 

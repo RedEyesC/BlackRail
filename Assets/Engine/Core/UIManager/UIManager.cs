@@ -25,6 +25,10 @@ namespace GameFramework.Runtime
             _Camera = CreateUICamera(camObj);
             camObj.SetParent(GameObject.Find("_AppRoot"), false);
 
+            //创建事件监听组件
+            CreateEventSystem();
+
+            //创建ui根节点
             _UIRoot = new GameObject("UIRoot");
             _UIRoot.layer = LayerMask.NameToLayer("UI");
 
@@ -88,6 +92,15 @@ namespace GameFramework.Runtime
 
         }
 
+        private void CreateEventSystem()
+        {
+            GameObject ev = new GameObject("EventSystem");
+            ev.AddComponent<EventSystem>();
+            ev.AddComponent<StandaloneInputModule>();
+            ev.SetParent(GameObject.Find("_AppRoot"), false);
+        }
+
+
         private Camera CreateUICamera(GameObject obj)
         {
             Camera cam = obj.AddComponent<Camera>();
@@ -118,6 +131,12 @@ namespace GameFramework.Runtime
 
             return go;
         }
+
+        public void DestroyLayout(GameObject go)
+        {
+            UnityEngine.GameObject.Destroy(go);
+        }
+
 
         public void AddToRoot(Transform t, Transform root)
         {

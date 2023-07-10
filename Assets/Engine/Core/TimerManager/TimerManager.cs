@@ -74,7 +74,7 @@ namespace GameFramework.Runtime
 
             _IdCounter++;
 
-            if (timerInfo != null)
+            if (timerInfo == null)
             {
                 timerInfo = new TimerEvent(null, 0, 0, _IdCounter);
                 _TimerCache.Add(timerInfo);

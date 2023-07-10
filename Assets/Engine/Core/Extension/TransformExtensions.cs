@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 public static class TransformExtensions
 {
@@ -35,5 +36,29 @@ public static class TransformExtensions
         }
         return null;
     }
+
+    #region Touch Relative
+    public static void AddClickEventListener(this Transform t, ClickEventTriggerListener.EventPosDelegate action)
+    {
+        if (t.GetComponent<Graphic>() == null)
+            t.gameObject.AddComponent<NoDrawingRayCast>();
+
+        ClickEventTriggerListener ev = ClickEventTriggerListener.Get(t);
+        if (ev != null)
+        {
+            ev.onClick = action;
+        }
+    }
+
+    public static void RemoveClickEventListener(this Transform t)
+    {
+        ClickEventTriggerListener listener = t.gameObject.GetComponent<ClickEventTriggerListener>();
+        if (listener != null && listener.onClick != null)
+        {
+            listener.onClick = null;
+        }
+    }
+
+    #endregion
 }
 

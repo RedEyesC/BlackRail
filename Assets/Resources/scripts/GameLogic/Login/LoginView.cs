@@ -20,7 +20,12 @@ namespace GameFramework.Runtime
 
         protected override void OnOpen(params object[] paramList)
         {
-            Debug.Log("test");
+
+            GetChild("btn_start").AddClickEventListener((float x, float y) =>
+            {
+                Close();
+            });
+
         }
         
      
