@@ -152,7 +152,7 @@ namespace GameFramework.Runtime
 
                 foreach (var id in _RefPackageReqList)
                 {
-                    GameCenter.GetModule<AssetManager>().UnLoad(id);
+                    GlobalCenter.GetModule<AssetManager>().UnLoad(id);
                 }
 
                 _RefPackageReqList.Clear();

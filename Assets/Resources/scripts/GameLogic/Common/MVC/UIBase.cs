@@ -58,7 +58,7 @@ namespace GameFramework.Runtime
         protected void DestroyLayout()
         {
 
-            if (!_Root)
+            if (_Root)
             {
                 GlobalCenter.GetModule<UIManager>().DestroyLayout(_Root);
                 _Root = null;
