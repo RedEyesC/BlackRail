@@ -4,35 +4,33 @@ using UnityEngine.EventSystems;
 
 namespace GameFramework.Runtime
 {
-    public class UIManager :GameModule
+    public class UIManager : GameModule
     {
         public static Vector2 ResolutionSize = new Vector2(1280.0f, 720.0f);
 
-        private GameObject mUIRoot = null;
-        private Transform mUIRootTrans = null;
-        private Camera mCamera = null;
-        private float mScaleFactor = 1.0f;
-        private Vector2 mUISize;
-        
-
+        private GameObject _UIRoot = null;
+        private Transform _UIRootTrans = null;
+        private Camera _Camera = null;
+        private float _ScaleFactor = 1.0f;
+     
         public Camera GetCamera()
         {
-            return mCamera;
+            return _Camera;
         }
 
         public override void Start()
         {
             //创建ui相机
             GameObject camObj = new GameObject("UICamera");
-            mCamera = CreateUICamera(camObj);
+            _Camera = CreateUICamera(camObj);
             camObj.SetParent(GameObject.Find("_AppRoot"), false);
 
-            mUIRoot = new GameObject("UIRoot");
-            mUIRoot.layer = LayerMask.NameToLayer("UI");
+            _UIRoot = new GameObject("UIRoot");
+            _UIRoot.layer = LayerMask.NameToLayer("UI");
 
-            Canvas canvas = mUIRoot.AddComponent<Canvas>();
+            Canvas canvas = _UIRoot.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceCamera;
-            canvas.worldCamera = mCamera;
+            canvas.worldCamera = _Camera;
             canvas.planeDistance = 1000.0f;
 
             float screenWidth = Screen.width;
@@ -42,18 +40,18 @@ namespace GameFramework.Runtime
             float scaleX = screenWidth / ResolutionSize.x;
             float scaleY = screenHeight / ResolutionSize.y;
 
-            CanvasScaler scaler = mUIRoot.AddComponent<CanvasScaler>();
+            CanvasScaler scaler = _UIRoot.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = ResolutionSize;
             if (scaleX > scaleY)
                 scaler.matchWidthOrHeight = 1.0f;
             else
                 scaler.matchWidthOrHeight = 0.0f;
-            
-            mUIRootTrans = mUIRoot.transform;
-            mUIRootTrans.position = Vector3.zero;
-            
-            mUIRoot.SetParent(GameObject.Find("_AppRoot"), false);
+
+            _UIRootTrans = _UIRoot.transform;
+            _UIRootTrans.position = Vector3.zero;
+
+            _UIRoot.SetParent(GameObject.Find("_AppRoot"), false);
 
             //GameObject ev = new GameObject("_EventSystem");
             //ev.AddComponent<EventSystem>();
@@ -63,19 +61,19 @@ namespace GameFramework.Runtime
             //float aspectRatio = screenWidth / screenHeight;
             //float designedAspectRatio = ResolutionSize.x / ResolutionSize.y;
             //if (aspectRatio < designedAspectRatio)
-            //    mScaleFactor = 1.0f / (((ResolutionSize.x / screenWidth) * screenHeight) / ResolutionSize.y);
+            //    _ScaleFactor = 1.0f / (((ResolutionSize.x / screenWidth) * screenHeight) / ResolutionSize.y);
             //else
-            //    mScaleFactor = 1.0f;
+            //    _ScaleFactor = 1.0f;
 
             //if (scaleX > scaleY)
             //{
-            //    mUISize.y = ResolutionSize.y;
-            //    mUISize.x = screenWidth / screenHeight * ResolutionSize.y;
+            //    _UISize.y = ResolutionSize.y;
+            //    _UISize.x = screenWidth / screenHeight * ResolutionSize.y;
             //}
             //else
             //{
-            //    mUISize.x = ResolutionSize.x;
-            //    mUISize.y = screenHeight / screenWidth * ResolutionSize.x;
+            //    _UISize.x = ResolutionSize.x;
+            //    _UISize.y = screenHeight / screenWidth * ResolutionSize.x;
             //}
 
         }
@@ -111,20 +109,14 @@ namespace GameFramework.Runtime
         }
 
 
-        public GameObject CreateLayout(string bundleName, string assetName)
+        public GameObject CreateLayout(string assetName)
         {
-            GameObject panelObject = new GameObject("UIPanel");
-            //desc = AssetManager.Instance.GetAssetObjWithType<UIPrefabDesc>(bundleName, assetName);
-            //if (desc == null)
-            //    return null;
+            GameObject viewObj = GlobalCenter.GetModule<AssetManager>().GetAssetObjWithType<GameObject>(assetName);
 
-            //desc.Init();
+            GameObject go = GameObject.Instantiate<GameObject>(viewObj);
+            _UIRootTrans.AddChild(go.transform);
 
-            //Transform t = desc.CreateUIObj();
-            //if (t == null)
-            //    return null;
-
-            return panelObject;
+            return go;
         }
 
         public void AddToRoot(Transform t, Transform root)
@@ -134,29 +126,24 @@ namespace GameFramework.Runtime
             if (canvas != null)
             {
                 canvas.overrideSorting = true;
-                canvas.worldCamera = mCamera;
+                canvas.worldCamera = _Camera;
             }
         }
 
         public void AddToUIRoot(Transform t)
         {
-            AddToRoot(t, mUIRootTrans);
+            AddToRoot(t, _UIRootTrans);
         }
 
-        public void GetFullScreenUISize(out float width, out float height)
-        {
-            width = mUISize.x;
-            height = mUISize.y;
-        }
-
+   
         public void GetUIScaleFactor(out float factor)
         {
-            factor = mScaleFactor;
+            factor = _ScaleFactor;
         }
 
         public void SetUICamBackgroundColor(Color c)
         {
-            mCamera.backgroundColor = c;
+            _Camera.backgroundColor = c;
         }
     }
 }

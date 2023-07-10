@@ -1,6 +1,7 @@
-﻿namespace GameFramework.Runtime
+﻿
+namespace GameFramework.Runtime
 {
-    //UIState = 'open' | 'caching' | 'loading' | 'close'
+
     internal abstract class UIBase
     {
         protected enum UIState
@@ -11,10 +12,16 @@
             Loading
         }
 
-        protected  string _PackageName;
+        protected enum Layer
+        {
+            UI = 5,
+        }
+
+
+        protected string _PackageName;
         protected  string _ComName;
         protected  UIState  _State = UIState.Close;
-        protected int _LayerName;
+        protected Layer _LayerName = Layer.UI;
 
         protected UnityEngine.GameObject _Root;
    
@@ -25,7 +32,7 @@
 
         protected abstract void OnClose();
 
-        public void SetLayer(int layer)
+        protected void SetLayer(Layer layer)
         {
             _LayerName = layer;
             SetLayerInternal();
@@ -33,20 +40,19 @@
 
         private void SetLayerInternal()
         {
-            _Root.layer = _LayerName;
+            _Root.layer = (int)_LayerName ;
         }
 
         protected void CreateLayout(){
 
             if (!_Root)
             {
-                _Root = GlobalCenter.GetModule<UIManager>().CreateLayout(_PackageName, _ComName);
-                OnLayoutCreated();
+                string path = Utils.GetUIPrefabPath(_PackageName, _ComName);
+                _Root = GlobalCenter.GetModule<UIManager>().CreateLayout(path); 
             }
-            else
-            {
-                OnLayoutCreated();
-            }
+
+            OnLayoutCreated();
+ 
 
         }
 

@@ -10,6 +10,11 @@ namespace GameFramework.Runtime
         private AsyncOperation _AsyncOperate = null;
         private AssetRequest _Request = null;
 
+        private float _TimeOutTime = 0f;
+        private bool _isHandleTimeOut = false;
+        private float _ProcessLast = 0f;
+        private float _LoadFileTimeOut = 10f;
+
 
         public LoadAssetTask(AssetInfo assetInfo, AssetRequest req)
         {
@@ -21,15 +26,50 @@ namespace GameFramework.Runtime
         {
             if (_AssetInfo.IsLoaded)
             {
-                _AsyncOperate = _AssetInfo.LoadAssetAsync(_AssetInfo.AssetName);
                 return true;
             }
-            return false;
+
+            _TimeOutTime = Time.time + _LoadFileTimeOut;
+            _AsyncOperate = _AssetInfo.LoadAssetAsync(_AssetInfo.AssetName);
+            return true;
+
         }
 
         protected override bool OnUpdate()
         {
+
+            if (_AssetInfo.IsLoaded)
+            {
+                return true;
+            }
+
             return _AsyncOperate == null || _AsyncOperate.isDone;
+        }
+
+        public override bool IsTimeOut()
+        {
+            if ((_TimeOutTime < Time.time && _AsyncOperate.progress == _ProcessLast))
+            {
+                return true;
+            }
+            else
+            {
+                if (_AsyncOperate.progress != _ProcessLast)
+                {
+                    _TimeOutTime = Time.time + _LoadFileTimeOut;
+                    _ProcessLast = _AsyncOperate.progress;
+                }
+                return false;
+            }
+        }
+        protected override void OnTimeOut()
+        {
+            if (!_isHandleTimeOut)
+            {
+                _isHandleTimeOut = true;
+
+                _AssetInfo.Reset();
+            }
         }
 
         protected override void OnEnd()
@@ -44,6 +84,11 @@ namespace GameFramework.Runtime
             _AssetInfo = null;
             _AsyncOperate = null;
             _Request = null;
+
+            _TimeOutTime = 0f;
+            _isHandleTimeOut = false;
+            _ProcessLast = 0f;
+            _LoadFileTimeOut = 10f;
         }
 
         private static readonly int mTaskType = (int)AssetTaskType.LoadAsset;

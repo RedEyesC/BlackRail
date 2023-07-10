@@ -84,7 +84,11 @@ namespace GameFramework.Runtime
             {
                 if (IsTimeOut())
                 {
+                    _Running = false;
+                    --CurTaskNum;
+
                     OnTimeOut();
+                    return true;
                 }
             }
             return false;

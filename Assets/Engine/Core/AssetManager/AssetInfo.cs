@@ -13,36 +13,20 @@ namespace GameFramework.Runtime
             Loaded,
         }
 
-        public enum DownloadState
-        {
-            None,
-            Downloading,
-            Downloaded,
-        }
+        public string AssetName;
+        
+        public AssetState State = AssetState.Unload;
 
-        private string _AssetName;
-        private Type _AssetType;
-        private int _Priority;
-
-
-        //private static int sAssetBundleNum = 0;
-        //public static int AssetBundleNum { get { return sAssetBundleNum; } }
-
-        public string AssetName { get { return _AssetName; } }
-        public AssetState State { get; private set; }
-
-        //private int mRefCount = 0;
-        //private bool mResourceMode = false;
 
         private UnityEngine.Object _AssetObj = null;
         private ResourceRequest _AssetRequest = null;
 
 
-        public AssetInfo(string assetName, Type assetType, int priority)
+        public AssetInfo(string assetName)
         {
-            _AssetName = assetName;
-            _AssetType = assetType;
-            _Priority = priority;
+            AssetName = assetName;
+            State = AssetState.Unload;
+
         }
 
 
@@ -53,16 +37,35 @@ namespace GameFramework.Runtime
                 return _AssetObj;
             return false;
         }
-        #endregion
 
+        public UnityEngine.Object GetAssetObj()
+        {
+            if (_AssetObj != null)
+            {
+                return _AssetObj;
+            }
+            return null;
+        }
+
+        public T GetAssetObjWithType<T>() where T : class
+        {
+            if (_AssetObj != null)
+            {
+                return _AssetObj as T;
+            }
+            return null;
+        }
+
+        #endregion
 
 
         #region Asset Operate
 
         public AsyncOperation LoadAssetAsync(string assetName)
         {
-            if (_AssetRequest == null)
+            if (_AssetRequest == null || State == AssetState.Unload)
             {
+                State = AssetState.Loading;
                 _AssetRequest = Resources.LoadAsync(assetName);
             }
 
@@ -71,6 +74,9 @@ namespace GameFramework.Runtime
 
         public void OnAssetObjLoaded()
         {
+
+            State = AssetState.Loaded;
+
             if (_AssetObj == null)
             {
                 if (_AssetRequest != null)
@@ -102,7 +108,7 @@ namespace GameFramework.Runtime
         {
             if (State != AssetState.Loaded)
             {
-                Debug.LogErrorFormat("Invalid Unload Bundle {0}", _AssetName);
+                Debug.LogErrorFormat("Invalid Unload Bundle {0}", AssetName);
             }
 
 
@@ -111,11 +117,16 @@ namespace GameFramework.Runtime
                 Resources.UnloadAsset(_AssetObj);
             }
 
+             Reset();
+        }
+
+
+        public void Reset()
+        {
             State = AssetState.Unload;
             _AssetObj = null;
             _AssetRequest = null;
         }
-
 
         public bool IsLoaded
         {

@@ -116,9 +116,9 @@ namespace GameFramework.Runtime
             _RefPackageReqList.Clear();
             _RefPackageReqFinishNum = 0;
 
-            string path = Utils.GetUIPackPath(_PackageName);
+            string path = Utils.GetUIPrefabPath(_PackageName, _ComName);
 
-            int id = GlobalCenter.GetModule<AssetManager>().LoadAssetAsync(path, null,null,OnLoadResFinish);
+            int id = GlobalCenter.GetModule<AssetManager>().LoadAssetAsync(path,OnLoadResFinish);
 
             _RefPackageReqList.Add(id);
         }
@@ -132,7 +132,7 @@ namespace GameFramework.Runtime
                 return;
             }
 
-            if (_Root)
+            if (!_Root)
             {
                 this.CreateLayout();
             }

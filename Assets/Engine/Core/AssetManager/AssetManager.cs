@@ -18,11 +18,12 @@ namespace GameFramework.Runtime
 
         private Queue<int> _FinishRequestQueue = new Queue<int>();
 
+        private Dictionary<string, AssetInfo> _AssetInfoMap = new Dictionary<string, AssetInfo>();
+
         private LinkedListNode<AssetTask> _CurTaskNode = null;
         private LinkedList<AssetTask> _TaskList = new LinkedList<AssetTask>();
         private Stack<LinkedListNode<AssetTask>> _TaskNodeCache = new Stack<LinkedListNode<AssetTask>>();
 
-        private Stopwatch mWatch = new Stopwatch();
 
         private struct LoadAssetInfo
         {
@@ -48,6 +49,7 @@ namespace GameFramework.Runtime
                     _CurTaskNode.Value.Reset();
                     tmpNode = _CurTaskNode;
                     _CurTaskNode = _CurTaskNode.Next;
+
                     _TaskList.Remove(tmpNode);
                     tmpNode.Value = null;
                     //把使用完的节点压入缓存队列，等待下次复用
@@ -64,6 +66,8 @@ namespace GameFramework.Runtime
         {
             _AssetRequestMap.Clear();
             _FinishRequestQueue.Clear();
+
+            _AssetInfoMap.Clear();
 
             _AssetReqID = 0;
             _AssetRequestCache.Clear();
@@ -117,25 +121,68 @@ namespace GameFramework.Runtime
         }
         #endregion
 
+
+
+        #region Get Asset
+        public AssetInfo GetAssetInfo(string assetName)
+        {
+            AssetInfo info = null;
+            if (_AssetInfoMap.TryGetValue(assetName, out info))
+            {
+                return info;
+            }
+            else
+            {
+                info = new AssetInfo(assetName);
+                _AssetInfoMap.Add(assetName, info);
+
+            }
+            return info;
+        }
+
+        public UnityEngine.Object GetAssetObj(string assetName)
+        {
+            AssetInfo info = GetAssetInfo(assetName);
+            if (info != null)
+            {
+                return info.GetAssetObj();
+            }
+            return null;
+        }
+
+        public T GetAssetObjWithType<T>(string assetName) where T : class
+        {
+            AssetInfo info = GetAssetInfo(assetName);
+            if (info != null)
+            {
+                return info.GetAssetObjWithType<T>();
+            }
+            return null;
+        }
+        #endregion
+
+
+
+
         #region Request Load Asset
-        public int LoadAssetAsync(string assetName, Type assetType, int priority = 1000, RequestCallBack callback = null)
+        public int LoadAssetAsync(string assetName, RequestCallBack callback = null)
         {
-            AssetRequest req = CreateAssetRequest(assetName, assetType, priority, callback, AssetRequestType.LoadOne);
+            AssetRequest req = CreateAssetRequest(assetName, callback, AssetRequestType.LoadOne);
             req.ProcessRequest();
             return req.RequestID;
         }
 
-        public int LoadAllAssetAsync(string assetName, Type assetType, int priority = 1000, RequestCallBack callback = null)
+        public int LoadAllAssetAsync(string assetName, RequestCallBack callback = null)
         {
-            AssetRequest req = CreateAssetRequest(assetName, assetType, priority, callback, AssetRequestType.LoadAll);
+            AssetRequest req = CreateAssetRequest(assetName, callback, AssetRequestType.LoadAll);
             req.ProcessRequest();
             return req.RequestID;
         }
 
 
-        public int UnLoadAssetAsync(string assetName, Type assetType, int priority = 1000, RequestCallBack callback = null)
+        public int UnLoadAssetAsync(string assetName, RequestCallBack callback = null)
         {
-            AssetRequest req = CreateAssetRequest(assetName, assetType, priority, callback, AssetRequestType.UnloadOne);
+            AssetRequest req = CreateAssetRequest(assetName, callback, AssetRequestType.UnloadOne);
             req.ProcessRequest();
             return req.RequestID;
         }
@@ -167,10 +214,10 @@ namespace GameFramework.Runtime
             return req;
         }
 
-        private AssetRequest CreateAssetRequest(string assetName, Type assetType, int priority, RequestCallBack callback, AssetRequestType type)
+        private AssetRequest CreateAssetRequest(string assetName, RequestCallBack callback, AssetRequestType type)
         {
 
-            AssetInfo info = new AssetInfo(assetName, assetType, priority);
+            AssetInfo info = GetAssetInfo(assetName);
 
 
             AssetRequest req = null;
