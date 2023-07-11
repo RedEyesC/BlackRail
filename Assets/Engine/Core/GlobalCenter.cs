@@ -18,8 +18,11 @@ namespace GameFramework.Runtime
             CreateModule<TimerManager>();
 
             CreateModule<AssetManager>();
+
+            CreateModule<CameraManager>();
+
             CreateModule<UIManager>();
-           
+
             CreateModule<ScriptManager>();
 
             CreateModule<AppLoopManager>();

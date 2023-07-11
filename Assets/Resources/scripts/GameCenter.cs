@@ -17,7 +17,10 @@ namespace GameFramework.Runtime
         /// </summary>
         public static void Start()
         {
+            CreateModule<ModuleCenter>();
+
             CreateModule<GameLoopManager>();
+ 
 
             foreach (GameModule module in _GameModules)
             {

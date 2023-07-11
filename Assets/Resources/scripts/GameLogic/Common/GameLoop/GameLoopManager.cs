@@ -7,7 +7,10 @@
         public override void Start()
         {
             _StateMachine = new StateMachine();
+
             _StateMachine.AddState(new GameLoopStart());
+            _StateMachine.AddState(new GameLoopPlay());
+            _StateMachine.AddState(new GameLoopLoading());
 
             _StateMachine.ChangeState("start");
         }
@@ -19,7 +22,7 @@
 
         public override void Destroy()
         {
-
+            _StateMachine.Destroy(null);
         }
     }
 }

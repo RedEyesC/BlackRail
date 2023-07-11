@@ -9,40 +9,51 @@ namespace GameFramework.Runtime
 
     public class StateMachine
     {
-        private Dictionary<string, StateBase> mStateMap = new Dictionary<string, StateBase>();
-        private StateBase mCurState = null;
+        private Dictionary<string, StateBase> _StateMap = new Dictionary<string, StateBase>();
+        private StateBase _CurState = null;
 
         public void Start()
         {
+
         }
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
-            if (mCurState != null)
+            if (_CurState != null)
             {
-                mCurState.StateUpdate(elapseSeconds, realElapseSeconds);
+                _CurState.StateUpdate(elapseSeconds, realElapseSeconds);
             }
         }
 
         public void AddState(StateBase state)
         {
-            mStateMap.Add(state.GetID(), state);
+            _StateMap.Add(state.GetID(), state);
         }
 
-        public void ChangeState(string id)
+        public void ChangeState(string id, params object[] paramList)
         {
  
-            StateBase newState = mStateMap[id];
+            StateBase newState = _StateMap[id];
             if (newState != null)
             {
-                if (mCurState != null)
+                if (_CurState != null)
                 {
-                    mCurState.StateQuit();
+                    _CurState.StateQuit(paramList);
                 }
 
-                mCurState = newState;
-                mCurState.StateEnter();
+                _CurState = newState;
+                _CurState.StateEnter(paramList);
             }
+        }
+
+        public void Destroy(object[] paramList)
+        {
+            if(_CurState != null)
+            {
+                _CurState.StateQuit(paramList);
+            }
+            _StateMap.Clear();
+            _CurState = null;
         }
     }
 }

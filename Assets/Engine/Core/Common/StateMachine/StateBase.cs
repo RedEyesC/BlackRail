@@ -16,7 +16,7 @@ namespace GameFramework.Runtime
         /// <summary>
         /// 进入状态时调用。
         /// </summary>
-        public virtual void StateEnter() { }
+        public virtual void StateEnter(params object[] paramList) { }
 
         /// <summary>
         /// 状态轮询时调用。
@@ -28,7 +28,7 @@ namespace GameFramework.Runtime
         /// <summary>
         /// 状态销毁时调用。
         /// </summary>
-        public virtual void StateQuit() { }
+        public virtual void StateQuit(params object[] paramList) { }
 
 
     }

@@ -8,11 +8,9 @@
             return "start";
         }
 
-        public override void StateEnter()
+        public override void StateEnter(params object[] paramList)
         {
-            _View = new LoginView();
-
-            _View.Open();
+            GameCenter.GetModule<ModuleCenter>().GetModule<LoginCtrl>().OpenLoginView();
         }
     }
 }

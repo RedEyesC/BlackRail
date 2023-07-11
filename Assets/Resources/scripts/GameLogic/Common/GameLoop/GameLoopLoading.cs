@@ -1,15 +1,15 @@
 ﻿namespace GameFramework.Runtime
 {
-    public class AppLoopStart : StateBase
+    internal class GameLoopLoading : StateBase
     {
         public override string GetID()
         {
-            return "start";
+            return "Loading";
         }
 
         public override void StateEnter(params object[] paramList)
         {
-            GlobalCenter.GetModule<ScriptManager>().CallGameStart();
+
         }
     }
 }

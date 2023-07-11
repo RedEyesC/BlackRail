@@ -3,9 +3,6 @@
 namespace GameFramework.Runtime
 {
 
-
-
-
     internal abstract class BaseView : UIBase
     {
         protected object[] _OpenParams;

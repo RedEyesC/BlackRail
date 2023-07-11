@@ -19,7 +19,7 @@
 
         public override void Destroy()
         {
-
+            _StateMachine.Destroy(null);
         }
     }
 }

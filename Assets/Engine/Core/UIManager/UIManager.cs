@@ -57,10 +57,6 @@ namespace GameFramework.Runtime
 
             _UIRoot.SetParent(GameObject.Find("_AppRoot"), false);
 
-            //GameObject ev = new GameObject("_EventSystem");
-            //ev.AddComponent<EventSystem>();
-            //ev.AddComponent<StandaloneInputModule>();
-            //GameObject.DontDestroyOnLoad(ev);
 
             //float aspectRatio = screenWidth / screenHeight;
             //float designedAspectRatio = ResolutionSize.x / ResolutionSize.y;
@@ -110,14 +106,13 @@ namespace GameFramework.Runtime
             cam.farClipPlane = 1010.0f;
             cam.orthographic = true;
             cam.orthographicSize = ResolutionSize.y / 2.0f / 100.0f;
-            cam.depth = 100;
+            cam.depth = 200;
             cam.allowHDR = false;
             cam.allowMSAA = false;
-            cam.backgroundColor = new Color(0.0f, 0.0f, 0.0f, 1.0f);
             cam.transform.position = new Vector3(0.0f, 0.0f, -10000.0f);
             cam.useOcclusionCulling = false;
-            cam.backgroundColor = Color.white;
-
+            cam.backgroundColor = Color.black;
+            
             return cam;
         }
 
