@@ -7,9 +7,9 @@ namespace GameFramework.Runtime
     public class UnloadUnuseAssetTask : AssetTask
     {
         private AsyncOperation _AsyncOperate = null;
-
         public UnloadUnuseAssetTask()
         {
+
         }
 
         protected override bool OnStart()

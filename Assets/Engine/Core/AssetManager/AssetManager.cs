@@ -165,6 +165,22 @@ namespace GameFramework.Runtime
 
 
         #region Request Load Asset
+
+        public int LoadSceneAsync(string assetName, RequestCallBack callback = null)
+        {
+            AssetRequest req = CreateAssetRequest(assetName, callback, AssetRequestType.LoadScene);
+            req.ProcessRequest();
+            return req.RequestID;
+        }
+
+        public int UnLoadSceneAsync(string assetName, RequestCallBack callback = null)
+        {
+            AssetRequest req = CreateAssetRequest(assetName, callback, AssetRequestType.UnloadScene);
+            req.ProcessRequest();
+            return req.RequestID;
+        }
+
+
         public int LoadAssetAsync(string assetName, RequestCallBack callback = null)
         {
             AssetRequest req = CreateAssetRequest(assetName, callback, AssetRequestType.LoadOne);

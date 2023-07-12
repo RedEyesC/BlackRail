@@ -11,6 +11,7 @@ namespace GameFramework.Runtime
         private List<Type> _CtrlList = new List<Type>
         {
             typeof(LoginCtrl),
+            typeof(SceneCtrl),
         };
 
 

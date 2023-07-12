@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using UnityEngine.SceneManagement;
 
 namespace GameFramework.Runtime
 {
@@ -19,7 +20,7 @@ namespace GameFramework.Runtime
 
 
         private UnityEngine.Object _AssetObj = null;
-        private ResourceRequest _AssetRequest = null;
+        private AsyncOperation _AssetRequest = null;
 
 
         public AssetInfo(string assetName)
@@ -81,13 +82,14 @@ namespace GameFramework.Runtime
             {
                 if (_AssetRequest != null)
                 {
-                    _AssetObj = _AssetRequest.asset;
+                    ResourceRequest req = (ResourceRequest) _AssetRequest;
+                    _AssetObj = req.asset;
                 }
 
             }
         }
 
-        public bool TryUnloadAsset()
+        public bool UnloadAsset()
         {
 
             switch (State)
@@ -97,29 +99,16 @@ namespace GameFramework.Runtime
                 case AssetState.Loading:
                     return false;
                 case AssetState.Loaded:
-                    UnloadSelf();
+
+                    if (_AssetObj != null)
+                    {
+                        Resources.UnloadAsset(_AssetObj);
+                    } 
                     return true;
             }
 
             return false;
         }
-
-        public void UnloadSelf()
-        {
-            if (State != AssetState.Loaded)
-            {
-                Debug.LogErrorFormat("Invalid Unload Bundle {0}", AssetName);
-            }
-
-
-            if (_AssetObj != null)
-            {
-                Resources.UnloadAsset(_AssetObj);
-            }
-
-             Reset();
-        }
-
 
         public void Reset()
         {
@@ -136,9 +125,36 @@ namespace GameFramework.Runtime
             }
         }
 
-
         #endregion
 
+
+        #region  Load Scene
+        public AsyncOperation LoadSceneAsync(string assetName)
+        {
+            if (_AssetRequest == null || State == AssetState.Unload)
+            {
+                State = AssetState.Loading;
+                _AssetRequest = SceneManager.LoadSceneAsync(assetName, LoadSceneMode.Additive);
+            }
+
+            return _AssetRequest;
+        }
+
+        public void OnSceneLoaded()
+        {
+
+            State = AssetState.Loaded;
+
+        }
+
+        public AsyncOperation UnloadScene()
+        {
+            _AssetRequest = SceneManager.UnloadSceneAsync(AssetName);
+
+            return _AssetRequest;
+        }
+
+        #endregion
     }
 
 }

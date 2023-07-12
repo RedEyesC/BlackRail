@@ -8,5 +8,10 @@
             return  string.Format("ui/{0}/{1}",pkgName, comName);
         }
 
+        public static string GetMapPath(int mapId)
+        {
+            return string.Format("Resources/map/{0}/{0}", mapId);
+        }
+
     }
 }

@@ -1,12 +1,16 @@
+
+using UnityEngine;
+
 namespace GameFramework.Runtime
 {
 
-    public class UnLoadAssetTask : AssetTask
+    public class UnLoadSceneTask : AssetTask
     {
         private AssetInfo _AssetInfo = null;
+        private AsyncOperation _AsyncOperate = null;
         private AssetRequest _Request = null;
 
-        public UnLoadAssetTask(AssetInfo assetInfo, AssetRequest req = null)
+        public UnLoadSceneTask(AssetInfo assetInfo, AssetRequest req = null)
         {
             _AssetInfo = assetInfo;
             _Request = req;
@@ -14,12 +18,15 @@ namespace GameFramework.Runtime
 
         protected override bool OnStart()
         {
+            _AsyncOperate = _AssetInfo.UnloadScene();
             return true;
         }
 
         protected override bool OnUpdate()
         {
-            return _AssetInfo.UnloadAsset();
+            if (_AsyncOperate != null)
+                return _AsyncOperate.isDone;
+            return true;
         }
 
         protected override void OnEnd()
@@ -33,6 +40,7 @@ namespace GameFramework.Runtime
         {
             _AssetInfo = null;
             _Request = null;
+            _AsyncOperate = null;
         }
 
         private static readonly int _TaskType = (int)AssetTaskType.UnLoadAsset;

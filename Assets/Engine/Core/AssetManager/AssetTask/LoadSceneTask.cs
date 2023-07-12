@@ -4,7 +4,7 @@ using UnityEngine;
 namespace GameFramework.Runtime
 {
 
-    public class LoadAssetTask : AssetTask
+    public class LoadSceneTask : AssetTask
     {
         private AssetInfo _AssetInfo = null;
         private AsyncOperation _AsyncOperate = null;
@@ -16,7 +16,7 @@ namespace GameFramework.Runtime
         private float _LoadFileTimeOut = 10f;
 
 
-        public LoadAssetTask(AssetInfo assetInfo, AssetRequest req)
+        public LoadSceneTask(AssetInfo assetInfo, AssetRequest req)
         {
             _AssetInfo = assetInfo;
             _Request = req;
@@ -30,7 +30,7 @@ namespace GameFramework.Runtime
             }
 
             _TimeOutTime = Time.time + _LoadFileTimeOut;
-            _AsyncOperate = _AssetInfo.LoadAssetAsync(_AssetInfo.AssetName);
+            _AsyncOperate = _AssetInfo.LoadSceneAsync(_AssetInfo.AssetName); 
             return true;
 
         }
@@ -74,8 +74,8 @@ namespace GameFramework.Runtime
 
         protected override void OnEnd()
         {
-            _AssetInfo.OnAssetObjLoaded();
-            _Request.OnTaskFinish(_AssetInfo.IsAssetObjLoaded());
+            _AssetInfo.OnSceneLoaded();
+            _Request.OnTaskFinish(true);
             _Request.OnRequestFinish();
         }
 
@@ -91,7 +91,7 @@ namespace GameFramework.Runtime
             _LoadFileTimeOut = 10f;
         }
 
-        private static readonly int _TaskType = (int)AssetTaskType.LoadAsset;
+        private static readonly int _TaskType = (int)AssetTaskType.LoadScene;
 
         public override int TaskType { get { return _TaskType; } }
 

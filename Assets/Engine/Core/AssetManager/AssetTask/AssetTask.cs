@@ -10,6 +10,8 @@ namespace GameFramework.Runtime
             UnloadUnuseAsset = 1 << 1,
             DonwloadBundle = 1 << 2,
             UnLoadAsset = 1 << 3,
+            LoadScene = 1 << 4,
+            UnLoadScene = 1 << 5,
         }
         private bool _Running = false;
         private bool _Done = false;

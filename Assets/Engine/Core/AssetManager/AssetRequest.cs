@@ -7,8 +7,10 @@ namespace GameFramework.Runtime
     public enum AssetRequestType
     {
         LoadOne,
+        LoadScene,
         LoadAll,
         UnloadOne,
+        UnloadScene,
         Download,
     }
 
@@ -44,7 +46,10 @@ namespace GameFramework.Runtime
 
         public void Reset()
         {
+            AssetInfo.UnloadAsset();
+            AssetInfo.Reset();
             AssetInfo = null;
+
             _TaskFinishCallBack = null;
             _RequestFinishCallBack = null;
 
@@ -59,6 +64,20 @@ namespace GameFramework.Runtime
         {
             switch (RequestType)
             {
+                case AssetRequestType.LoadScene:
+                    {
+
+                        LoadSceneTask task = new LoadSceneTask(AssetInfo, this);
+                        GlobalCenter.GetModule<AssetManager>().AddTask(task);
+                    }
+                    break;
+                case AssetRequestType.UnloadScene:
+                    {
+                        UnLoadSceneTask task = new UnLoadSceneTask(AssetInfo, this);
+                        GlobalCenter.GetModule<AssetManager>().AddTask(task);
+
+                    }
+                    break;
                 case AssetRequestType.LoadOne:
                     {
 

@@ -34,7 +34,6 @@ namespace GameFramework.Runtime
 
             if (_State == UIState.Close)
             {
-
                 _State = UIState.Loading;
                 LoadPackage();
             }
