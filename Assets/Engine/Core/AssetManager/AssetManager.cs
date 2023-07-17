@@ -271,6 +271,21 @@ namespace GameFramework.Runtime
         }
         #endregion
 
+
+        public GameObject CreateAsset(string assetName)
+        {
+            GameObject viewObj = GlobalCenter.GetModule<AssetManager>().GetAssetObjWithType<GameObject>(assetName);
+            GameObject go = GameObject.Instantiate<GameObject>(viewObj);
+
+            return go;
+        }
+
+
+        public void DestoryAsset(GameObject go)
+        {
+            UnityEngine.GameObject.Destroy(go);
+        }
+
     }
 
 }

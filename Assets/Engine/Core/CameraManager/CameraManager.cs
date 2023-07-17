@@ -6,6 +6,8 @@ namespace GameFramework.Runtime
 {
     public class CameraManager : GameModule
     {
+        private GameObject _ObjLayer = null;
+        private Transform _ObjLayerTrans = null;
         private Camera _Camera = null;
         public static Vector2 ResolutionSize = new Vector2(1280.0f, 720.0f);
 
@@ -26,6 +28,11 @@ namespace GameFramework.Runtime
 
 
 
+
+            _ObjLayer = new GameObject("ObjLayer");
+            _ObjLayerTrans = _ObjLayer.transform;
+            _ObjLayerTrans.position = Vector3.zero;
+            _ObjLayer.SetParent(GameObject.Find("_AppRoot"), false);
         }
 
         public override void Update(float elapseSeconds, float realElapseSeconds)
@@ -64,6 +71,17 @@ namespace GameFramework.Runtime
 
             return (ResolutionSize.y * scale) / screenWidth;
 
+        }
+
+
+        public void AddToObjRoot(Transform t)
+        {
+            t.SetParent(_ObjLayerTrans, false);
+        }
+
+        public void DestroyLayout(GameObject go)
+        {
+            UnityEngine.GameObject.Destroy(go);
         }
 
 

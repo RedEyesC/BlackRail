@@ -12,6 +12,13 @@
         {
             //GameCenter.GetModule<ModuleCenter>().GetModule<LoginCtrl>().OpenLoginView();
             GameCenter.GetModule<ModuleCenter>().GetModule<SceneCtrl>().LoadScene(1001);
+
+           Role mainRole = GameCenter.GetModule<ModuleCenter>().GetModule<SceneCtrl>().CreateMainRole();
+        }
+
+        public override void StateUpdate(float elapseSeconds, float realElapseSeconds)
+        {
+            GameCenter.GetModule<ModuleCenter>().GetModule<SceneCtrl>().Update(elapseSeconds, realElapseSeconds);
         }
     }
 }
