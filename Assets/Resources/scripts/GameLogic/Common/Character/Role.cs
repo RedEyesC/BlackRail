@@ -31,5 +31,12 @@ namespace GameFramework.Runtime
             });
 
         }
+
+
+        public void PlayAnim()
+        {
+
+
+        }
     }
 }

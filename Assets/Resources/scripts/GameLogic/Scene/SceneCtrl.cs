@@ -48,6 +48,8 @@ namespace GameFramework.Runtime
             return role;
         }
 
+
+
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
 

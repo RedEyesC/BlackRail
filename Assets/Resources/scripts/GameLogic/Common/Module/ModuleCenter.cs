@@ -12,6 +12,7 @@ namespace GameFramework.Runtime
         {
             typeof(LoginCtrl),
             typeof(SceneCtrl),
+            typeof(InputCtrl),
         };
 
 

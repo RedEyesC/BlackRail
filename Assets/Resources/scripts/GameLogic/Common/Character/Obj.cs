@@ -8,6 +8,15 @@ namespace GameFramework.Runtime
         protected UnityEngine.GameObject _RootObj;
 
 
+        public UnityEngine.Transform Root
+        {
+            get
+            {
+                return _RootObj.transform;
+            }
+        }
+
+
         public virtual void Init() { 
 
             _RootObj = new GameObject();
