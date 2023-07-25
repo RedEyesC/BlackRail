@@ -3,13 +3,14 @@ using UnityEngine;
 
 namespace GameFramework.Runtime
 {
-    internal class SceneCtrl:BaseCtrl
+    internal class SceneCtrl : BaseCtrl
     {
         private int _MapId = 0;
         private int _RequestId;
 
 
-        private Role _Role;
+        public Role MainRole;
+
 
         public void ClearScene()
         {
@@ -43,19 +44,22 @@ namespace GameFramework.Runtime
 
         public Role CreateMainRole()
         {
-            Role role = new Role();
-            role.SetModelID(1, 1);
-            return role;
+            MainRole = new Role();
+            MainRole.SetModelID(1, 1);
+            return MainRole;
         }
 
 
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
+            if(MainRole != null)
+            {
+                MainRole.StateUpdate(elapseSeconds, realElapseSeconds);
+            }
+          
 
         }
-
-
 
     }
 }

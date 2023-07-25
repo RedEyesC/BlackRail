@@ -3,6 +3,7 @@ using UnityEngine.UI;
 
 public static class TransformExtensions
 {
+    static Vector3 tempVec3 = new Vector3();
     public static bool AddChild(this Transform t, Transform obj)
     {
         obj.SetParent(t, false);
@@ -36,6 +37,19 @@ public static class TransformExtensions
         }
         return null;
     }
+
+    public static void SetLookDir(this Transform t, float x, float y, float z)
+    {
+        if (x < Mathf.Epsilon && x > -Mathf.Epsilon
+            && y < Mathf.Epsilon && y > -Mathf.Epsilon
+            && z < Mathf.Epsilon && z > -Mathf.Epsilon)
+            return;
+
+        tempVec3.Set(x, y, z);
+        t.localRotation = Quaternion.LookRotation(tempVec3);
+    }
+
+
 
     #region Touch Relative
     public static void AddClickEventListener(this Transform t, ClickEventTriggerListener.EventPosDelegate action)

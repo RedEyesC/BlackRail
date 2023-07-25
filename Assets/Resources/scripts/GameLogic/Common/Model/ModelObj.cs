@@ -20,7 +20,7 @@ namespace GameFramework.Runtime
                 _Obj = GlobalCenter.GetModule<AssetManager>().CreateAsset(_Path);
             }
 
-            if(_LoadCallBack != null)
+            if (_LoadCallBack != null)
             {
                 _LoadCallBack();
             }
@@ -28,12 +28,12 @@ namespace GameFramework.Runtime
 
         public void ChangeModel(string path, System.Action cb = null)
         {
-            if(path == _Path)
+            if (path == _Path)
             {
                 return;
             }
 
-            if(_Obj != null)
+            if (_Obj != null)
             {
                 GlobalCenter.GetModule<AssetManager>().DestoryAsset(_Obj);
             }
@@ -46,9 +46,17 @@ namespace GameFramework.Runtime
 
         }
 
-       public void SetParent(Transform parent)
+        public void SetParent(Transform parent)
         {
             parent.AddChild(this._Obj.transform);
+        }
+
+        public void PlayAnim(string name)
+        {
+            if(_Obj != null)
+            {
+                _Obj.GetComponent<Animator>().Play(name);
+            }
         }
     }
 }
