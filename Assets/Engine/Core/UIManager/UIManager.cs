@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.Rendering.Universal;
 
 namespace GameFramework.Runtime
 {
@@ -12,7 +13,7 @@ namespace GameFramework.Runtime
         private Transform _UIRootTrans = null;
         private Camera _Camera = null;
         private float _ScaleFactor = 1.0f;
-     
+
         public Camera GetCamera()
         {
             return _Camera;
@@ -100,7 +101,11 @@ namespace GameFramework.Runtime
         private Camera CreateUICamera(GameObject obj)
         {
             Camera cam = obj.AddComponent<Camera>();
-            cam.clearFlags = CameraClearFlags.Color;
+
+            var cameraData = cam.GetUniversalAdditionalCameraData();
+            cameraData.renderType = CameraRenderType.Overlay;
+
+            cam.clearFlags = CameraClearFlags.Depth;
             cam.cullingMask = 1 << LayerMask.NameToLayer("UI");
             cam.nearClipPlane = 0.1f;
             cam.farClipPlane = 1010.0f;
@@ -111,8 +116,8 @@ namespace GameFramework.Runtime
             cam.allowMSAA = false;
             cam.transform.position = new Vector3(0.0f, 0.0f, -10000.0f);
             cam.useOcclusionCulling = false;
-            cam.backgroundColor = Color.black;
-            
+            cam.backgroundColor = new Color(0.0f, 0.0f, 0.0f, 1.0f);
+
             return cam;
         }
 
@@ -149,7 +154,7 @@ namespace GameFramework.Runtime
             AddToRoot(t, _UIRootTrans);
         }
 
-   
+
         public void GetUIScaleFactor(out float factor)
         {
             factor = _ScaleFactor;
