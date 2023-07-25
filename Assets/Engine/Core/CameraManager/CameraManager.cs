@@ -71,39 +71,39 @@ namespace GameFramework.Runtime
 
             var newPos = targetPos - deltaPos;
 
-            float dist = 0;
-            if (_ColliderCheckEnable)
-            {
-                Vector3 targetToCamera = newPos - targetPos;
-                //射线检查返回ture说明，相机与目标之间存在其他物体遮挡
-                if (Physics.SphereCast(targetPos,
-                    _SphereCastRadius,
-                    targetToCamera,
-                    out _HitResult,
-                    targetToCamera.magnitude)
-                )
-                {
-                    dist = _HitResult.distance - _ColliderPointOffset;
-                    newPos = targetPos + targetToCamera.normalized * dist;
-                }
-            }
+            //float dist = 0;
+            //if (_ColliderCheckEnable)
+            //{
+            //    Vector3 targetToCamera = newPos - targetPos;
+            //    //射线检查返回ture说明，相机与目标之间存在其他物体遮挡
+            //    if (Physics.SphereCast(targetPos,
+            //        _SphereCastRadius,
+            //        targetToCamera,
+            //        out _HitResult,
+            //        targetToCamera.magnitude)
+            //    )
+            //    {
+            //        dist = _HitResult.distance - _ColliderPointOffset;
+            //        newPos = targetPos + targetToCamera.normalized * dist;
+            //    }
+            //}
 
-            if (dist == 0)
-            {
-                // 从被其他物体遮挡到无其他物体遮挡，做一个缓动
-                if (_ColliderDist != 0)
-                {
-                    _ColliderDist = Mathf.MoveTowards(_ColliderDist, _Distance, _ColliderFadeOutSpeed);
-                    deltaPos = q * Vector3.forward * _ColliderDist;
-                    newPos = targetPos - deltaPos;
-                    if (_ColliderDist == _Distance)
-                        _ColliderDist = 0;
-                }
-            }
-            else
-            {
-                _ColliderDist = dist;
-            }
+            //if (dist == 0)
+            //{
+            //    // 从被其他物体遮挡到无其他物体遮挡，做一个缓动
+            //    if (_ColliderDist != 0)
+            //    {
+            //        _ColliderDist = Mathf.MoveTowards(_ColliderDist, _Distance, _ColliderFadeOutSpeed);
+            //        deltaPos = q * Vector3.forward * _ColliderDist;
+            //        newPos = targetPos - deltaPos;
+            //        if (_ColliderDist == _Distance)
+            //            _ColliderDist = 0;
+            //    }
+            //}
+            //else
+            //{
+            //    _ColliderDist = dist;
+            //}
 
             _Camera.transform.position = newPos;
 

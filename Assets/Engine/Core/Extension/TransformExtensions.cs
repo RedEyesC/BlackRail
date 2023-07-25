@@ -74,5 +74,20 @@ public static class TransformExtensions
     }
 
     #endregion
+
+
+    #region Raycast
+    public static float GetHeightByRaycast(this Transform t, float x, float z, int layerMask)
+    {
+        tempVec3.Set(x, 1000, z);
+        RaycastHit hit;
+        Ray ray = new Ray(tempVec3, Vector3.down);
+        if (Physics.Raycast(ray, out hit, 1500f, layerMask))
+        {
+            return hit.point.y;
+        }
+        return -9999f;
+    }
+    #endregion
 }
 

@@ -11,10 +11,17 @@ namespace GameFramework.Runtime
 
         public Role MainRole;
 
+        private Transform _AppRoot;
+
+        public SceneCtrl()
+        {
+            _AppRoot = UnityEngine.GameObject.Find("_AppRoot").transform;
+        }
+
 
         public void ClearScene()
         {
-            if(_MapId!= 0)
+            if (_MapId != 0)
             {
                 _MapId = 0;
 
@@ -38,7 +45,7 @@ namespace GameFramework.Runtime
             {
                 Debug.Log(string.Format("map id {0} is Loaded", _MapId));
             }
-           
+
         }
 
 
@@ -53,13 +60,19 @@ namespace GameFramework.Runtime
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
-            if(MainRole != null)
+            if (MainRole != null)
             {
                 MainRole.StateUpdate(elapseSeconds, realElapseSeconds);
             }
-          
+
 
         }
 
+        public float GetHeightByRayCast(float x, float y)
+        {
+            float rst = _AppRoot.GetHeightByRaycast(x, y, 1 << LayerMask.NameToLayer("Default"));
+
+            return rst;
+        }
     }
 }

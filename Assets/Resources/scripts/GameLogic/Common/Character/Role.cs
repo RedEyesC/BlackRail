@@ -15,7 +15,7 @@ namespace GameFramework.Runtime
         private float _TargetDist = 0;
         private float _CurDist = 0;
 
-        public float Speed = 1f;
+        public float Speed = 2f;
         public float Div = 0.5f;
 
 
@@ -71,39 +71,53 @@ namespace GameFramework.Runtime
         public void StateUpdate(float elapseSeconds, float realElapseSeconds)
         {
 
-            if (_TargetDist <= 0)
+            if (_TargetDist > 0)
             {
-                return;
+                float _DeltaDist = elapseSeconds * Speed;
+                _CurDist += _DeltaDist;
+
+                float x = _RootObj.transform.position.x;
+                float y = _RootObj.transform.position.z;
+
+                if (_CurDist < _TargetDist)
+                {
+                    x += _DeltaDist * _Dir.x;
+                    y += _DeltaDist * _Dir.y;
+
+                    SetPosition(x, 0, y);
+
+                    PlayAnim("run");
+                }
+                else
+                {
+                    SetPosition(_TargetX, 0, _TargetY);
+
+                    _TargetDist = 0;
+                    _TargetX = 0;
+                    _TargetY = 0;
+                    _CurDist = 0;
+
+                    PlayAnim("idle");
+                }
             }
 
-
-            float _DeltaDist = elapseSeconds * Speed;
-            _CurDist += _DeltaDist;
-
-            float x = _RootObj.transform.position.x;
-            float y = _RootObj.transform.position.z;
-
-            if (_CurDist < _TargetDist)
+            if (_RootObj.transform)
             {
-                x += _DeltaDist * _Dir.x;
-                y += _DeltaDist * _Dir.y;
+                float x = _RootObj.transform.position.x;
+                float y = _RootObj.transform.position.z;
+                float height = CalcMapHeight(x,y);
 
-                SetPosition(x, 0, y);
-
-                PlayAnim("run");
+                if(height> -999)
+                {
+                    SetPosition(x, height, y);
+                }
+               
             }
-            else
-            {
-                SetPosition(_TargetX, 0, _TargetY);
+        }
 
-                _TargetDist = 0;
-                _TargetX = 0;
-                _TargetY = 0;
-                _CurDist = 0;
-
-                PlayAnim("idle");
-            }
-
+        public float CalcMapHeight(float x ,float y)
+        {
+            return GameCenter.GetModule<ModuleCenter>().GetModule<SceneCtrl>().GetHeightByRayCast(x,y);  
         }
     }
 }
