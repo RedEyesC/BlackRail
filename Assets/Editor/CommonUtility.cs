@@ -14,27 +14,10 @@ namespace GameEditor
 {
     public class CommonUtility
     {
+        static Vector3 tempVec1 = new Vector3();
+        static Vector3 tempVec2 = new Vector3();
 
-        public static void CreateAssetEx(Object asset, string path)
-        {
-            var oldAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
-            if (oldAsset)
-            {
-                var tempDir = "Assets/TempCreate";
-                var tempAssetPath = tempDir + "/" + Path.GetFileName(path);
-                CreateFolder(tempDir);
-                AssetDatabase.CreateAsset(asset, tempAssetPath);
-                CopyAsset(tempAssetPath, path);
-                AssetDatabase.DeleteAsset(tempAssetPath);
-                AssetDatabase.DeleteAsset(tempDir);
-            }
-            else
-            {
-                AssetDatabase.CreateAsset(asset, path);
-            }
-        }
-
-        public static void CreateAssetEx2(Object asset, string path)
+        public static void CreateAsset(Object asset, string path)
         {
             var oldAsset = AssetDatabase.LoadAssetAtPath<Object>(path);
             if (oldAsset)
@@ -106,6 +89,15 @@ namespace GameEditor
 
             // Create the new Prefab and log whether Prefab was saved successfully.
             PrefabUtility.SaveAsPrefabAsset(go, localPath);
+        }
+
+
+        public static Vector3 CalcTriNormal(Vector3 v0 ,Vector3 v1, Vector3 v2)
+        {
+            tempVec1 = v1 - v0;
+            tempVec2 = v2 - v0;
+
+             return Vector3.Normalize(Vector3.Cross(tempVec1, tempVec2)); 
         }
     }
 }

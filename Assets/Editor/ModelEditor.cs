@@ -152,7 +152,7 @@ namespace GameEditor
 
 
             CommonUtility.CreateFolder(newAvPath.Remove(newAvPath.LastIndexOf("/")));
-            CommonUtility.CreateAssetEx(newAvatar, newAvPath);
+            CommonUtility.CreateAsset(newAvatar, newAvPath);
 
             anim.avatar = AssetDatabase.LoadAssetAtPath<Avatar>(newAvPath);
         }
@@ -190,7 +190,7 @@ namespace GameEditor
             Mesh newMesh = GameObject.Instantiate<Mesh>(mesh);
 
             CommonUtility.CreateFolder(meshPath.Remove(meshPath.LastIndexOf("/")));
-            CommonUtility.CreateAssetEx(newMesh, meshPath);
+            CommonUtility.CreateAsset(newMesh, meshPath);
         }
 
         static void ExportMaterial(GameObject go, string rawPath, string savePath, string textureResPath)
@@ -271,7 +271,7 @@ namespace GameEditor
                     EditorUtility.CopySerialized(clip, newClip);
                     CommonUtility.CreateFolder(savePath);
                     string resAnimPath = savePath + clip.name + ".anim";
-                    CommonUtility.CreateAssetEx2(newClip, resAnimPath);
+                    CommonUtility.CreateAsset(newClip, resAnimPath);
                 }
             }
                   
