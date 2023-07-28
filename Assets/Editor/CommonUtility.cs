@@ -12,6 +12,21 @@ using Object = UnityEngine.Object;
 #if UNITY_EDITOR
 namespace GameEditor
 {
+    public enum RcAxis
+    {
+        AXIS_X = 0,
+        AXIS_Y = 1,
+        AXIS_Z = 2
+    };
+
+    public enum BuffIndex
+    {
+        In = 0,
+        InRow = 7,
+        P1 = 14,
+        P2 = 21,
+    };
+
     public class CommonUtility
     {
         static Vector3 tempVec1 = new Vector3();
@@ -92,13 +107,100 @@ namespace GameEditor
         }
 
 
-        public static Vector3 CalcTriNormal(Vector3 v0 ,Vector3 v1, Vector3 v2)
+        #region Recast
+        public static Vector3 CalcTriNormal(Vector3 v0, Vector3 v1, Vector3 v2)
         {
             tempVec1 = v1 - v0;
             tempVec2 = v2 - v0;
 
-             return Vector3.Normalize(Vector3.Cross(tempVec1, tempVec2)); 
+            return Vector3.Normalize(Vector3.Cross(tempVec1, tempVec2));
         }
+
+        public static void CalcBounds(Vector3[] verts, out Vector3 minBounds, out Vector3 maxBounds)
+        {
+            minBounds = verts[0];
+            maxBounds = verts[0];
+            for (int i = 1; i < verts.Length; i++)
+            {
+                minBounds = Vector3.Min(minBounds, verts[i]);
+                maxBounds = Vector3.Max(maxBounds, verts[i]);
+            }
+        }
+
+        public static void CalcGridSize(Vector3 minBounds, Vector3 maxBounds, float cellSize, out int sizeX, out int sizeZ)
+        {
+            sizeX = (int)((maxBounds[0] - minBounds[0]) / cellSize + 0.5f);
+            sizeZ = (int)((maxBounds[2] - minBounds[2]) / cellSize + 0.5f);
+        }
+
+        //a的包围盒包含于b的包围盒 或者 a的包围盒与b的包围盒相交
+        public static bool OverlapBounds(Vector3 aMin, Vector3 aMax, Vector3 bMin, Vector3 bMax)
+        {
+            return aMin[0] <= bMax[0] && aMax[0] >= bMin[0] &&
+                aMin[1] <= bMax[1] && aMax[1] >= bMin[1] &&
+                aMin[2] <= bMax[2] && aMax[2] >= bMin[2];
+        }
+
+        public static void DividePoly(Vector3[] buff, int inVertsCount, out int outVerts1Coun ,out int outVerts2Count, float axisOffset, RcAxis axis)
+        {
+
+            
+            float[] inVertAxisDelta = new float[12];
+            //多边形顶点到切割轴的距离
+            for (int inVert = 0; inVert < inVertsCount; ++inVert)
+            {
+                inVertAxisDelta[inVert] = axisOffset - buff[inVert][(int)axis];
+            }
+
+
+            int poly1Vert = 0;
+            int poly2Vert = 0;
+            for (int inVertA = 0, inVertB = inVertsCount - 1; inVertA < inVertsCount; inVertB = inVertA, ++inVertA)
+            {
+                // 假如a，b两个点在切割线两端.大于0代表在左侧
+                bool sameSide = (inVertAxisDelta[inVertA] >= 0) == (inVertAxisDelta[inVertB] >= 0);
+
+                if (!sameSide)
+                {
+                    float s = inVertAxisDelta[inVertB] / (inVertAxisDelta[inVertB] - inVertAxisDelta[inVertA]);
+                    outVerts1[poly1Vert * 3 + 0] = inVerts[inVertB * 3 + 0] + (inVerts[inVertA * 3 + 0] - inVerts[inVertB * 3 + 0]) * s;
+                    outVerts1[poly1Vert * 3 + 1] = inVerts[inVertB * 3 + 1] + (inVerts[inVertA * 3 + 1] - inVerts[inVertB * 3 + 1]) * s;
+                    outVerts1[poly1Vert * 3 + 2] = inVerts[inVertB * 3 + 2] + (inVerts[inVertA * 3 + 2] - inVerts[inVertB * 3 + 2]) * s;
+                    rcVcopy(&outVerts2[poly2Vert * 3], &outVerts1[poly1Vert * 3]);
+                    poly1Vert++;
+                    poly2Vert++;
+
+                    // add the inVertA point to the right polygon. Do NOT add points that are on the dividing line
+                    // since these were already added above
+                    if (inVertAxisDelta[inVertA] > 0)
+                    {
+                        rcVcopy(&outVerts1[poly1Vert * 3], &inVerts[inVertA * 3]);
+                        poly1Vert++;
+                    }
+                    else if (inVertAxisDelta[inVertA] < 0)
+                    {
+                        rcVcopy(&outVerts2[poly2Vert * 3], &inVerts[inVertA * 3]);
+                        poly2Vert++;
+                    }
+                }
+                else
+                {
+                    // add the inVertA point to the right polygon. Addition is done even for points on the dividing line
+                    if (inVertAxisDelta[inVertA] >= 0)
+                    {
+                        rcVcopy(&outVerts1[poly1Vert * 3], &inVerts[inVertA * 3]);
+                        poly1Vert++;
+                        if (inVertAxisDelta[inVertA] != 0)
+                        {
+                            continue;
+                        }
+                    }
+                    rcVcopy(&outVerts2[poly2Vert * 3], &inVerts[inVertA * 3]);
+                    poly2Vert++;
+                }
+            }
+
+        #endregion
     }
 }
 
