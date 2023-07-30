@@ -19,7 +19,7 @@ namespace GameEditor
         AXIS_Z = 2
     };
 
-    public enum BuffIndex
+    public enum VertIndex
     {
         In = 0,
         InRow = 7,
@@ -141,15 +141,15 @@ namespace GameEditor
                 aMin[2] <= bMax[2] && aMax[2] >= bMin[2];
         }
 
-        public static void DividePoly(Vector3[] buff, int inVertsCount, out int outVerts1Coun ,out int outVerts2Count, float axisOffset, RcAxis axis)
+        public static void DividePoly(Vector3[] VertList, int inVertsCount, float axisOffset, RcAxis axis, out int outVerts1Count, out int outVerts2Count,out Vector3[] outVertList)
         {
 
-            
+
             float[] inVertAxisDelta = new float[12];
-            //多边形顶点到切割轴的距离
+            //多边形顶点到切割线的距离
             for (int inVert = 0; inVert < inVertsCount; ++inVert)
             {
-                inVertAxisDelta[inVert] = axisOffset - buff[inVert][(int)axis];
+                inVertAxisDelta[(int)VertIndex.In + inVert] = axisOffset - VertList[(int)VertIndex.In + inVert][(int)axis];
             }
 
 
@@ -157,48 +157,56 @@ namespace GameEditor
             int poly2Vert = 0;
             for (int inVertA = 0, inVertB = inVertsCount - 1; inVertA < inVertsCount; inVertB = inVertA, ++inVertA)
             {
-                // 假如a，b两个点在切割线两端.大于0代表在左侧
+                // 通过与切割线的距离判断是否都是同一侧的
                 bool sameSide = (inVertAxisDelta[inVertA] >= 0) == (inVertAxisDelta[inVertB] >= 0);
 
                 if (!sameSide)
                 {
+                    // b的距离占a和b距离之和的比例 ，因为a，b不在同一侧，a，b距离之和等于b-a
                     float s = inVertAxisDelta[inVertB] / (inVertAxisDelta[inVertB] - inVertAxisDelta[inVertA]);
-                    outVerts1[poly1Vert * 3 + 0] = inVerts[inVertB * 3 + 0] + (inVerts[inVertA * 3 + 0] - inVerts[inVertB * 3 + 0]) * s;
-                    outVerts1[poly1Vert * 3 + 1] = inVerts[inVertB * 3 + 1] + (inVerts[inVertA * 3 + 1] - inVerts[inVertB * 3 + 1]) * s;
-                    outVerts1[poly1Vert * 3 + 2] = inVerts[inVertB * 3 + 2] + (inVerts[inVertA * 3 + 2] - inVerts[inVertB * 3 + 2]) * s;
-                    rcVcopy(&outVerts2[poly2Vert * 3], &outVerts1[poly1Vert * 3]);
+
+                    //计算出中间点坐标
+                    VertList[(int)VertIndex.P1 + poly1Vert] = VertList[(int)VertIndex.In + inVertB] + (VertList[(int)VertIndex.In + inVertA] - VertList[(int)VertIndex.In + inVertB]) * s;
+                    VertList[(int)VertIndex.P2 + poly1Vert] = VertList[(int)VertIndex.P1 + poly1Vert];
+
                     poly1Vert++;
                     poly2Vert++;
 
-                    // add the inVertA point to the right polygon. Do NOT add points that are on the dividing line
-                    // since these were already added above
+
+                    //根据a点距离把a点添加到划分好的三角形
                     if (inVertAxisDelta[inVertA] > 0)
                     {
-                        rcVcopy(&outVerts1[poly1Vert * 3], &inVerts[inVertA * 3]);
+                        VertList[(int)VertIndex.P1 + poly1Vert] = VertList[(int)VertIndex.In + inVertA];
                         poly1Vert++;
                     }
                     else if (inVertAxisDelta[inVertA] < 0)
                     {
-                        rcVcopy(&outVerts2[poly2Vert * 3], &inVerts[inVertA * 3]);
+                        VertList[(int)VertIndex.P2 + poly2Vert] = VertList[(int)VertIndex.In + inVertA];
                         poly2Vert++;
                     }
                 }
                 else
                 {
-                    // add the inVertA point to the right polygon. Addition is done even for points on the dividing line
+
                     if (inVertAxisDelta[inVertA] >= 0)
                     {
-                        rcVcopy(&outVerts1[poly1Vert * 3], &inVerts[inVertA * 3]);
+                        VertList[(int)VertIndex.P1 + poly1Vert] = VertList[(int)VertIndex.In + inVertA];
                         poly1Vert++;
                         if (inVertAxisDelta[inVertA] != 0)
                         {
                             continue;
                         }
                     }
-                    rcVcopy(&outVerts2[poly2Vert * 3], &inVerts[inVertA * 3]);
+                    VertList[(int)VertIndex.P2 + poly2Vert] = VertList[(int)VertIndex.In + inVertA];
                     poly2Vert++;
                 }
             }
+
+            outVerts1Count = poly1Vert;
+            outVerts2Count = poly2Vert;
+            outVertList = VertList;
+
+        }
 
         #endregion
     }

@@ -177,8 +177,8 @@ namespace GameEditor
             z1 = Mathf.Clamp(z1, 0, config.Height);
 
 
-            
-            Vector3[] buff = new Vector3[7 * 4];
+            //三角形被正方形切割最多切割出7边形，存放四组多边形的数据
+            Vector3[] vertList = new Vector3[7 * 4];
 
             int nvRow = 0;
             int nvIn = 3;
@@ -187,7 +187,7 @@ namespace GameEditor
             {
                 
                 float cellZ = hfBBMin[2] + (float)z * CellSize;
-                CommonUtility.DividePoly(buff, nvIn, out nvRow, out nvIn, cellZ + CellSize, RcAxis.AXIS_X);
+                CommonUtility.DividePoly(vertList, nvIn, cellZ + CellSize, RcAxis.AXIS_X, out nvRow, out nvIn, out vertList);
 
             }
                 return true;
