@@ -141,15 +141,16 @@ namespace GameEditor
                 aMin[2] <= bMax[2] && aMax[2] >= bMin[2];
         }
 
-        public static void DividePoly(Vector3[] VertList, int inVertsCount, float axisOffset, RcAxis axis, out int outVerts1Count, out int outVerts2Count,out Vector3[] outVertList)
+        public static void DividePoly(Vector3[] VertList, int inVertsCount, float axisOffset, RcAxis axis, out int outVerts1Count, out int outVerts2Count, out Vector3[] outVertList1, out Vector3[] outVertList2)
         {
 
-
+            Vector3[] outList1 = new Vector3[7];
+            Vector3[] outList2 = new Vector3[7];
             float[] inVertAxisDelta = new float[12];
             //多边形顶点到切割线的距离
             for (int inVert = 0; inVert < inVertsCount; ++inVert)
             {
-                inVertAxisDelta[(int)VertIndex.In + inVert] = axisOffset - VertList[(int)VertIndex.In + inVert][(int)axis];
+                inVertAxisDelta[inVert] = axisOffset - VertList[inVert][(int)axis];
             }
 
 
@@ -166,8 +167,8 @@ namespace GameEditor
                     float s = inVertAxisDelta[inVertB] / (inVertAxisDelta[inVertB] - inVertAxisDelta[inVertA]);
 
                     //计算出中间点坐标
-                    VertList[(int)VertIndex.P1 + poly1Vert] = VertList[(int)VertIndex.In + inVertB] + (VertList[(int)VertIndex.In + inVertA] - VertList[(int)VertIndex.In + inVertB]) * s;
-                    VertList[(int)VertIndex.P2 + poly1Vert] = VertList[(int)VertIndex.P1 + poly1Vert];
+                    outList1[poly1Vert] = VertList[inVertB] + (VertList[inVertA] - VertList[inVertB]) * s;
+                    outList2[poly2Vert] = outList1[poly1Vert];
 
                     poly1Vert++;
                     poly2Vert++;
@@ -176,12 +177,12 @@ namespace GameEditor
                     //根据a点距离把a点添加到划分好的三角形
                     if (inVertAxisDelta[inVertA] > 0)
                     {
-                        VertList[(int)VertIndex.P1 + poly1Vert] = VertList[(int)VertIndex.In + inVertA];
+                        outList1[poly1Vert] = VertList[inVertA];
                         poly1Vert++;
                     }
                     else if (inVertAxisDelta[inVertA] < 0)
                     {
-                        VertList[(int)VertIndex.P2 + poly2Vert] = VertList[(int)VertIndex.In + inVertA];
+                        outList2[poly2Vert] = VertList[inVertA];
                         poly2Vert++;
                     }
                 }
@@ -190,21 +191,23 @@ namespace GameEditor
 
                     if (inVertAxisDelta[inVertA] >= 0)
                     {
-                        VertList[(int)VertIndex.P1 + poly1Vert] = VertList[(int)VertIndex.In + inVertA];
+                        outList1[poly1Vert] = VertList[inVertA];
                         poly1Vert++;
                         if (inVertAxisDelta[inVertA] != 0)
                         {
                             continue;
                         }
                     }
-                    VertList[(int)VertIndex.P2 + poly2Vert] = VertList[(int)VertIndex.In + inVertA];
+                    outList2[poly2Vert] = VertList[inVertA];
                     poly2Vert++;
                 }
             }
 
             outVerts1Count = poly1Vert;
             outVerts2Count = poly2Vert;
-            outVertList = VertList;
+
+            outVertList1 = outList1;
+            outVertList2 = outList2;
 
         }
 
