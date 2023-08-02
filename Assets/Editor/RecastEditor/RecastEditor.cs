@@ -19,8 +19,8 @@ namespace GameEditor
         //构建寻路网格的参数
         static readonly float WalkableSlopeAngle = 20;
         static readonly float WalkableClimb = 9;
-        static readonly float CellSize = 0.2f; //xz平面的尺寸
-        static readonly float CellHeight = 0.3f; // y轴的尺寸
+        static readonly float CellSize = 1f; //xz平面的尺寸
+        static readonly float CellHeight = 1f; // y轴的尺寸
 
 
         [MenuItem("Assets/GameEditor/导出地图navmesh", false, 900)]
@@ -87,6 +87,8 @@ namespace GameEditor
 
             mesh.CombineMeshes(combines, true);
 
+            CommonUtility.CreateAsset(mesh, "Assets/Resources/map/1.asset");
+
             Heightfield hf = new Heightfield(mesh, WalkableSlopeAngle, WalkableClimb, CellSize, CellHeight);
 
 
@@ -94,7 +96,8 @@ namespace GameEditor
 
             RcRasterizeTriangles(mesh.vertices, mesh.triangles, areas, hf);
 
-            var a = hf.SpanList;
+            buildHeightfield(hf);
+
 
         }
 
@@ -140,7 +143,7 @@ namespace GameEditor
                 {
                     Debug.LogError("rcRasterizeTriangles: Out of memory.");
                 }
-
+    
             }
 
         }
@@ -158,9 +161,9 @@ namespace GameEditor
             Vector3 hfBBMin = hf.minBounds;
             Vector3 hfBBMax = hf.maxBounds;
 
-            float CellSize = hf.CellSize;
+            float cellSize = hf.CellSize;
             float inverseCellSize = 1 / hf.CellSize;
-            float inverseCellHeight = 1 / hf.Height;
+            float inverseCellHeight = 1 / hf.CellHeight;
 
 
 
@@ -177,8 +180,8 @@ namespace GameEditor
             int z1 = (int)((triBBMax[2] - hfBBMin[2]) * inverseCellSize);
 
             // 案例里写着·使用-1比0 更好的平铺三角形？？，为什么呢
-            z0 = Mathf.Clamp(z0, -1, hf.Height);
-            z1 = Mathf.Clamp(z1, 0, hf.Height);
+            z0 = Mathf.Clamp(z0, -1, hf.Height - 1);
+            z1 = Mathf.Clamp(z1, 0, hf.Height - 1);
 
 
             //三角形被正方形切割最多切割出7边形，存放四组多边形的数据
@@ -196,9 +199,9 @@ namespace GameEditor
             for (int z = z0; z <= z1; ++z)
             {
 
-                float cellZ = hfBBMin[2] + (float)z * CellSize;
+                float cellZ = hfBBMin[2] + (float)z * cellSize;
                 //切割三角形，nvRowList 为切割线下半部分的顶点 ,输出的nvInList 为切割线上半部分顶点
-                CommonUtility.DividePoly(nvInList, nvIn, cellZ + CellSize, RcAxis.AXIS_Z, out nvRow, out nvIn, out nvRowList, out nvInList);
+                CommonUtility.DividePoly(nvInList, nvIn, cellZ + cellSize, RcAxis.AXIS_Z, out nvRow, out nvIn, out nvRowList, out nvInList);
 
                 //没切割到东西，顶点小于3构不成多边形
                 if (nvRow < 3)
@@ -228,7 +231,9 @@ namespace GameEditor
 
                 int x0 = (int)((minX - hfBBMin[0]) * inverseCellSize);
                 int x1 = (int)((maxX - hfBBMin[0]) * inverseCellSize);
-                if (x1 < 0 || x0 >= hf.Width)
+
+                //recastnavigation 里x0 >= hf.Width ,但是本地测试单独一个正方体体素化的时候，假如多了=，会缺失一面体素
+                if (x1 < 0 || x0 > hf.Width)
                 {
                     continue;
                 }
@@ -241,8 +246,8 @@ namespace GameEditor
 
                 for (int x = x0; x <= x1; ++x)
                 {
-                    float cellX = hfBBMin[0] + (float)x * CellSize;
-                    CommonUtility.DividePoly(nvRowList, nvIn2, cellX + CellSize, RcAxis.AXIS_X, out nvRow2, out nvIn2, out p1InList, out nvRowList);
+                    float cellX = hfBBMin[0] + (float)x * cellSize;
+                    CommonUtility.DividePoly(nvRowList, nvIn2, cellX + cellSize, RcAxis.AXIS_X, out nvRow2, out nvIn2, out p1InList, out nvRowList);
 
                     if (nvRow2 < 3)
                     {
@@ -254,8 +259,8 @@ namespace GameEditor
                         continue;
                     }
 
-                    float spanMin = nvRowList[0][1];
-                    float spanMax = nvRowList[0][1];
+                    float spanMin = p1InList[0][1];
+                    float spanMax = p1InList[0][1];
 
                     for (int vert = 1; vert < nvRow2; ++vert)
                     {
@@ -277,7 +282,9 @@ namespace GameEditor
                     {
                         continue;
                     }
-                    if (spanMin > by)
+                    //recastnavigation 里 spanMin > by ,但是本地测试单独一个正方体体素化的时候，
+                    //假如少了 = ，可能会出现一个片面刚刚和包围盒最上方重合,这时候体素会对多一层，因为spanMaxCellIndex必须至少比spanMinCellIndex大1
+                    if (spanMin >= by)
                     {
                         continue;
                     }
@@ -292,8 +299,9 @@ namespace GameEditor
                         spanMax = by;
                     }
 
-                    int spanMinCellIndex = (int)Mathf.Max(spanMin * inverseCellHeight, 0);
-                    int spanMaxCellIndex = (int)Mathf.Max(spanMax * inverseCellHeight, spanMinCellIndex + 1);
+                    var a = spanMin * inverseCellHeight;
+                    int spanMinCellIndex = (int)Mathf.Max(Mathf.Floor(spanMin * inverseCellHeight), 0);
+                    int spanMaxCellIndex = (int)Mathf.Max(Mathf.Ceil(spanMax * inverseCellHeight), spanMinCellIndex + 1);
 
                     // 加入高度场
                     if (!AddSpan(hf, x, z, spanMinCellIndex, spanMaxCellIndex, areaType))
@@ -347,9 +355,9 @@ namespace GameEditor
                         newSpan.Max = currentSpan.Max;
                     }
 
-                    if(Mathf.Abs(newSpan.Max - currentSpan.Max) < hf.WalkableClimb)
+                    if (Mathf.Abs(newSpan.Max - currentSpan.Max) < hf.WalkableClimb)
                     {
-                        newSpan.AreaID = (AREATYPE)Mathf.Max((int)newSpan.AreaID,(int)currentSpan.AreaID);
+                        newSpan.AreaID = (AREATYPE)Mathf.Max((int)newSpan.AreaID, (int)currentSpan.AreaID);
                     }
 
                     //从链表中释放currentSpan
@@ -384,10 +392,23 @@ namespace GameEditor
             return true;
         }
 
+        //用于绘制计算出来的高度场
         public static void buildHeightfield(Heightfield hf)
         {
-           
-            for(int i= 0; i< hf.SpanList.Length; i++)
+
+            GameObject root = GameObject.Find("EditorRoot");
+            if (root)
+            {
+                GameObject.DestroyImmediate(root);
+            }
+
+            root = new GameObject("EditorRoot");
+
+            Vector3 hfBBMin = hf.minBounds;
+            float cellSize = hf.CellSize;
+            float cellHeight = hf.CellHeight;
+
+            for (int i = 0; i < hf.SpanList.Length; i++)
             {
                 int x = i % hf.Width;
                 int z = i / hf.Width;
@@ -395,14 +416,24 @@ namespace GameEditor
                 Span currentSpan = hf.SpanList[i];
                 while (currentSpan != null)
                 {
-                    for(int j = currentSpan.Min; j <= currentSpan.Max; j++)
+                    for (int y = currentSpan.Min; y < currentSpan.Max; y++)
                     {
+                        float cellX = hfBBMin[0] + (float)x * cellSize + cellSize / 2;
+                        float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;
+                        float cellY = hfBBMin[1] + (float)y * cellHeight + cellHeight / 2;
 
+                        GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+
+                        cube.transform.localScale = new Vector3(cellSize, cellHeight,cellSize);
+                        cube.transform.position = new Vector3(cellX, cellY, cellZ);
+                        cube.transform.SetParent(root.transform);
+
+                        //Debug.Log(string.Format("x:{0},y:{1},z:{1}", x, y, z));
                     }
                     currentSpan = currentSpan.Next;
                 }
             }
-            
+
         }
     }
 
