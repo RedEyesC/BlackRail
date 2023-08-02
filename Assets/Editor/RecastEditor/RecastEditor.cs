@@ -9,6 +9,13 @@ namespace GameEditor
 
 {
 
+    public enum AREATYPE
+    {
+        None = 0,
+        Walke = 1,
+    }
+
+
     public class RecastEditor
     {
         static readonly float PI = 3.1415926f;
@@ -17,11 +24,16 @@ namespace GameEditor
         static readonly string MapElement = "MapElement";
 
         //构建寻路网格的参数
-        static readonly float WalkableSlopeAngle = 20;
-        static readonly float WalkableClimb = 9;
+        static readonly float AgentMaxSlope = 45;
+        static readonly float AgentMaxClimb = 0.9f;
+        static readonly float AgentHeight = 2.0f;
         static readonly float CellSize = 1f; //xz平面的尺寸
         static readonly float CellHeight = 1f; // y轴的尺寸
 
+
+        static readonly bool FilterLowHangingObstacles = true;//过滤悬空可走的span
+        static readonly bool FilterLedgeSpans = true;//过滤高度差过大的span
+        static readonly bool FilterWalkableLowHeightSpans = true;//过滤不可通过的高度的span
 
         [MenuItem("Assets/GameEditor/导出地图navmesh", false, 900)]
         static void ExportRecast()
@@ -87,17 +99,29 @@ namespace GameEditor
 
             mesh.CombineMeshes(combines, true);
 
-            CommonUtility.CreateAsset(mesh, "Assets/Resources/map/1.asset");
 
-            Heightfield hf = new Heightfield(mesh, WalkableSlopeAngle, WalkableClimb, CellSize, CellHeight);
+            Heightfield hf = new Heightfield(mesh, AgentMaxSlope, AgentMaxClimb, AgentHeight, CellSize, CellHeight);
 
 
             AREATYPE[] areas = RcMarkWalkableTriangles(hf.WalkableSlopeAngle, mesh.vertices, mesh.triangles);
 
             RcRasterizeTriangles(mesh.vertices, mesh.triangles, areas, hf);
 
-            buildHeightfield(hf);
 
+            if (FilterLowHangingObstacles)
+            {
+                RcFilterLowHangingWalkableObstacles(hf);
+            }
+
+            if (FilterLedgeSpans)
+            {
+                RcFilterLedgeSpans(hf);
+            }
+
+            if (FilterWalkableLowHeightSpans)
+            {
+                RcFilterWalkableLowHeightSpans(hf);
+            }
 
         }
 
@@ -143,7 +167,7 @@ namespace GameEditor
                 {
                     Debug.LogError("rcRasterizeTriangles: Out of memory.");
                 }
-    
+
             }
 
         }
@@ -392,6 +416,157 @@ namespace GameEditor
             return true;
         }
 
+
+        public static void RcFilterLowHangingWalkableObstacles(Heightfield hf)
+        {
+            int xSize = hf.Width;
+            int zSize = hf.Height;
+
+            for (int z = 0; z < zSize; ++z)
+            {
+                for (int x = 0; x < xSize; ++x)
+                {
+                    Span previousSpan = null;
+                    bool previousWasWalkable = false;
+                    AREATYPE previousArea = 0;
+
+                    //上下两个span，下span可走，上span不可走，并且上下span的上表面相差不超过walkClimb，则把上span也改为可走
+                    for (Span span = hf.SpanList[x + z * xSize]; span != null; previousSpan = span, span = span.Next)
+                    {
+                        bool walkable = span.AreaID == AREATYPE.Walke;
+
+
+                        if (!walkable && previousWasWalkable)
+                        {
+                            if (Mathf.Abs(span.Max - previousSpan.Max) <= hf.WalkableClimb)
+                            {
+                                span.AreaID = previousArea;
+                            }
+                        }
+
+                        previousWasWalkable = walkable;
+                        previousArea = span.AreaID;
+                    }
+                }
+            }
+        }
+
+        public static void RcFilterLedgeSpans(Heightfield hf)
+        {
+            int xSize = hf.Width;
+            int zSize = hf.Height;
+            int MAX_HEIGHT = 9999;
+
+
+            for (int z = 0; z < zSize; ++z)
+            {
+                for (int x = 0; x < xSize; ++x)
+                {
+                    for (Span span = hf.SpanList[x + z * xSize]; span != null; span = span.Next)
+                    {
+                        //跳过不可行走区域
+                        if (span.AreaID == AREATYPE.None)
+                        {
+                            continue;
+                        }
+
+                        int bot = span.Max;
+                        int top = span.Next == null ? span.Next.Min : MAX_HEIGHT;
+
+
+                        float minNeighborHeight = MAX_HEIGHT;
+
+                        //相邻span的上表面的最大值与最小值
+                        int accessibleNeighborMinHeight = span.Min;
+                        int accessibleNeighborMaxHeight = span.Max;
+
+                        for (int direction = 0; direction < 4; ++direction)
+                        {
+                            int dx = x + CommonUtility.RcGetDirOffsetX(direction);
+                            int dy = z + CommonUtility.RcGetDirOffsetY(direction);
+
+
+                            if (dx < 0 || dy < 0 || dx >= xSize || dy >= zSize)
+                            {
+                                //边缘情况认为，minNeighborHeight 一定小于 -hf.WalkableClimb而已
+                                minNeighborHeight = Mathf.Min(minNeighborHeight, -hf.WalkableClimb - bot);
+                                continue;
+                            }
+
+                            
+                            Span neighborSpan = hf.SpanList[dx + dy * xSize];
+                            int neighborBot = -hf.WalkableClimb;
+                            int neighborTop = neighborSpan != null ? neighborSpan.Min : MAX_HEIGHT;
+
+                            // 只处理上下表面的距离大于WalkableHeight的部分，先默认处理一次？？？？
+                            if (Mathf.Min(top, neighborTop) - Mathf.Max(bot, neighborBot) > hf.WalkableHeight)
+                            {
+                                minNeighborHeight = Mathf.Min(minNeighborHeight, neighborBot - bot);
+                            }
+
+                            for (neighborSpan = hf.SpanList[dx + dy * xSize]; neighborSpan != null; neighborSpan = neighborSpan.Next)
+                            {
+                                neighborBot = neighborSpan.Max;
+                                neighborTop = neighborSpan.Next != null ? neighborSpan.Next.Min : MAX_HEIGHT;
+
+                                // 只处理上下表面的距离大于WalkableHeight的部分
+                                if (Mathf.Min(top, neighborTop) - Mathf.Max(bot, neighborBot) > hf.WalkableHeight)
+                                {
+                                   
+                                    minNeighborHeight = Mathf.Min(minNeighborHeight, neighborBot - bot);
+
+                                    //寻找相邻的span与自身高度差小于WalkableClimb
+                                    if (Mathf.Abs(neighborBot - bot) <= hf.WalkableClimb)
+                                    {
+                                        if (neighborBot < accessibleNeighborMinHeight) accessibleNeighborMinHeight = neighborBot;
+                                        if (neighborBot > accessibleNeighborMaxHeight) accessibleNeighborMaxHeight = neighborBot;
+                                    }
+
+                                }
+                            }
+                        }
+
+                        //相邻span与自身的高度差，说明span高于相邻span 大于WalkableClimb
+                        if (minNeighborHeight < -hf.WalkableClimb)
+                        {
+                            span.AreaID = AREATYPE.None;
+                        }
+                        //邻居span之间的上表面高度差超过walkClimb，说明span处于比较陡峭的地方，则把span标记为不可行走。
+                        else if ((accessibleNeighborMaxHeight - accessibleNeighborMinHeight) > hf.WalkableClimb)
+                        {
+                            span.AreaID = AREATYPE.None;
+                        }
+                    }
+                }
+            }
+        }
+
+
+        public static void RcFilterWalkableLowHeightSpans(Heightfield hf)
+        {
+            int xSize = hf.Width;
+            int zSize = hf.Height;
+            const int MAX_HEIGHT = 9999;
+
+            //如果上下两个span之间的空隙小于等于walkHeight，则把下span标记为不可行走。
+            for (int z = 0; z < zSize; ++z)
+            {
+                for (int x = 0; x < xSize; ++x)
+                {
+                    for (Span span = hf.SpanList[x + z * xSize]; span != null; span = span.Next)
+                    {
+                        int bot = span.Max;
+                        int top = span.Next == null ? span.Next.Min : MAX_HEIGHT;
+                        if ((top - bot) < hf.WalkableHeight)
+                        {
+                            span.AreaID = AREATYPE.None;
+                        }
+                    }
+                }
+            }
+        }
+
+
         //用于绘制计算出来的高度场
         public static void buildHeightfield(Heightfield hf)
         {
@@ -424,7 +599,7 @@ namespace GameEditor
 
                         GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
 
-                        cube.transform.localScale = new Vector3(cellSize, cellHeight,cellSize);
+                        cube.transform.localScale = new Vector3(cellSize, cellHeight, cellSize);
                         cube.transform.position = new Vector3(cellX, cellY, cellZ);
                         cube.transform.SetParent(root.transform);
 

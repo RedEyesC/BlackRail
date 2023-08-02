@@ -2,17 +2,15 @@
 
 namespace GameEditor
 {
-    public enum AREATYPE
-    {
-        Walke,
-    }
-
     public class Heightfield
     {
         //可行走角度
         public float WalkableSlopeAngle = 0;
         //可攀爬高度
-        public float WalkableClimb = 0;
+        public int WalkableClimb = 0;
+        //物体高度
+        public int WalkableHeight = 0;
+
         public float CellSize = 0;
         public float CellHeight = 0;
 
@@ -24,19 +22,21 @@ namespace GameEditor
 
         public Span[] SpanList;
 
-        public Heightfield(Mesh mesh, float walkableSlopeAngle, float walkableClimb, float cellSize, float cellHeight)
+        public Heightfield(Mesh mesh, float agentMaxSlope, float agentMaxClimb, float agentHeight, float cellSize, float cellHeight)
         {
-            WalkableClimb = walkableClimb;
+
             CellSize = cellSize;
             CellHeight = cellHeight;
-            WalkableSlopeAngle = walkableSlopeAngle;
-            WalkableClimb = walkableClimb;
+            WalkableSlopeAngle = agentMaxSlope;
 
             CommonUtility.CalcBounds(mesh.vertices, out minBounds, out maxBounds);
 
             CommonUtility.CalcGridSize(minBounds, maxBounds, CellSize, out Width, out Height);
 
             SpanList = new Span[Height * Width];
+
+            WalkableClimb = (int)(agentMaxClimb / cellHeight);
+            WalkableHeight = (int)(agentHeight / cellHeight);
         }
     }
 
@@ -46,7 +46,7 @@ namespace GameEditor
         public int Min;
         public int Max;
         public AREATYPE AreaID;
-        public Span Next;
+        public Span Next = null;
 
         public Span(int min, int max, AREATYPE areaID)
         {

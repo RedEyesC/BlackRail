@@ -211,6 +211,18 @@ namespace GameEditor
 
         }
 
+        public static int RcGetDirOffsetX(int direction)
+        {
+            int[] offset = { -1, 0, 1, 0 };
+            return offset[direction & 0x03];
+        }
+
+        public static int RcGetDirOffsetY(int direction)
+        {
+            int[] offset = { 0, 1, 0, -1 };
+            return offset[direction & 0x03];
+        }
+
         #endregion
     }
 }
