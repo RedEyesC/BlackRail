@@ -123,6 +123,7 @@ namespace GameEditor
                 RcFilterWalkableLowHeightSpans(hf);
             }
 
+
         }
 
         //判断是否符合可行走角度
@@ -471,7 +472,7 @@ namespace GameEditor
                         }
 
                         int bot = span.Max;
-                        int top = span.Next == null ? span.Next.Min : MAX_HEIGHT;
+                        int top = span.Next != null ? span.Next.Min : MAX_HEIGHT;
 
 
                         float minNeighborHeight = MAX_HEIGHT;
@@ -556,7 +557,7 @@ namespace GameEditor
                     for (Span span = hf.SpanList[x + z * xSize]; span != null; span = span.Next)
                     {
                         int bot = span.Max;
-                        int top = span.Next == null ? span.Next.Min : MAX_HEIGHT;
+                        int top = span.Next != null ? span.Next.Min : MAX_HEIGHT;
                         if ((top - bot) < hf.WalkableHeight)
                         {
                             span.AreaID = AREATYPE.None;
