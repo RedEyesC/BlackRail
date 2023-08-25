@@ -10,6 +10,8 @@ namespace GameEditor
         public int WalkableClimb = 0;
         //物体高度
         public int WalkableHeight = 0;
+        //物体半径
+        public int WalkableRadius = 0;
 
         public float CellSize = 0;
         public float CellHeight = 0;
@@ -22,7 +24,7 @@ namespace GameEditor
 
         public Span[] SpanList;
 
-        public Heightfield(Mesh mesh, float agentMaxSlope, float agentMaxClimb, float agentHeight, float cellSize, float cellHeight)
+        public Heightfield(Mesh mesh, float agentMaxSlope, float agentMaxClimb, float agentHeight,float agentRadius, float cellSize, float cellHeight)
         {
 
             CellSize = cellSize;
@@ -37,6 +39,7 @@ namespace GameEditor
 
             WalkableClimb = (int)(agentMaxClimb / cellHeight);
             WalkableHeight = (int)(agentHeight / cellHeight);
+            WalkableRadius = (int)(agentRadius / cellSize);
         }
     }
 
@@ -64,6 +67,8 @@ namespace GameEditor
         public int WalkableClimb = 0;
         //物体高度
         public int WalkableHeight = 0;
+        //物体半径
+        public int WalkableRadius = 0;
 
         public float CellSize = 0;
         public float CellHeight = 0;
@@ -75,6 +80,7 @@ namespace GameEditor
 
         public CompactCell[] CellList;
         public CompactSpan[] SpanList;
+        public AREATYPE[] AreaList;
 
         public CompactHeightfield(Heightfield hf)
         {
@@ -88,12 +94,14 @@ namespace GameEditor
             WalkableSlopeAngle = hf.WalkableSlopeAngle;
             WalkableClimb = hf.WalkableClimb;
             WalkableHeight = hf.WalkableHeight;
+            WalkableRadius = hf.WalkableRadius;
 
             CellList = new CompactCell[Width * Height];
 
             SpanCount = CommonUtility.RcGetHeightFieldSpanCount(hf);
 
             SpanList = new CompactSpan[SpanCount];
+            AreaList = new AREATYPE[SpanCount];
         }
     }
 

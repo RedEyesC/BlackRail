@@ -20,7 +20,7 @@ namespace GameEditor
     {
         static readonly float PI = 3.1415926f;
         static readonly int MAX_HEIGHT = 9999;
-        static readonly int RC_NOT_CONNECTED = 0x3f;
+        static readonly int RC_NOT_CONNECTED = 0x3f;//空心高度场，相邻不可行走标志，RC_NOT_CONNECTED-1 为最大层级
 
         static readonly string MapResPath = "Assets/Resources/map/";
         static readonly string MapElement = "MapElement";
@@ -29,6 +29,7 @@ namespace GameEditor
         static readonly float AgentMaxSlope = 45;
         static readonly float AgentMaxClimb = 0.9f;
         static readonly float AgentHeight = 2.0f;
+        static readonly float AgentRadius = 1.0f;
         static readonly float CellSize = 1f; //xz平面的尺寸
         static readonly float CellHeight = 1f; // y轴的尺寸
 
@@ -87,6 +88,7 @@ namespace GameEditor
 
             Transform navRoot = root.transform.Find(MapElement);
 
+            //合并mesh
             MeshFilter[] meshFilters = navRoot.GetComponentsInChildren<MeshFilter>();
             CombineInstance[] combines = new CombineInstance[meshFilters.Length];
 
@@ -101,34 +103,42 @@ namespace GameEditor
             mesh.CombineMeshes(combines, true);
 
 
-            Heightfield hf = new Heightfield(mesh, AgentMaxSlope, AgentMaxClimb, AgentHeight, CellSize, CellHeight);
+            Heightfield hf = new Heightfield(mesh, AgentMaxSlope, AgentMaxClimb, AgentHeight,AgentRadius, CellSize, CellHeight);
 
-
+            //判断三角形是否可行走
             AREATYPE[] areas = RcMarkWalkableTriangles(hf.WalkableSlopeAngle, mesh.vertices, mesh.triangles);
 
+            //体素化三角形，构建高度场
             RcRasterizeTriangles(mesh.vertices, mesh.triangles, areas, hf);
 
 
+            //过滤悬空的可走障碍物
             if (FilterLowHangingObstacles)
             {
                 RcFilterLowHangingWalkableObstacles(hf);
             }
 
+            //过滤高度差过大的span
             if (FilterLedgeSpans)
             {
                 RcFilterLedgeSpans(hf);
             }
 
+            //过滤不可通过高度span
             if (FilterWalkableLowHeightSpans)
             {
                 RcFilterWalkableLowHeightSpans(hf);
             }
 
-
+            //构建空心高度场
             CompactHeightfield chf = RcBuildCompactHeightfield(hf);
+
+
+            //设置边缘不可行走
+            RcErodeWalkableArea(chf);
         }
 
-        //判断是否符合可行走角度
+       
         static AREATYPE[] RcMarkWalkableTriangles(float walkableSlopeAngle, Vector3[] verts, int[] tris)
         {
 
@@ -155,7 +165,7 @@ namespace GameEditor
             return areas;
         }
 
-        //体素化三角形，构建高度场
+        
         static void RcRasterizeTriangles(Vector3[] verts, int[] tris, AREATYPE[] areas, Heightfield hf)
         {
 
@@ -598,6 +608,8 @@ namespace GameEditor
                         int top = span.Next != null ? span.Next.Min : MAX_HEIGHT;
 
                         compactHeightfield.SpanList[currentCellIndex] = new CompactSpan(Mathf.Clamp(bot, 0, MAX_HEIGHT), Mathf.Clamp(top - bot, 0, MAX_HEIGHT), span.AreaID);
+                        compactHeightfield.AreaList[currentCellIndex] = span.AreaID;
+
                         currentCellIndex++;
                         cell.Count++;
                     }
@@ -664,6 +676,220 @@ namespace GameEditor
             }
 
             return compactHeightfield;
+        }
+
+
+        public static void RcErodeWalkableArea(CompactHeightfield compactHeightfield)
+        {
+            int xSize = compactHeightfield.Width;
+            int zSize = compactHeightfield.Height;
+            int zStride = xSize;
+
+
+            int[] distanceToBoundary = new int[compactHeightfield.SpanCount];
+
+
+            for (int z = 0; z < zSize; ++z)
+            {
+                for (int x = 0; x < xSize; ++x)
+                {
+                    CompactCell cell = compactHeightfield.CellList[x + z * zStride];
+                    for (int spanIndex = cell.Index, maxSpanIndex = (cell.Index + cell.Count); spanIndex < maxSpanIndex; ++spanIndex)
+                    {
+
+                        //设置默认值
+                        distanceToBoundary[spanIndex] = 255;
+
+                        //不可行走设置为边缘
+                        if (compactHeightfield.AreaList[spanIndex] == AREATYPE.None)
+                        {
+                            distanceToBoundary[spanIndex] = 0;
+                            continue;
+                        }
+
+                        CompactSpan span = compactHeightfield.SpanList[spanIndex];
+
+                        int neighborCount = 0;
+                        for (int direction = 0; direction < 4; ++direction)
+                        {
+                            int neighborConnection = CommonUtility.RcGetCon(span, direction);
+                            if (neighborConnection == RC_NOT_CONNECTED)
+                            {
+                                break;
+                            }
+
+                            int neighborX = x + CommonUtility.RcGetDirOffsetX(direction);
+                            int neighborZ = z + CommonUtility.RcGetDirOffsetY(direction);
+                            int neighborSpanIndex = compactHeightfield.CellList[neighborX + neighborZ * zStride].Index + neighborConnection;
+
+                            if (compactHeightfield.AreaList[neighborSpanIndex] == AREATYPE.None)
+                            {
+                                break;
+                            }
+                            neighborCount++;
+                        }
+
+                        //不是四个位置都存在相邻的可行走，则视为边缘
+                        if (neighborCount != 4)
+                        {
+                            distanceToBoundary[spanIndex] = 0;
+                        }
+                    }
+                }
+            }
+
+
+            int newDistance;
+
+            //第一次从左下到右上遍历，计算出障碍物右上方span的距离，对于CompactSpan本身是左下侧，，，左下最边缘是障碍物,一层层向右上方感染
+
+            for (int z = 0; z < zSize; ++z)
+            {
+                for (int x = 0; x < xSize; ++x)
+                {
+                    CompactCell cell = compactHeightfield.CellList[x + z * zStride];
+                    int maxSpanIndex = (cell.Index + cell.Count);
+                    for (int spanIndex = cell.Index; spanIndex < maxSpanIndex; ++spanIndex)
+                    {
+                        CompactSpan span = compactHeightfield.SpanList[spanIndex];
+
+                        if (CommonUtility.RcGetCon(span, 0) != RC_NOT_CONNECTED)
+                        {
+                            // (-1,0) 左侧
+                            int aX = x + CommonUtility.RcGetDirOffsetX(0);
+                            int aY = z + CommonUtility.RcGetDirOffsetY(0);
+                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 0);
+                            CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
+                            // 正交的邻居距离+2
+                            newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
+                            if (newDistance < distanceToBoundary[spanIndex])
+                            {
+                                distanceToBoundary[spanIndex] = newDistance;
+                            }
+
+                            // (-1,-1) 左下
+                            if (CommonUtility.RcGetCon(aSpan, 3) != RC_NOT_CONNECTED)
+                            {
+                                int bX = aX + CommonUtility.RcGetDirOffsetX(3);
+                                int bY = aY + CommonUtility.RcGetDirOffsetY(3);
+                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 3);
+                                // 斜方向的邻居距离+3
+                                newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
+                                if (newDistance < distanceToBoundary[spanIndex])
+                                {
+                                    distanceToBoundary[spanIndex] = newDistance;
+                                }
+                            }
+                        }
+                        if (CommonUtility.RcGetCon(span, 3) != RC_NOT_CONNECTED)
+                        {
+                            // (0,-1) 下侧
+                            int aX = x + CommonUtility.RcGetDirOffsetX(3);
+                            int aY = z + CommonUtility.RcGetDirOffsetY(3);
+                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 3);
+                            CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
+                            newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
+                            if (newDistance < distanceToBoundary[spanIndex])
+                            {
+                                distanceToBoundary[spanIndex] = newDistance;
+                            }
+
+                            // (1,-1) 下右
+                            if (CommonUtility.RcGetCon(aSpan, 2) != RC_NOT_CONNECTED)
+                            {
+                                int bX = aX + CommonUtility.RcGetDirOffsetX(2);
+                                int bY = aY + CommonUtility.RcGetDirOffsetY(2);
+                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 2);
+                                newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
+                                if (newDistance < distanceToBoundary[spanIndex])
+                                {
+                                    distanceToBoundary[spanIndex] = newDistance;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            //第二次从右上到最下遍历，计算出障碍物左下方span的距离
+            for (int z = zSize -1; z > 0; --z)
+            {
+                for (int x = xSize -1; x > 0; --x)
+                {
+                    CompactCell cell = compactHeightfield.CellList[x + z * zStride];
+                    int maxSpanIndex = (cell.Index + cell.Count);
+                    for (int spanIndex = cell.Index; spanIndex < maxSpanIndex; ++spanIndex)
+                    {
+                        CompactSpan span = compactHeightfield.SpanList[spanIndex];
+
+                        if (CommonUtility.RcGetCon(span, 2) != RC_NOT_CONNECTED)
+                        {
+                            // (1,0) 右侧
+                            int aX = x + CommonUtility.RcGetDirOffsetX(2);
+                            int aY = z + CommonUtility.RcGetDirOffsetY(2);
+                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 2);
+                            CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
+                            // 正交的邻居距离+2
+                            newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
+                            if (newDistance < distanceToBoundary[spanIndex])
+                            {
+                                distanceToBoundary[spanIndex] = newDistance;
+                            }
+
+                            // (1,1) 右上
+                            if (CommonUtility.RcGetCon(aSpan, 1) != RC_NOT_CONNECTED)
+                            {
+                                int bX = aX + CommonUtility.RcGetDirOffsetX(1);
+                                int bY = aY + CommonUtility.RcGetDirOffsetY(1);
+                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 1);
+                                // 斜方向的邻居距离+3
+                                newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
+                                if (newDistance < distanceToBoundary[spanIndex])
+                                {
+                                    distanceToBoundary[spanIndex] = newDistance;
+                                }
+                            }
+                        }
+                        if (CommonUtility.RcGetCon(span, 1) != RC_NOT_CONNECTED)
+                        {
+                            // (0,1) 上侧
+                            int aX = x + CommonUtility.RcGetDirOffsetX(1);
+                            int aY = z + CommonUtility.RcGetDirOffsetY(1);
+                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 1);
+                            CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
+                            newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
+                            if (newDistance < distanceToBoundary[spanIndex])
+                            {
+                                distanceToBoundary[spanIndex] = newDistance;
+                            }
+
+                            // (-1,1) 上左
+                            if (CommonUtility.RcGetCon(aSpan, 0) != RC_NOT_CONNECTED)
+                            {
+                                int bX = aX + CommonUtility.RcGetDirOffsetX(0);
+                                int bY = aY + CommonUtility.RcGetDirOffsetY(0);
+                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 0);
+                                newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
+                                if (newDistance < distanceToBoundary[spanIndex])
+                                {
+                                    distanceToBoundary[spanIndex] = newDistance;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            //大于半径x2 ，，因为算距离的时候本身就是x2
+            int  minBoundaryDistance = (compactHeightfield.WalkableRadius * 2);
+            for (int spanIndex = 0; spanIndex < compactHeightfield.SpanCount; ++spanIndex)
+            {
+                if (distanceToBoundary[spanIndex] < minBoundaryDistance)
+                {
+                    compactHeightfield.AreaList[spanIndex] = AREATYPE.None;
+                }
+            }
         }
 
         //用于绘制计算出来的高度场

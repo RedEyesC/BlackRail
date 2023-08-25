@@ -249,6 +249,13 @@ namespace GameEditor
             span.Con = ((con & ~(0x3f << shift)) |   (i & 0x3f) << shift);
         }
 
+
+        public static int RcGetCon(CompactSpan span, int dir)
+        {
+            //每个方向用六位存放 
+            int shift = dir * 6;
+            return (span.Con >> shift) & 0x3f;
+        }
         #endregion
     }
 }
