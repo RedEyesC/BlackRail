@@ -19,6 +19,8 @@ namespace GameEditor
     public class RecastEditor
     {
         static readonly float PI = 3.1415926f;
+        static readonly int MAX_HEIGHT = 9999;
+        static readonly int RC_NOT_CONNECTED = 0x3f;
 
         static readonly string MapResPath = "Assets/Resources/map/";
         static readonly string MapElement = "MapElement";
@@ -29,7 +31,6 @@ namespace GameEditor
         static readonly float AgentHeight = 2.0f;
         static readonly float CellSize = 1f; //xz平面的尺寸
         static readonly float CellHeight = 1f; // y轴的尺寸
-
 
         static readonly bool FilterLowHangingObstacles = true;//过滤悬空可走的span
         static readonly bool FilterLedgeSpans = true;//过滤高度差过大的span
@@ -124,6 +125,7 @@ namespace GameEditor
             }
 
 
+            CompactHeightfield chf = RcBuildCompactHeightfield(hf);
         }
 
         //判断是否符合可行走角度
@@ -183,8 +185,8 @@ namespace GameEditor
             triBBMax = Vector3.Max(triBBMax, v1);
             triBBMax = Vector3.Max(triBBMax, v2);
 
-            Vector3 hfBBMin = hf.minBounds;
-            Vector3 hfBBMax = hf.maxBounds;
+            Vector3 hfBBMin = hf.MinBounds;
+            Vector3 hfBBMax = hf.MaxBounds;
 
             float cellSize = hf.CellSize;
             float inverseCellSize = 1 / hf.CellSize;
@@ -456,7 +458,7 @@ namespace GameEditor
         {
             int xSize = hf.Width;
             int zSize = hf.Height;
-            int MAX_HEIGHT = 9999;
+
 
 
             for (int z = 0; z < zSize; ++z)
@@ -494,7 +496,7 @@ namespace GameEditor
                                 continue;
                             }
 
-                            
+
                             Span neighborSpan = hf.SpanList[dx + dy * xSize];
                             int neighborBot = -hf.WalkableClimb;
                             int neighborTop = neighborSpan != null ? neighborSpan.Min : MAX_HEIGHT;
@@ -513,7 +515,7 @@ namespace GameEditor
                                 // 只处理上下表面的距离大于WalkableHeight的部分
                                 if (Mathf.Min(top, neighborTop) - Mathf.Max(bot, neighborBot) > hf.WalkableHeight)
                                 {
-                                   
+
                                     minNeighborHeight = Mathf.Min(minNeighborHeight, neighborBot - bot);
 
                                     //寻找相邻的span与自身高度差小于WalkableClimb
@@ -547,7 +549,6 @@ namespace GameEditor
         {
             int xSize = hf.Width;
             int zSize = hf.Height;
-            const int MAX_HEIGHT = 9999;
 
             //如果上下两个span之间的空隙小于等于walkHeight，则把下span标记为不可行走。
             for (int z = 0; z < zSize; ++z)
@@ -567,9 +568,106 @@ namespace GameEditor
             }
         }
 
+        public static CompactHeightfield RcBuildCompactHeightfield(Heightfield heightfield)
+        {
+            CompactHeightfield compactHeightfield = new CompactHeightfield(heightfield);
+
+            int currentCellIndex = 0;
+            int numColumns = heightfield.Width * heightfield.Height;
+
+            for (int columnIndex = 0; columnIndex < numColumns; ++columnIndex)
+            {
+                Span span = heightfield.SpanList[columnIndex];
+
+                CompactCell cell = new CompactCell(0, 0);
+
+                compactHeightfield.CellList[columnIndex] = cell;
+
+                if (span == null)
+                {
+                    continue;
+                }
+
+                cell.Index = currentCellIndex;
+
+                for (; span != null; span = span.Next)
+                {
+                    if (span.AreaID != AREATYPE.None)
+                    {
+                        int bot = span.Max;
+                        int top = span.Next != null ? span.Next.Min : MAX_HEIGHT;
+
+                        compactHeightfield.SpanList[currentCellIndex] = new CompactSpan(Mathf.Clamp(bot, 0, MAX_HEIGHT), Mathf.Clamp(top - bot, 0, MAX_HEIGHT), span.AreaID);
+                        currentCellIndex++;
+                        cell.Count++;
+                    }
+                }
+            }
+
+
+            int MAX_LAYERS = RC_NOT_CONNECTED - 1;
+            int zSize = heightfield.Width;
+            int xSize = heightfield.Height;
+            int maxLayerIndex = 0;
+            int zStride = heightfield.Width;
+            for (int z = 0; z < zSize; ++z)
+            {
+                for (int x = 0; x < xSize; ++x)
+                {
+                    CompactCell cell = compactHeightfield.CellList[x + z * zStride];
+                    for (int i = cell.Index, ni = (cell.Index + cell.Count); i < ni; ++i)
+                    {
+                        CompactSpan span = compactHeightfield.SpanList[i];
+
+                        for (int dir = 0; dir < 4; ++dir)
+                        {
+                            CommonUtility.RcSetCon(span, dir, RC_NOT_CONNECTED);
+                            int neighborX = x + CommonUtility.RcGetDirOffsetX(dir);
+                            int neighborZ = z + CommonUtility.RcGetDirOffsetY(dir);
+
+                            if (neighborX < 0 || neighborZ < 0 || neighborX >= xSize || neighborZ >= zSize)
+                            {
+                                continue;
+                            }
+
+
+                            CompactCell neighborCell = compactHeightfield.CellList[neighborX + neighborZ * zStride];
+
+                            for (int k = neighborCell.Index, nk = (int)(neighborCell.Index + neighborCell.Count); k < nk; ++k)
+                            {
+                                CompactSpan neighborSpan = compactHeightfield.SpanList[k];
+                                int bot = Mathf.Max(span.Y, neighborSpan.Y);
+                                int top = Mathf.Min(span.Y + span.H, neighborSpan.Y + neighborSpan.H);
+
+                                //与相邻的空心体素的之间的高度大于行走高度，之间的落差小于可攀爬高度
+                                if ((top - bot) >= compactHeightfield.WalkableHeight && Mathf.Abs((int)neighborSpan.Y - (int)span.Y) <= compactHeightfield.WalkableClimb)
+                                {
+                                    // Mark direction as walkable.
+                                    int layerIndex = k - neighborCell.Index;
+                                    if (layerIndex < 0 || layerIndex > MAX_LAYERS)
+                                    {
+                                        maxLayerIndex = Mathf.Max(maxLayerIndex, layerIndex);
+                                        continue;
+                                    }
+
+                                    CommonUtility.RcSetCon(span, dir, layerIndex);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (maxLayerIndex > MAX_LAYERS)
+            {
+                Debug.LogWarning(string.Format("rcBuildCompactHeightfield: Heightfield has too many layers %d (max: %d)", maxLayerIndex, MAX_LAYERS));
+            }
+
+            return compactHeightfield;
+        }
 
         //用于绘制计算出来的高度场
-        public static void buildHeightfield(Heightfield hf)
+        public static void BuildHeightfield(Heightfield hf)
         {
 
             GameObject root = GameObject.Find("EditorRoot");
@@ -580,7 +678,7 @@ namespace GameEditor
 
             root = new GameObject("EditorRoot");
 
-            Vector3 hfBBMin = hf.minBounds;
+            Vector3 hfBBMin = hf.MinBounds;
             float cellSize = hf.CellSize;
             float cellHeight = hf.CellHeight;
 

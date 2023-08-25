@@ -17,8 +17,8 @@ namespace GameEditor
         public int Width = 0;
         public int Height = 0;
 
-        public Vector3 minBounds = new Vector3();
-        public Vector3 maxBounds = new Vector3();
+        public Vector3 MinBounds = new Vector3();
+        public Vector3 MaxBounds = new Vector3();
 
         public Span[] SpanList;
 
@@ -29,9 +29,9 @@ namespace GameEditor
             CellHeight = cellHeight;
             WalkableSlopeAngle = agentMaxSlope;
 
-            CommonUtility.CalcBounds(mesh.vertices, out minBounds, out maxBounds);
+            CommonUtility.CalcBounds(mesh.vertices, out MinBounds, out MaxBounds);
 
-            CommonUtility.CalcGridSize(minBounds, maxBounds, CellSize, out Width, out Height);
+            CommonUtility.CalcGridSize(MinBounds, MaxBounds, CellSize, out Width, out Height);
 
             SpanList = new Span[Height * Width];
 
@@ -55,4 +55,73 @@ namespace GameEditor
             AreaID = areaID;
         }
     }
+
+    public class CompactHeightfield
+    {
+        //可行走角度
+        public float WalkableSlopeAngle = 0;
+        //可攀爬高度
+        public int WalkableClimb = 0;
+        //物体高度
+        public int WalkableHeight = 0;
+
+        public float CellSize = 0;
+        public float CellHeight = 0;
+
+        public int Width = 0;
+        public int Height = 0;
+
+        public int SpanCount = 0;
+
+        public CompactCell[] CellList;
+        public CompactSpan[] SpanList;
+
+        public CompactHeightfield(Heightfield hf)
+        {
+
+            Width = hf.Width;
+            Height = hf.Height;
+
+            CellHeight = hf.CellHeight;
+            CellSize = hf.CellSize;
+
+            WalkableSlopeAngle = hf.WalkableSlopeAngle;
+            WalkableClimb = hf.WalkableClimb;
+            WalkableHeight = hf.WalkableHeight;
+
+            CellList = new CompactCell[Width * Height];
+
+            SpanCount = CommonUtility.RcGetHeightFieldSpanCount(hf);
+
+            SpanList = new CompactSpan[SpanCount];
+        }
+    }
+
+    public class CompactCell
+    {
+        public int Index = 0; //对应spanList开始的序号
+        public int Count = 0; //当前xz平面体素点存在span数量
+
+        public CompactCell(int index, int count)
+        {
+            Index = index;
+            Count = count;
+        }
+    }
+
+    public class CompactSpan
+    {
+        public int Y;
+        public int H;
+        public int Con; //记录相邻的层级是否可行走,每个方向用六位来存放可行走层级，最高63层（6位都为1为不可行走,所以64-1=63）
+        public AREATYPE AreaID;
+
+        public CompactSpan(int y, int h, AREATYPE areaID)
+        {
+            Y = y;
+            H = h;
+            AreaID = areaID;
+        }
+    }
+
 }

@@ -223,6 +223,32 @@ namespace GameEditor
             return offset[direction & 0x03];
         }
 
+        public static int RcGetHeightFieldSpanCount(Heightfield heightfield)
+        {
+
+            int numCols = heightfield.Width * heightfield.Height;
+            int spanCount = 0;
+            for (int columnIndex = 0; columnIndex < numCols; ++columnIndex)
+            {
+                for (Span span = heightfield.SpanList[columnIndex]; span != null; span = span.Next)
+                {
+                    if (span.AreaID != AREATYPE.None)
+                    {
+                        spanCount++;
+                    }
+                }
+            }
+            return spanCount;
+        }
+
+        public static void RcSetCon(CompactSpan span ,int dir ,int i)
+        {
+            //每个方向用六位存放 
+            int shift =  dir * 6;
+            int con = span.Con;
+            span.Con = ((con & ~(0x3f << shift)) |   (i & 0x3f) << shift);
+        }
+
         #endregion
     }
 }
