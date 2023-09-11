@@ -82,6 +82,12 @@ namespace GameEditor
         public CompactSpan[] SpanList;
         public AREATYPE[] AreaList;
 
+        //距离场
+        public int[] DistanceToBoundary;
+
+        //最大距离
+        public int MaxDistance = 0;
+
         public CompactHeightfield(Heightfield hf)
         {
 
@@ -102,6 +108,7 @@ namespace GameEditor
 
             SpanList = new CompactSpan[SpanCount];
             AreaList = new AREATYPE[SpanCount];
+            DistanceToBoundary = new int[SpanCount];
         }
     }
 
