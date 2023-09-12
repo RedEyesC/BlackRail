@@ -4,6 +4,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 namespace GameEditor
 
@@ -21,7 +22,7 @@ namespace GameEditor
         static readonly float PI = 3.1415926f;
         static readonly int MAX_HEIGHT = 9999;
         static readonly int RC_NOT_CONNECTED = 0x3f;//空心高度场，相邻不可行走标志，RC_NOT_CONNECTED-1 为最大层级
-
+        static readonly int RC_BORDER_REG = 0x8000;
         static readonly string MapResPath = "Assets/Resources/map/";
         static readonly string MapElement = "MapElement";
 
@@ -144,6 +145,9 @@ namespace GameEditor
 
             //构建距离场
             RcBuildDistanceField(chf);
+
+            //分水岭算法构建区域
+            RcBuildRegions(chf);
 
         }
 
@@ -913,6 +917,7 @@ namespace GameEditor
 
             //平滑
             boxBlur(compactHeightfield, 1);
+
         }
 
 
@@ -935,14 +940,7 @@ namespace GameEditor
                     {
 
                         //设置默认值
-                        distanceToBoundary[spanIndex] = 255;
-
-                        //不可行走设置为边缘
-                        if (compactHeightfield.AreaList[spanIndex] == AREATYPE.None)
-                        {
-                            distanceToBoundary[spanIndex] = 0;
-                            continue;
-                        }
+                        distanceToBoundary[spanIndex] = 0xffff;
 
                         CompactSpan span = compactHeightfield.SpanList[spanIndex];
 
@@ -959,14 +957,14 @@ namespace GameEditor
                             int neighborZ = z + CommonUtility.RcGetDirOffsetY(direction);
                             int neighborSpanIndex = compactHeightfield.CellList[neighborX + neighborZ * zStride].Index + neighborConnection;
 
-                            if (compactHeightfield.AreaList[neighborSpanIndex] == AREATYPE.None)
+                            if (compactHeightfield.AreaList[neighborSpanIndex] != compactHeightfield.AreaList[spanIndex])
                             {
                                 break;
                             }
                             neighborCount++;
                         }
 
-                        //不是四个位置都存在相邻的可行走，则视为边缘
+                        //不是四个位置都存在同类型区域，则视为边缘
                         if (neighborCount != 4)
                         {
                             distanceToBoundary[spanIndex] = 0;
@@ -998,7 +996,7 @@ namespace GameEditor
                             int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 0);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             // 正交的邻居距离+2
-                            newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
+                            newDistance = distanceToBoundary[aIndex] + 2;
                             if (newDistance < distanceToBoundary[spanIndex])
                             {
                                 distanceToBoundary[spanIndex] = newDistance;
@@ -1011,7 +1009,7 @@ namespace GameEditor
                                 int bY = aY + CommonUtility.RcGetDirOffsetY(3);
                                 int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 3);
                                 // 斜方向的邻居距离+3
-                                newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
+                                newDistance = distanceToBoundary[bIndex] + 3;
                                 if (newDistance < distanceToBoundary[spanIndex])
                                 {
                                     distanceToBoundary[spanIndex] = newDistance;
@@ -1025,7 +1023,7 @@ namespace GameEditor
                             int aY = z + CommonUtility.RcGetDirOffsetY(3);
                             int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 3);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
-                            newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
+                            newDistance = distanceToBoundary[aIndex] + 2;
                             if (newDistance < distanceToBoundary[spanIndex])
                             {
                                 distanceToBoundary[spanIndex] = newDistance;
@@ -1037,7 +1035,7 @@ namespace GameEditor
                                 int bX = aX + CommonUtility.RcGetDirOffsetX(2);
                                 int bY = aY + CommonUtility.RcGetDirOffsetY(2);
                                 int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 2);
-                                newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
+                                newDistance = distanceToBoundary[bIndex] + 3;
                                 if (newDistance < distanceToBoundary[spanIndex])
                                 {
                                     distanceToBoundary[spanIndex] = newDistance;
@@ -1067,7 +1065,7 @@ namespace GameEditor
                             int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 2);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             // 正交的邻居距离+2
-                            newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
+                            newDistance = distanceToBoundary[aIndex] + 2;
                             if (newDistance < distanceToBoundary[spanIndex])
                             {
                                 distanceToBoundary[spanIndex] = newDistance;
@@ -1080,7 +1078,7 @@ namespace GameEditor
                                 int bY = aY + CommonUtility.RcGetDirOffsetY(1);
                                 int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 1);
                                 // 斜方向的邻居距离+3
-                                newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
+                                newDistance = distanceToBoundary[bIndex] + 3;
                                 if (newDistance < distanceToBoundary[spanIndex])
                                 {
                                     distanceToBoundary[spanIndex] = newDistance;
@@ -1094,7 +1092,7 @@ namespace GameEditor
                             int aY = z + CommonUtility.RcGetDirOffsetY(1);
                             int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 1);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
-                            newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
+                            newDistance = distanceToBoundary[aIndex] + 2;
                             if (newDistance < distanceToBoundary[spanIndex])
                             {
                                 distanceToBoundary[spanIndex] = newDistance;
@@ -1106,7 +1104,7 @@ namespace GameEditor
                                 int bX = aX + CommonUtility.RcGetDirOffsetX(0);
                                 int bY = aY + CommonUtility.RcGetDirOffsetY(0);
                                 int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 0);
-                                newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
+                                newDistance = distanceToBoundary[bIndex] + 3;
                                 if (newDistance < distanceToBoundary[spanIndex])
                                 {
                                     distanceToBoundary[spanIndex] = newDistance;
@@ -1180,7 +1178,7 @@ namespace GameEditor
                                     int neighbor2X = x + CommonUtility.RcGetDirOffsetX(direction2);
                                     int neighbor2Z = z + CommonUtility.RcGetDirOffsetY(direction2);
                                     int neighbor2SpanIndex = compactHeightfield.CellList[neighbor2X + neighbor2Z * zStride].Index + neighbor2Connection;
-                                    d = d + compactHeightfield.DistanceToBoundary[neighborSpanIndex];
+                                    d = d + compactHeightfield.DistanceToBoundary[neighbor2SpanIndex];
                                 }
                                 else
                                 {
@@ -1189,6 +1187,7 @@ namespace GameEditor
                             }
                             else
                             {
+                                //cd*2是包括了斜边的部分
                                 d = d + cd * 2;
                             }
 
@@ -1202,6 +1201,351 @@ namespace GameEditor
             }
 
             compactHeightfield.DistanceToBoundary = distanceToBoundary;
+        }
+
+
+        public static void RcBuildRegions(CompactHeightfield compactHeightfield)
+        {
+
+            const int expandIters = 8;
+            const int loglevelsPerStack = 1;//决定了每组的距离
+            const int LOG_NB_STACKS = 3;
+            const int NB_STACKS = 1 << LOG_NB_STACKS; //决定了每批有8组
+
+            int regionId = 1;
+
+            //使最低一位为0，使得level为2的倍数
+            int level = (compactHeightfield.MaxDistance + 1) & (~1);
+
+            int sId = -1;
+
+            Stack<LevelStackEntry>[] lvlStacks = new Stack<LevelStackEntry>[NB_STACKS];
+            Stack<LevelStackEntry> stack = new Stack<LevelStackEntry>();
+
+            int[] srcReg = new int[compactHeightfield.SpanCount];
+            int[] srcDist = new int[compactHeightfield.SpanCount];
+
+            for (int i = 0; i < compactHeightfield.SpanCount; i++)
+            {
+                srcReg[i] = 0;
+                srcDist[i] = 0;
+            }
+
+            while (level > 0)
+            {
+                level = level >= 2 ? level - 2 : 0;
+                sId = (sId + 1) & (NB_STACKS - 1);
+
+                if (sId == 0)
+                    SortCellsByLevel(level, compactHeightfield, srcReg, NB_STACKS, lvlStacks, loglevelsPerStack);
+                else
+                    AppendStacks(lvlStacks[sId - 1], lvlStacks[sId], srcReg);
+
+                //从水源进行蔓延
+                ExpandRegions(expandIters, level, compactHeightfield, srcReg, srcDist, lvlStacks[sId], false);
+
+                //寻找水源
+                foreach (LevelStackEntry lvlStackEntry in lvlStacks[sId])
+                {
+                    int x = lvlStackEntry.X;
+                    int y = lvlStackEntry.Y;
+                    int i = lvlStackEntry.Index;
+                    if (i >= 0 && srcReg[i] == 0)
+                    {
+                        if (FloodRegion(x, y, i, level, regionId, compactHeightfield, srcReg, srcDist, stack))
+                        {
+                            if (regionId == 0xFFFF)
+                            {
+                                Debug.LogError("rcBuildRegions: Region ID overflow");
+                            }
+
+                            regionId++;
+                        }
+                    }
+
+                }
+
+            }
+
+        }
+
+        //loglevelsPerStack 决定距离多少为一个level
+        public static void SortCellsByLevel(int startLevel, CompactHeightfield compactHeightfield, int[] srcReg, int nbStacks, Stack<LevelStackEntry>[] stacks, int loglevelsPerStack)
+        {
+            int w = compactHeightfield.Width;
+            int h = compactHeightfield.Height;
+            startLevel = startLevel >> loglevelsPerStack;
+
+            for (int i = 0; i < nbStacks; i++)
+            {
+                stacks[i].Clear();
+            }
+
+            for (int y = 0; y < h; ++y)
+            {
+                for (int x = 0; x < w; ++x)
+                {
+                    CompactCell c = compactHeightfield.CellList[x + y * w];
+                    for (int i = (int)c.Index, ni = (int)(c.Index + c.Count); i < ni; ++i)
+                    {
+                        if (compactHeightfield.AreaList[i] == AREATYPE.None || srcReg[i] != 0)
+                            continue;
+
+                        int level = compactHeightfield.DistanceToBoundary[i] >> loglevelsPerStack;
+                        int sId = startLevel - level;
+                        if (sId >= (int)nbStacks)
+                            continue;
+                        if (sId < 0)
+                            sId = 0;
+
+                        stacks[sId].Push(new LevelStackEntry(x, y, i));
+                    }
+                }
+            }
+        }
+
+        public static void AppendStacks(Stack<LevelStackEntry> srcStack, Stack<LevelStackEntry> dstStack, int[] srcReg)
+        {
+
+            foreach (LevelStackEntry srcEntry in srcStack)
+            {
+                int i = srcEntry.Index;
+                if ((i < 0) || (srcReg[i] != 0))
+                    continue;
+                dstStack.Push(srcEntry);
+            }
+        }
+
+        public static void ExpandRegions(int maxIter, int level, CompactHeightfield compactHeightfield, int[] srcReg, int[] srcDist, Stack<LevelStackEntry> stack, bool fillStack)
+        {
+            int w = compactHeightfield.Width;
+            int h = compactHeightfield.Height;
+
+            if (fillStack)
+            {
+                stack.Clear();
+
+                for (int y = 0; y < h; ++y)
+                {
+                    for (int x = 0; x < w; ++x)
+                    {
+                        CompactCell c = compactHeightfield.CellList[x + y * w];
+                        for (int i = (int)c.Index, ni = (int)(c.Index + c.Count); i < ni; ++i)
+                        {
+                            if (compactHeightfield.DistanceToBoundary[i] >= level && srcReg[i] == 0 && compactHeightfield.AreaList[i] != AREATYPE.None)
+                            {
+                                stack.Push(new LevelStackEntry(x, y, i));
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                //排除那些已经标记了区域的cell
+                foreach (LevelStackEntry entry in stack)
+                {
+                    int i = entry.Index;
+                    if (srcReg[i] != 0)
+                        entry.Index = -1;
+                }
+
+            }
+
+
+            Stack<DirtyEntry> dirtyEntries = new Stack<DirtyEntry>();
+            int iter = 0;
+            while (stack.Count > 0)
+            {
+
+                int failed = 0;
+                dirtyEntries.Clear();
+
+
+                foreach (LevelStackEntry entry in stack)
+                {
+                    int x = entry.X;
+                    int z = entry.Y;
+                    int spanIndex = entry.Index;
+                    if (spanIndex < 0)
+                    {
+                        failed++;
+                        continue;
+                    }
+
+                    int r = srcReg[spanIndex];
+                    int d2 = 0xffff;
+                    AREATYPE area = compactHeightfield.AreaList[spanIndex];
+                    CompactSpan span = compactHeightfield.SpanList[spanIndex];
+
+                    for (int direction = 0; direction < 4; ++direction)
+                    {
+                        int neighborConnection = CommonUtility.RcGetCon(span, direction);
+                        int neighborX = x + CommonUtility.RcGetDirOffsetX(direction);
+                        int neighborZ = z + CommonUtility.RcGetDirOffsetY(direction);
+                        int neighborSpanIndex = compactHeightfield.CellList[neighborX + neighborZ * w].Index + neighborConnection;
+
+                        if (compactHeightfield.AreaList[neighborSpanIndex] != compactHeightfield.AreaList[spanIndex])
+                        {
+                            continue;
+                        }
+
+                        if (srcReg[neighborSpanIndex] > 0 && (srcReg[neighborSpanIndex] & RC_BORDER_REG) == 0)
+                        {
+                            if ((int)srcDist[neighborSpanIndex] + 2 < (int)d2)
+                            {
+                                r = srcReg[neighborSpanIndex];
+                                d2 = srcDist[neighborSpanIndex] + 2;
+                            }
+                        }
+                    }
+
+                    if (r != 0)
+                    {
+                        entry.Index = -1; //标记已经使用了
+                        dirtyEntries.Push(new DirtyEntry(spanIndex, r, d2));
+                    }
+                    else
+                    {
+                        failed++;
+                    }
+
+                }
+
+                foreach (DirtyEntry dirtyEntery in dirtyEntries)
+                {
+                    int idx = dirtyEntery.Index;
+                    srcReg[idx] = dirtyEntery.Region;
+                    srcDist[idx] = dirtyEntery.Distance2;
+
+                }
+
+                if (failed == stack.Count)
+                    break;
+
+                if (level > 0)
+                {
+                    ++iter;
+                    if (iter >= maxIter)
+                        break;
+                }
+
+            }
+
+        }
+
+        public static bool FloodRegion(int x, int y, int i, int level, int r, CompactHeightfield compactHeightfield, int[] srcReg, int[] srcDist, Stack<LevelStackEntry> stack)
+        {
+            int w = compactHeightfield.Width;
+            AREATYPE area = compactHeightfield.AreaList[i];
+
+            stack.Clear();
+            stack.Push(new LevelStackEntry(x, y, i));
+            //标记为当前的regionId
+            srcReg[i] = r;
+            srcDist[i] = 0;
+
+            int lev = level >= 2 ? level - 2 : 0;
+            int count = 0;
+
+            while (stack.Count > 0)
+            {
+                LevelStackEntry back = stack.Pop();
+                int cx = back.X;
+                int cy = back.Y;
+                int ci = back.Index;
+
+                CompactSpan span = compactHeightfield.SpanList[ci];
+                int ar = 0;
+
+                //8向遍历相邻span 如果相邻span属于其他region，则自身region标记为0
+                for (int direction = 0; direction < 4; ++direction)
+                {
+
+                    int neighborConnection = CommonUtility.RcGetCon(span, direction);
+                    if (neighborConnection != RC_NOT_CONNECTED)
+                    {
+                        int neighborX = cx + CommonUtility.RcGetDirOffsetX(direction);
+                        int neighborZ = cy + CommonUtility.RcGetDirOffsetY(direction);
+                        int neighborSpanIndex = compactHeightfield.CellList[neighborX + neighborZ * w].Index + neighborConnection;
+
+                        //不在同一个area
+                        if (compactHeightfield.AreaList[neighborSpanIndex] != area)
+                            continue;
+
+                        int nr = srcReg[ci];
+                        //属于边缘
+                        if ((nr & RC_BORDER_REG) > 0)
+                            continue;
+                        //属于已标记region，且不是当前的regionId
+                        if (nr != 0 && nr != r)
+                        {
+                            ar = nr;
+                            break;
+                        }
+
+
+                        int direction2 = (direction + 1) & 0x3;
+                        CompactSpan neighborSpan = compactHeightfield.SpanList[neighborSpanIndex];
+                        int neighbor2Connection = CommonUtility.RcGetCon(neighborSpan, direction2);
+                        if (neighbor2Connection != RC_NOT_CONNECTED)
+                        {
+                            int neighbor2X = neighborX + CommonUtility.RcGetDirOffsetX(direction2);
+                            int neighbor2Z = neighborZ + CommonUtility.RcGetDirOffsetY(direction2);
+                            int neighbor2SpanIndex = compactHeightfield.CellList[neighbor2X + neighbor2Z * w].Index + neighbor2Connection;
+
+                            if (compactHeightfield.AreaList[neighbor2SpanIndex] != area)
+                                continue;
+
+                            int nr2 = srcReg[neighbor2SpanIndex];
+                            if ((nr2 & RC_BORDER_REG) > 0)
+                                continue;
+                            if (nr2 != 0 && nr2 != r)
+                            {
+                                ar = nr2;
+                                break;
+                            }
+                        }
+
+                    }
+
+                }
+
+                if (ar != 0)
+                {
+                    srcReg[ci] = 0;
+                    continue;
+                }
+
+                count++;
+
+
+                //假如相邻的span未标记且距离场大于leve ，则相邻的span标记为当前的regionId
+                for (int direction = 0; direction < 4; ++direction)
+                {
+
+                    int neighborConnection = CommonUtility.RcGetCon(span, direction);
+                    if (neighborConnection != RC_NOT_CONNECTED)
+                    {
+                        int neighborX = cx + CommonUtility.RcGetDirOffsetX(direction);
+                        int neighborZ = cy + CommonUtility.RcGetDirOffsetY(direction);
+                        int neighborSpanIndex = compactHeightfield.CellList[neighborX + neighborZ * w].Index + neighborConnection;
+
+                        if (compactHeightfield.AreaList[neighborSpanIndex] != area)
+                            continue;
+
+                        if(compactHeightfield.DistanceToBoundary[neighborSpanIndex] > lev && srcReg[neighborSpanIndex] == 0)
+                        {
+                            srcReg[neighborSpanIndex] = r;
+                            srcDist[neighborSpanIndex] = 0;
+                            stack.Push(new LevelStackEntry(neighborX, neighborZ, neighborSpanIndex));
+                        }
+
+                    }
+                }
+
+            }
+            return count > 0;
         }
 
         //用于绘制计算出来的高度场

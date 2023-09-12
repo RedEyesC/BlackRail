@@ -139,4 +139,32 @@ namespace GameEditor
         }
     }
 
+    public class LevelStackEntry
+    {
+        public int X;
+        public int Y;
+        public int Index; 
+
+        public LevelStackEntry(int x, int y, int index)
+        {
+            X = x;
+            Y = y;
+            Index = index;
+        }
+    }
+
+
+    public class DirtyEntry
+    {
+        public int Index;
+        public int Region;
+        public int Distance2;
+
+        public DirtyEntry(int index, int region, int distance2)
+        {
+            Index = index;
+            Region = region;
+            Distance2 = distance2;
+        }
+    }
 }
