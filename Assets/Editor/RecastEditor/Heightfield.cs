@@ -31,9 +31,9 @@ namespace GameEditor
             CellHeight = cellHeight;
             WalkableSlopeAngle = agentMaxSlope;
 
-            CommonUtility.CalcBounds(mesh.vertices, out MinBounds, out MaxBounds);
+            RecastUtility.CalcBounds(mesh.vertices, out MinBounds, out MaxBounds);
 
-            CommonUtility.CalcGridSize(MinBounds, MaxBounds, CellSize, out Width, out Height);
+            RecastUtility.CalcGridSize(MinBounds, MaxBounds, CellSize, out Width, out Height);
 
             SpanList = new Span[Height * Width];
 
@@ -104,7 +104,7 @@ namespace GameEditor
 
             CellList = new CompactCell[Width * Height];
 
-            SpanCount = CommonUtility.RcGetHeightFieldSpanCount(hf);
+            SpanCount = RecastUtility.RcGetHeightFieldSpanCount(hf);
 
             SpanList = new CompactSpan[SpanCount];
             AreaList = new AREATYPE[SpanCount];
