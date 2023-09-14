@@ -22,7 +22,6 @@ namespace GameEditor
         static readonly float PI = 3.1415926f;
         static readonly int MAX_HEIGHT = 9999;
         static readonly int RC_NOT_CONNECTED = 0x3f;//空心高度场，相邻不可行走标志，RC_NOT_CONNECTED-1 为最大层级
-        static readonly int RC_BORDER_REG = 0x8000;
         static readonly string MapResPath = "Assets/Resources/map/";
         static readonly string MapElement = "MapElement";
 
@@ -165,7 +164,7 @@ namespace GameEditor
 
 
                 //计算三角形法向量
-                Vector3 norm = CommonUtility.CalcTriNormal(verts[tris[i * 3]], verts[tris[i * 3 + 1]], verts[tris[i * 3 + 2]]);
+                Vector3 norm = RecastUtility.CalcTriNormal(verts[tris[i * 3]], verts[tris[i * 3 + 1]], verts[tris[i * 3 + 2]]);
 
                 //法向量在y轴的投影越大，倾斜角度越小
                 if (norm[1] > walkableThr)
@@ -220,7 +219,7 @@ namespace GameEditor
             float by = hfBBMax[1] - hfBBMin[1];
 
             // 三角形的包围盒不在目标包围盒范围内就放弃这个三角形
-            if (!CommonUtility.OverlapBounds(triBBMin, triBBMax, hfBBMin, hfBBMax))
+            if (!RecastUtility.OverlapBounds(triBBMin, triBBMax, hfBBMin, hfBBMax))
             {
                 return true;
             }
@@ -251,7 +250,7 @@ namespace GameEditor
 
                 float cellZ = hfBBMin[2] + (float)z * cellSize;
                 //切割三角形，nvRowList 为切割线下半部分的顶点 ,输出的nvInList 为切割线上半部分顶点
-                CommonUtility.DividePoly(nvInList, nvIn, cellZ + cellSize, RcAxis.AXIS_Z, out nvRow, out nvIn, out nvRowList, out nvInList);
+                RecastUtility.DividePoly(nvInList, nvIn, cellZ + cellSize, RcAxis.AXIS_Z, out nvRow, out nvIn, out nvRowList, out nvInList);
 
                 //没切割到东西，顶点小于3构不成多边形
                 if (nvRow < 3)
@@ -297,7 +296,7 @@ namespace GameEditor
                 for (int x = x0; x <= x1; ++x)
                 {
                     float cellX = hfBBMin[0] + (float)x * cellSize;
-                    CommonUtility.DividePoly(nvRowList, nvIn2, cellX + cellSize, RcAxis.AXIS_X, out nvRow2, out nvIn2, out p1InList, out nvRowList);
+                    RecastUtility.DividePoly(nvRowList, nvIn2, cellX + cellSize, RcAxis.AXIS_X, out nvRow2, out nvIn2, out p1InList, out nvRowList);
 
                     if (nvRow2 < 3)
                     {
@@ -508,8 +507,8 @@ namespace GameEditor
 
                         for (int direction = 0; direction < 4; ++direction)
                         {
-                            int dx = x + CommonUtility.RcGetDirOffsetX(direction);
-                            int dy = z + CommonUtility.RcGetDirOffsetY(direction);
+                            int dx = x + RecastUtility.RcGetDirOffsetX(direction);
+                            int dy = z + RecastUtility.RcGetDirOffsetY(direction);
 
 
                             if (dx < 0 || dy < 0 || dx >= xSize || dy >= zSize)
@@ -646,9 +645,9 @@ namespace GameEditor
 
                         for (int dir = 0; dir < 4; ++dir)
                         {
-                            CommonUtility.RcSetCon(span, dir, RC_NOT_CONNECTED);
-                            int neighborX = x + CommonUtility.RcGetDirOffsetX(dir);
-                            int neighborZ = z + CommonUtility.RcGetDirOffsetY(dir);
+                            RecastUtility.RcSetCon(span, dir, RC_NOT_CONNECTED);
+                            int neighborX = x + RecastUtility.RcGetDirOffsetX(dir);
+                            int neighborZ = z + RecastUtility.RcGetDirOffsetY(dir);
 
                             if (neighborX < 0 || neighborZ < 0 || neighborX >= xSize || neighborZ >= zSize)
                             {
@@ -675,7 +674,7 @@ namespace GameEditor
                                         continue;
                                     }
 
-                                    CommonUtility.RcSetCon(span, dir, layerIndex);
+                                    RecastUtility.RcSetCon(span, dir, layerIndex);
                                     break;
                                 }
                             }
@@ -725,14 +724,14 @@ namespace GameEditor
                         int neighborCount = 0;
                         for (int direction = 0; direction < 4; ++direction)
                         {
-                            int neighborConnection = CommonUtility.RcGetCon(span, direction);
+                            int neighborConnection = RecastUtility.RcGetCon(span, direction);
                             if (neighborConnection == RC_NOT_CONNECTED)
                             {
                                 break;
                             }
 
-                            int neighborX = x + CommonUtility.RcGetDirOffsetX(direction);
-                            int neighborZ = z + CommonUtility.RcGetDirOffsetY(direction);
+                            int neighborX = x + RecastUtility.RcGetDirOffsetX(direction);
+                            int neighborZ = z + RecastUtility.RcGetDirOffsetY(direction);
                             int neighborSpanIndex = compactHeightfield.CellList[neighborX + neighborZ * zStride].Index + neighborConnection;
 
                             if (compactHeightfield.AreaList[neighborSpanIndex] == AREATYPE.None)
@@ -766,12 +765,12 @@ namespace GameEditor
                     {
                         CompactSpan span = compactHeightfield.SpanList[spanIndex];
 
-                        if (CommonUtility.RcGetCon(span, 0) != RC_NOT_CONNECTED)
+                        if (RecastUtility.RcGetCon(span, 0) != RC_NOT_CONNECTED)
                         {
                             // (-1,0) 左侧
-                            int aX = x + CommonUtility.RcGetDirOffsetX(0);
-                            int aY = z + CommonUtility.RcGetDirOffsetY(0);
-                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 0);
+                            int aX = x + RecastUtility.RcGetDirOffsetX(0);
+                            int aY = z + RecastUtility.RcGetDirOffsetY(0);
+                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 0);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             // 正交的邻居距离+2
                             newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
@@ -781,11 +780,11 @@ namespace GameEditor
                             }
 
                             // (-1,-1) 左下
-                            if (CommonUtility.RcGetCon(aSpan, 3) != RC_NOT_CONNECTED)
+                            if (RecastUtility.RcGetCon(aSpan, 3) != RC_NOT_CONNECTED)
                             {
-                                int bX = aX + CommonUtility.RcGetDirOffsetX(3);
-                                int bY = aY + CommonUtility.RcGetDirOffsetY(3);
-                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 3);
+                                int bX = aX + RecastUtility.RcGetDirOffsetX(3);
+                                int bY = aY + RecastUtility.RcGetDirOffsetY(3);
+                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 3);
                                 // 斜方向的邻居距离+3
                                 newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
                                 if (newDistance < distanceToBoundary[spanIndex])
@@ -794,12 +793,12 @@ namespace GameEditor
                                 }
                             }
                         }
-                        if (CommonUtility.RcGetCon(span, 3) != RC_NOT_CONNECTED)
+                        if (RecastUtility.RcGetCon(span, 3) != RC_NOT_CONNECTED)
                         {
                             // (0,-1) 下侧
-                            int aX = x + CommonUtility.RcGetDirOffsetX(3);
-                            int aY = z + CommonUtility.RcGetDirOffsetY(3);
-                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 3);
+                            int aX = x + RecastUtility.RcGetDirOffsetX(3);
+                            int aY = z + RecastUtility.RcGetDirOffsetY(3);
+                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 3);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
                             if (newDistance < distanceToBoundary[spanIndex])
@@ -808,11 +807,11 @@ namespace GameEditor
                             }
 
                             // (1,-1) 下右
-                            if (CommonUtility.RcGetCon(aSpan, 2) != RC_NOT_CONNECTED)
+                            if (RecastUtility.RcGetCon(aSpan, 2) != RC_NOT_CONNECTED)
                             {
-                                int bX = aX + CommonUtility.RcGetDirOffsetX(2);
-                                int bY = aY + CommonUtility.RcGetDirOffsetY(2);
-                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 2);
+                                int bX = aX + RecastUtility.RcGetDirOffsetX(2);
+                                int bY = aY + RecastUtility.RcGetDirOffsetY(2);
+                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 2);
                                 newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
                                 if (newDistance < distanceToBoundary[spanIndex])
                                 {
@@ -835,12 +834,12 @@ namespace GameEditor
                     {
                         CompactSpan span = compactHeightfield.SpanList[spanIndex];
 
-                        if (CommonUtility.RcGetCon(span, 2) != RC_NOT_CONNECTED)
+                        if (RecastUtility.RcGetCon(span, 2) != RC_NOT_CONNECTED)
                         {
                             // (1,0) 右侧
-                            int aX = x + CommonUtility.RcGetDirOffsetX(2);
-                            int aY = z + CommonUtility.RcGetDirOffsetY(2);
-                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 2);
+                            int aX = x + RecastUtility.RcGetDirOffsetX(2);
+                            int aY = z + RecastUtility.RcGetDirOffsetY(2);
+                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 2);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             // 正交的邻居距离+2
                             newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
@@ -850,11 +849,11 @@ namespace GameEditor
                             }
 
                             // (1,1) 右上
-                            if (CommonUtility.RcGetCon(aSpan, 1) != RC_NOT_CONNECTED)
+                            if (RecastUtility.RcGetCon(aSpan, 1) != RC_NOT_CONNECTED)
                             {
-                                int bX = aX + CommonUtility.RcGetDirOffsetX(1);
-                                int bY = aY + CommonUtility.RcGetDirOffsetY(1);
-                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 1);
+                                int bX = aX + RecastUtility.RcGetDirOffsetX(1);
+                                int bY = aY + RecastUtility.RcGetDirOffsetY(1);
+                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 1);
                                 // 斜方向的邻居距离+3
                                 newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
                                 if (newDistance < distanceToBoundary[spanIndex])
@@ -863,12 +862,12 @@ namespace GameEditor
                                 }
                             }
                         }
-                        if (CommonUtility.RcGetCon(span, 1) != RC_NOT_CONNECTED)
+                        if (RecastUtility.RcGetCon(span, 1) != RC_NOT_CONNECTED)
                         {
                             // (0,1) 上侧
-                            int aX = x + CommonUtility.RcGetDirOffsetX(1);
-                            int aY = z + CommonUtility.RcGetDirOffsetY(1);
-                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 1);
+                            int aX = x + RecastUtility.RcGetDirOffsetX(1);
+                            int aY = z + RecastUtility.RcGetDirOffsetY(1);
+                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 1);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
                             if (newDistance < distanceToBoundary[spanIndex])
@@ -877,11 +876,11 @@ namespace GameEditor
                             }
 
                             // (-1,1) 上左
-                            if (CommonUtility.RcGetCon(aSpan, 0) != RC_NOT_CONNECTED)
+                            if (RecastUtility.RcGetCon(aSpan, 0) != RC_NOT_CONNECTED)
                             {
-                                int bX = aX + CommonUtility.RcGetDirOffsetX(0);
-                                int bY = aY + CommonUtility.RcGetDirOffsetY(0);
-                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 0);
+                                int bX = aX + RecastUtility.RcGetDirOffsetX(0);
+                                int bY = aY + RecastUtility.RcGetDirOffsetY(0);
+                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 0);
                                 newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
                                 if (newDistance < distanceToBoundary[spanIndex])
                                 {
@@ -947,14 +946,14 @@ namespace GameEditor
                         int neighborCount = 0;
                         for (int direction = 0; direction < 4; ++direction)
                         {
-                            int neighborConnection = CommonUtility.RcGetCon(span, direction);
+                            int neighborConnection = RecastUtility.RcGetCon(span, direction);
                             if (neighborConnection == RC_NOT_CONNECTED)
                             {
                                 break;
                             }
 
-                            int neighborX = x + CommonUtility.RcGetDirOffsetX(direction);
-                            int neighborZ = z + CommonUtility.RcGetDirOffsetY(direction);
+                            int neighborX = x + RecastUtility.RcGetDirOffsetX(direction);
+                            int neighborZ = z + RecastUtility.RcGetDirOffsetY(direction);
                             int neighborSpanIndex = compactHeightfield.CellList[neighborX + neighborZ * zStride].Index + neighborConnection;
 
                             if (compactHeightfield.AreaList[neighborSpanIndex] != compactHeightfield.AreaList[spanIndex])
@@ -988,12 +987,12 @@ namespace GameEditor
                     {
                         CompactSpan span = compactHeightfield.SpanList[spanIndex];
 
-                        if (CommonUtility.RcGetCon(span, 0) != RC_NOT_CONNECTED)
+                        if (RecastUtility.RcGetCon(span, 0) != RC_NOT_CONNECTED)
                         {
                             // (-1,0) 左侧
-                            int aX = x + CommonUtility.RcGetDirOffsetX(0);
-                            int aY = z + CommonUtility.RcGetDirOffsetY(0);
-                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 0);
+                            int aX = x + RecastUtility.RcGetDirOffsetX(0);
+                            int aY = z + RecastUtility.RcGetDirOffsetY(0);
+                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 0);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             // 正交的邻居距离+2
                             newDistance = distanceToBoundary[aIndex] + 2;
@@ -1003,11 +1002,11 @@ namespace GameEditor
                             }
 
                             // (-1,-1) 左下
-                            if (CommonUtility.RcGetCon(aSpan, 3) != RC_NOT_CONNECTED)
+                            if (RecastUtility.RcGetCon(aSpan, 3) != RC_NOT_CONNECTED)
                             {
-                                int bX = aX + CommonUtility.RcGetDirOffsetX(3);
-                                int bY = aY + CommonUtility.RcGetDirOffsetY(3);
-                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 3);
+                                int bX = aX + RecastUtility.RcGetDirOffsetX(3);
+                                int bY = aY + RecastUtility.RcGetDirOffsetY(3);
+                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 3);
                                 // 斜方向的邻居距离+3
                                 newDistance = distanceToBoundary[bIndex] + 3;
                                 if (newDistance < distanceToBoundary[spanIndex])
@@ -1016,12 +1015,12 @@ namespace GameEditor
                                 }
                             }
                         }
-                        if (CommonUtility.RcGetCon(span, 3) != RC_NOT_CONNECTED)
+                        if (RecastUtility.RcGetCon(span, 3) != RC_NOT_CONNECTED)
                         {
                             // (0,-1) 下侧
-                            int aX = x + CommonUtility.RcGetDirOffsetX(3);
-                            int aY = z + CommonUtility.RcGetDirOffsetY(3);
-                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 3);
+                            int aX = x + RecastUtility.RcGetDirOffsetX(3);
+                            int aY = z + RecastUtility.RcGetDirOffsetY(3);
+                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 3);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             newDistance = distanceToBoundary[aIndex] + 2;
                             if (newDistance < distanceToBoundary[spanIndex])
@@ -1030,11 +1029,11 @@ namespace GameEditor
                             }
 
                             // (1,-1) 下右
-                            if (CommonUtility.RcGetCon(aSpan, 2) != RC_NOT_CONNECTED)
+                            if (RecastUtility.RcGetCon(aSpan, 2) != RC_NOT_CONNECTED)
                             {
-                                int bX = aX + CommonUtility.RcGetDirOffsetX(2);
-                                int bY = aY + CommonUtility.RcGetDirOffsetY(2);
-                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 2);
+                                int bX = aX + RecastUtility.RcGetDirOffsetX(2);
+                                int bY = aY + RecastUtility.RcGetDirOffsetY(2);
+                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 2);
                                 newDistance = distanceToBoundary[bIndex] + 3;
                                 if (newDistance < distanceToBoundary[spanIndex])
                                 {
@@ -1057,12 +1056,12 @@ namespace GameEditor
                     {
                         CompactSpan span = compactHeightfield.SpanList[spanIndex];
 
-                        if (CommonUtility.RcGetCon(span, 2) != RC_NOT_CONNECTED)
+                        if (RecastUtility.RcGetCon(span, 2) != RC_NOT_CONNECTED)
                         {
                             // (1,0) 右侧
-                            int aX = x + CommonUtility.RcGetDirOffsetX(2);
-                            int aY = z + CommonUtility.RcGetDirOffsetY(2);
-                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 2);
+                            int aX = x + RecastUtility.RcGetDirOffsetX(2);
+                            int aY = z + RecastUtility.RcGetDirOffsetY(2);
+                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 2);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             // 正交的邻居距离+2
                             newDistance = distanceToBoundary[aIndex] + 2;
@@ -1072,11 +1071,11 @@ namespace GameEditor
                             }
 
                             // (1,1) 右上
-                            if (CommonUtility.RcGetCon(aSpan, 1) != RC_NOT_CONNECTED)
+                            if (RecastUtility.RcGetCon(aSpan, 1) != RC_NOT_CONNECTED)
                             {
-                                int bX = aX + CommonUtility.RcGetDirOffsetX(1);
-                                int bY = aY + CommonUtility.RcGetDirOffsetY(1);
-                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 1);
+                                int bX = aX + RecastUtility.RcGetDirOffsetX(1);
+                                int bY = aY + RecastUtility.RcGetDirOffsetY(1);
+                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 1);
                                 // 斜方向的邻居距离+3
                                 newDistance = distanceToBoundary[bIndex] + 3;
                                 if (newDistance < distanceToBoundary[spanIndex])
@@ -1085,12 +1084,12 @@ namespace GameEditor
                                 }
                             }
                         }
-                        if (CommonUtility.RcGetCon(span, 1) != RC_NOT_CONNECTED)
+                        if (RecastUtility.RcGetCon(span, 1) != RC_NOT_CONNECTED)
                         {
                             // (0,1) 上侧
-                            int aX = x + CommonUtility.RcGetDirOffsetX(1);
-                            int aY = z + CommonUtility.RcGetDirOffsetY(1);
-                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + CommonUtility.RcGetCon(span, 1);
+                            int aX = x + RecastUtility.RcGetDirOffsetX(1);
+                            int aY = z + RecastUtility.RcGetDirOffsetY(1);
+                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 1);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             newDistance = distanceToBoundary[aIndex] + 2;
                             if (newDistance < distanceToBoundary[spanIndex])
@@ -1099,11 +1098,11 @@ namespace GameEditor
                             }
 
                             // (-1,1) 上左
-                            if (CommonUtility.RcGetCon(aSpan, 0) != RC_NOT_CONNECTED)
+                            if (RecastUtility.RcGetCon(aSpan, 0) != RC_NOT_CONNECTED)
                             {
-                                int bX = aX + CommonUtility.RcGetDirOffsetX(0);
-                                int bY = aY + CommonUtility.RcGetDirOffsetY(0);
-                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + CommonUtility.RcGetCon(aSpan, 0);
+                                int bX = aX + RecastUtility.RcGetDirOffsetX(0);
+                                int bY = aY + RecastUtility.RcGetDirOffsetY(0);
+                                int bIndex = compactHeightfield.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 0);
                                 newDistance = distanceToBoundary[bIndex] + 3;
                                 if (newDistance < distanceToBoundary[spanIndex])
                                 {
@@ -1160,11 +1159,11 @@ namespace GameEditor
 
                         for (int direction = 0; direction < 4; ++direction)
                         {
-                            int neighborConnection = CommonUtility.RcGetCon(span, direction);
+                            int neighborConnection = RecastUtility.RcGetCon(span, direction);
                             if (neighborConnection != RC_NOT_CONNECTED)
                             {
-                                int neighborX = x + CommonUtility.RcGetDirOffsetX(direction);
-                                int neighborZ = z + CommonUtility.RcGetDirOffsetY(direction);
+                                int neighborX = x + RecastUtility.RcGetDirOffsetX(direction);
+                                int neighborZ = z + RecastUtility.RcGetDirOffsetY(direction);
                                 int neighborSpanIndex = compactHeightfield.CellList[neighborX + neighborZ * zStride].Index + neighborConnection;
 
                                 d = d + compactHeightfield.DistanceToBoundary[neighborSpanIndex];
@@ -1172,11 +1171,11 @@ namespace GameEditor
                                 CompactSpan neighborSpan = compactHeightfield.SpanList[neighborSpanIndex];
 
                                 int direction2 = (direction + 1) & 0x3;
-                                int neighbor2Connection = CommonUtility.RcGetCon(neighborSpan, direction2);
+                                int neighbor2Connection = RecastUtility.RcGetCon(neighborSpan, direction2);
                                 if (neighbor2Connection != RC_NOT_CONNECTED)
                                 {
-                                    int neighbor2X = x + CommonUtility.RcGetDirOffsetX(direction2);
-                                    int neighbor2Z = z + CommonUtility.RcGetDirOffsetY(direction2);
+                                    int neighbor2X = x + RecastUtility.RcGetDirOffsetX(direction2);
+                                    int neighbor2Z = z + RecastUtility.RcGetDirOffsetY(direction2);
                                     int neighbor2SpanIndex = compactHeightfield.CellList[neighbor2X + neighbor2Z * zStride].Index + neighbor2Connection;
                                     d = d + compactHeightfield.DistanceToBoundary[neighbor2SpanIndex];
                                 }
@@ -1236,12 +1235,13 @@ namespace GameEditor
                 level = level >= 2 ? level - 2 : 0;
                 sId = (sId + 1) & (NB_STACKS - 1);
 
+                //分批划分level层级，ps话说我感觉可以直接一次性划分完啊，为什么要分批去划分
                 if (sId == 0)
                     SortCellsByLevel(level, compactHeightfield, srcReg, NB_STACKS, lvlStacks, loglevelsPerStack);
                 else
                     AppendStacks(lvlStacks[sId - 1], lvlStacks[sId], srcReg);
 
-                //从水源进行蔓延
+                //从水源进行蔓延 
                 ExpandRegions(expandIters, level, compactHeightfield, srcReg, srcDist, lvlStacks[sId], false);
 
                 //寻找水源
@@ -1361,7 +1361,7 @@ namespace GameEditor
                 int failed = 0;
                 dirtyEntries.Clear();
 
-
+                //遍历假如相邻的span已经属于某个regionId，则把自身设置为同个regionId
                 foreach (LevelStackEntry entry in stack)
                 {
                     int x = entry.X;
@@ -1380,9 +1380,9 @@ namespace GameEditor
 
                     for (int direction = 0; direction < 4; ++direction)
                     {
-                        int neighborConnection = CommonUtility.RcGetCon(span, direction);
-                        int neighborX = x + CommonUtility.RcGetDirOffsetX(direction);
-                        int neighborZ = z + CommonUtility.RcGetDirOffsetY(direction);
+                        int neighborConnection = RecastUtility.RcGetCon(span, direction);
+                        int neighborX = x + RecastUtility.RcGetDirOffsetX(direction);
+                        int neighborZ = z + RecastUtility.RcGetDirOffsetY(direction);
                         int neighborSpanIndex = compactHeightfield.CellList[neighborX + neighborZ * w].Index + neighborConnection;
 
                         if (compactHeightfield.AreaList[neighborSpanIndex] != compactHeightfield.AreaList[spanIndex])
@@ -1390,7 +1390,10 @@ namespace GameEditor
                             continue;
                         }
 
-                        if (srcReg[neighborSpanIndex] > 0 && (srcReg[neighborSpanIndex] & RC_BORDER_REG) == 0)
+                        // 暂时去掉了关于边缘的这部分
+                        // & RC_BORDER_REG == 0 来判断是否不是边缘，有点奇怪，因为如果首位和RC_BORDER_REG一致，即使不是RC_BORDER_REG ，也会等于0,
+
+                        if (srcReg[neighborSpanIndex] > 0)
                         {
                             if ((int)srcDist[neighborSpanIndex] + 2 < (int)d2)
                             {
@@ -1462,11 +1465,11 @@ namespace GameEditor
                 for (int direction = 0; direction < 4; ++direction)
                 {
 
-                    int neighborConnection = CommonUtility.RcGetCon(span, direction);
+                    int neighborConnection = RecastUtility.RcGetCon(span, direction);
                     if (neighborConnection != RC_NOT_CONNECTED)
                     {
-                        int neighborX = cx + CommonUtility.RcGetDirOffsetX(direction);
-                        int neighborZ = cy + CommonUtility.RcGetDirOffsetY(direction);
+                        int neighborX = cx + RecastUtility.RcGetDirOffsetX(direction);
+                        int neighborZ = cy + RecastUtility.RcGetDirOffsetY(direction);
                         int neighborSpanIndex = compactHeightfield.CellList[neighborX + neighborZ * w].Index + neighborConnection;
 
                         //不在同一个area
@@ -1474,9 +1477,7 @@ namespace GameEditor
                             continue;
 
                         int nr = srcReg[ci];
-                        //属于边缘
-                        if ((nr & RC_BORDER_REG) > 0)
-                            continue;
+
                         //属于已标记region，且不是当前的regionId
                         if (nr != 0 && nr != r)
                         {
@@ -1487,19 +1488,18 @@ namespace GameEditor
 
                         int direction2 = (direction + 1) & 0x3;
                         CompactSpan neighborSpan = compactHeightfield.SpanList[neighborSpanIndex];
-                        int neighbor2Connection = CommonUtility.RcGetCon(neighborSpan, direction2);
+                        int neighbor2Connection = RecastUtility.RcGetCon(neighborSpan, direction2);
                         if (neighbor2Connection != RC_NOT_CONNECTED)
                         {
-                            int neighbor2X = neighborX + CommonUtility.RcGetDirOffsetX(direction2);
-                            int neighbor2Z = neighborZ + CommonUtility.RcGetDirOffsetY(direction2);
+                            int neighbor2X = neighborX + RecastUtility.RcGetDirOffsetX(direction2);
+                            int neighbor2Z = neighborZ + RecastUtility.RcGetDirOffsetY(direction2);
                             int neighbor2SpanIndex = compactHeightfield.CellList[neighbor2X + neighbor2Z * w].Index + neighbor2Connection;
 
                             if (compactHeightfield.AreaList[neighbor2SpanIndex] != area)
                                 continue;
 
                             int nr2 = srcReg[neighbor2SpanIndex];
-                            if ((nr2 & RC_BORDER_REG) > 0)
-                                continue;
+
                             if (nr2 != 0 && nr2 != r)
                             {
                                 ar = nr2;
@@ -1524,17 +1524,17 @@ namespace GameEditor
                 for (int direction = 0; direction < 4; ++direction)
                 {
 
-                    int neighborConnection = CommonUtility.RcGetCon(span, direction);
+                    int neighborConnection = RecastUtility.RcGetCon(span, direction);
                     if (neighborConnection != RC_NOT_CONNECTED)
                     {
-                        int neighborX = cx + CommonUtility.RcGetDirOffsetX(direction);
-                        int neighborZ = cy + CommonUtility.RcGetDirOffsetY(direction);
+                        int neighborX = cx + RecastUtility.RcGetDirOffsetX(direction);
+                        int neighborZ = cy + RecastUtility.RcGetDirOffsetY(direction);
                         int neighborSpanIndex = compactHeightfield.CellList[neighborX + neighborZ * w].Index + neighborConnection;
 
                         if (compactHeightfield.AreaList[neighborSpanIndex] != area)
                             continue;
 
-                        if(compactHeightfield.DistanceToBoundary[neighborSpanIndex] > lev && srcReg[neighborSpanIndex] == 0)
+                        if (compactHeightfield.DistanceToBoundary[neighborSpanIndex] > lev && srcReg[neighborSpanIndex] == 0)
                         {
                             srcReg[neighborSpanIndex] = r;
                             srcDist[neighborSpanIndex] = 0;
