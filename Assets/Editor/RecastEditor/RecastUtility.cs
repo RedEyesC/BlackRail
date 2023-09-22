@@ -175,6 +175,7 @@ namespace GameEditor
             int shift = dir * 6;
             return (span.Con >> shift) & 0x3f;
         }
+
         #endregion
     }
 }

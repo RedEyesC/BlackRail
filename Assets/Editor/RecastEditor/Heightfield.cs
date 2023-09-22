@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace GameEditor
 {
@@ -24,7 +25,7 @@ namespace GameEditor
 
         public Span[] SpanList;
 
-        public Heightfield(Mesh mesh, float agentMaxSlope, float agentMaxClimb, float agentHeight,float agentRadius, float cellSize, float cellHeight)
+        public Heightfield(Mesh mesh, float agentMaxSlope, float agentMaxClimb, float agentHeight, float agentRadius, float cellSize, float cellHeight)
         {
 
             CellSize = cellSize;
@@ -82,12 +83,17 @@ namespace GameEditor
         public CompactSpan[] SpanList;
         public AREATYPE[] AreaList;
 
+        public Vector3 MinBounds = new Vector3();
+        public Vector3 MaxBounds = new Vector3();
+
         //距离场
         public int[] DistanceToBoundary;
 
         //最大距离
         public int MaxDistance = 0;
 
+        //最大区域id
+        public int MaxRegions = 0;
         public CompactHeightfield(Heightfield hf)
         {
 
@@ -109,6 +115,9 @@ namespace GameEditor
             SpanList = new CompactSpan[SpanCount];
             AreaList = new AREATYPE[SpanCount];
             DistanceToBoundary = new int[SpanCount];
+
+            MinBounds = hf.MinBounds;
+            MaxBounds = hf.MaxBounds;
         }
     }
 
@@ -128,6 +137,7 @@ namespace GameEditor
     {
         public int Y;
         public int H;
+        public int Reg;
         public int Con; //记录相邻的层级是否可行走,每个方向用六位来存放可行走层级，最高63层（6位都为1为不可行走,所以64-1=63）
         public AREATYPE AreaID;
 
@@ -143,7 +153,7 @@ namespace GameEditor
     {
         public int X;
         public int Y;
-        public int Index; 
+        public int Index;
 
         public LevelStackEntry(int x, int y, int index)
         {
@@ -167,4 +177,25 @@ namespace GameEditor
             Distance2 = distance2;
         }
     }
+
+
+    public class RcRegion
+    {
+        public int SpanCount = 0;
+        public int Id;
+        public AREATYPE AreaType = 0;
+        public bool Remap = false;
+        public bool Visited = false;
+        public bool Overlap = false; //是否多层
+        public int Ymin = 0xffff;
+        public int Ymax = 0;
+        public List<int> Connections;
+        public List<int> Floors;
+
+        public RcRegion(int index)
+        {
+            Id = index;
+        }
+    }
+
 }

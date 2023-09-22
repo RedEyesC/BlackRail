@@ -20,22 +20,29 @@ namespace GameEditor
     public class RecastEditor
     {
         static readonly float PI = 3.1415926f;
-        static readonly int MAX_HEIGHT = 9999;
-        static readonly int RC_NOT_CONNECTED = 0x3f;//空心高度场，相邻不可行走标志，RC_NOT_CONNECTED-1 为最大层级
+
         static readonly string MapResPath = "Assets/Resources/map/";
         static readonly string MapElement = "MapElement";
 
         //构建寻路网格的参数
+        static readonly int MAX_HEIGHT = 50;
+        static readonly int RC_NOT_CONNECTED = 0x3f;//空心高度场，相邻不可行走标志，RC_NOT_CONNECTED-1 为最大层级
+
         static readonly float AgentMaxSlope = 45;
-        static readonly float AgentMaxClimb = 0.9f;
+        static readonly float AgentMaxClimb = 3f;
         static readonly float AgentHeight = 2.0f;
         static readonly float AgentRadius = 1.0f;
         static readonly float CellSize = 1f; //xz平面的尺寸
         static readonly float CellHeight = 1f; // y轴的尺寸
 
+        static readonly float MinRegionArea = 10; //小于此则被剔除
+        static readonly float MergeRegionArea = 20; //小于此则与周围区域合并
+
         static readonly bool FilterLowHangingObstacles = true;//过滤悬空可走的span
         static readonly bool FilterLedgeSpans = true;//过滤高度差过大的span
         static readonly bool FilterWalkableLowHeightSpans = true;//过滤不可通过的高度的span
+
+
 
         [MenuItem("Assets/GameEditor/导出地图navmesh", false, 900)]
         static void ExportRecast()
@@ -170,6 +177,10 @@ namespace GameEditor
                 if (norm[1] > walkableThr)
                 {
                     areas[i] = AREATYPE.Walke;
+                }
+                else
+                {
+                    areas[i] = AREATYPE.None;
                 }
 
             }
@@ -502,7 +513,7 @@ namespace GameEditor
                         float minNeighborHeight = MAX_HEIGHT;
 
                         //相邻span的上表面的最大值与最小值
-                        int accessibleNeighborMinHeight = span.Min;
+                        int accessibleNeighborMinHeight = span.Max;
                         int accessibleNeighborMaxHeight = span.Max;
 
                         for (int direction = 0; direction < 4; ++direction)
@@ -1267,6 +1278,17 @@ namespace GameEditor
 
             }
 
+
+            ExpandRegions(expandIters * 8, 0, compactHeightfield, srcReg, srcDist, stack, false);
+
+            //合并区域
+            compactHeightfield.MaxRegions = regionId;
+
+            MergeAndFilterRegions(compactHeightfield, srcReg, srcDist);
+
+            for (int i = 0; i < compactHeightfield.SpanCount; ++i)
+                compactHeightfield.SpanList[i].Reg = srcReg[i];
+
         }
 
         //loglevelsPerStack 决定距离多少为一个level
@@ -1548,7 +1570,467 @@ namespace GameEditor
             return count > 0;
         }
 
-        //用于绘制计算出来的高度场
+        public static void MergeAndFilterRegions(CompactHeightfield compactHeightfield, int[] srcReg, int[] srcDist)
+        {
+            int w = compactHeightfield.Width;
+            int h = compactHeightfield.Height;
+
+            int nreg = compactHeightfield.MaxRegions + 1;
+
+            RcRegion[] regions = new RcRegion[compactHeightfield.MaxRegions];
+            for (int i = 0; i < nreg; ++i)
+            {
+                regions[i] = new RcRegion(i);
+            }
+
+            for (int y = 0; y < h; ++y)
+            {
+                for (int x = 0; x < w; ++x)
+                {
+                    CompactCell c = compactHeightfield.CellList[x + y * w];
+                    for (int i = (int)c.Index, ni = (int)(c.Index + c.Count); i < ni; ++i)
+                    {
+                        int r = srcReg[i];
+                        if (r == 0 || r >= nreg)
+                            continue;
+
+                        RcRegion reg = regions[r];
+                        reg.SpanCount++;
+
+                        // 寻找相同xz平面位置的上方的span的区域
+                        for (int j = (int)c.Index; j < ni; ++j)
+                        {
+                            if (i == j) continue;
+                            int floorId = srcReg[j];
+                            if (floorId == 0 || floorId >= nreg)
+                                continue;
+                            if (floorId == r)
+                                reg.Overlap = true;
+                            AddUniqueFloorRegion(reg, floorId);
+                        }
+
+                        if (reg.Connections.Count > 0)
+                            continue;
+
+                        reg.AreaType = compactHeightfield.AreaList[i];
+
+
+                        int ndir = -1;
+                        for (int dir = 0; dir < 4; ++dir)
+                        {
+                            if (IsSolidEdge(compactHeightfield, srcReg, x, y, i, dir))
+                            {
+                                ndir = dir;
+                                break;
+                            }
+                        }
+
+                        if (ndir != -1)
+                        {
+                            WalkContour(compactHeightfield, srcReg, x, y, i, ndir, reg.Connections);
+                        }
+                    }
+                }
+            }
+
+            Stack<int> stack = new Stack<int>();
+            List<int> trace = new List<int>();
+
+            for (int i = 0; i < nreg; ++i)
+            {
+                RcRegion reg = regions[i];
+                if (reg.Id == 0)
+                    continue;
+                if (reg.SpanCount == 0)
+                    continue;
+                if (reg.Visited)
+                    continue;
+
+
+                int spanCount = 0;
+
+                stack.Clear();
+                trace.Clear();
+
+                reg.Visited = true;
+                stack.Push(i);
+
+                while (stack.Count > 0)
+                {
+                    int ri = stack.Pop();
+
+                    RcRegion creg = regions[ri];
+
+                    spanCount += creg.SpanCount;
+                    trace.Add(ri);
+
+                    for (int j = 0; j < creg.Connections.Count; ++j)
+                    {
+
+                        RcRegion neireg = regions[creg.Connections[j]];
+                        if (neireg.Visited)
+                            continue;
+                        if (neireg.Id == 0)
+                            continue;
+
+                        //将相邻区域压入stack ，用于计算spanCount
+                        stack.Push(neireg.Id);
+                        neireg.Visited = true;
+                    }
+                }
+
+                //去掉过于小的区域
+                if (spanCount < MinRegionArea)
+                {
+                    for (int j = 0; j < trace.Count; ++j)
+                    {
+                        regions[trace[j]].SpanCount = 0;
+                        regions[trace[j]].Id = 0;
+                    }
+                }
+            }
+
+            int mergeCount = 0;
+
+
+            for (int i = 0; i < nreg; ++i)
+            {
+                RcRegion reg = regions[i];
+                if (reg.Id == 0)
+                    continue;
+                if (reg.Overlap)
+                    continue;
+                if (reg.SpanCount == 0)
+                    continue;
+
+
+                if (reg.SpanCount > MergeRegionArea)
+                    continue;
+
+                int smallest = 0xfffffff;
+                int mergeId = reg.Id;
+                for (int j = 0; j < reg.Connections.Count; ++j)
+                {
+
+                    RcRegion mreg = regions[reg.Connections[j]];
+                    if (mreg.Id == 0 || mreg.Overlap) continue;
+                    if (mreg.SpanCount < smallest &&
+                        CanMergeWithRegion(reg, mreg) &&
+                        CanMergeWithRegion(mreg, reg))
+                    {
+                        smallest = mreg.SpanCount;
+                        mergeId = mreg.Id;
+                    }
+                }
+
+                //存在可以合并
+                if (mergeId != reg.Id)
+                {
+                    int oldId = reg.Id;
+                    RcRegion target = regions[mergeId];
+
+
+                    if (MergeRegions(target, reg))
+                    {
+
+                        for (int j = 0; j < nreg; ++j)
+                        {
+                            if (regions[j].Id == 0) continue;
+
+                            if (regions[j].Id == oldId)
+                                regions[j].Id = mergeId;
+
+                            ReplaceNeighbour(regions[j], oldId, mergeId);
+                        }
+                        mergeCount++;
+                    }
+                }
+            }
+
+            for (int i = 0; i < nreg; ++i)
+            {
+                regions[i].Remap = false;
+                if (regions[i].Id == 0)
+                {
+                    continue;
+                }
+
+                regions[i].Remap = true;
+            }
+
+            int regIdGen = 0;
+            for (int i = 0; i < nreg; ++i)
+            {
+                if (!regions[i].Remap)
+                    continue;
+                int oldId = regions[i].Id;
+                int newId = ++regIdGen;
+                for (int j = i; j < nreg; ++j)
+                {
+                    if (regions[j].Id == oldId)
+                    {
+                        regions[j].Id = newId;
+                        regions[j].Remap = false;
+                    }
+                }
+            }
+            compactHeightfield.MaxRegions = regIdGen;
+
+            //重新命名区域
+            for (int i = 0; i < compactHeightfield.SpanCount; ++i)
+            {
+                if (srcReg[i] > 0)
+                {
+                    srcReg[i] = regions[srcReg[i]].Id;
+                }
+
+            }
+
+            // Return regions that we found to be overlapping.
+            //for (int i = 0; i < nreg; ++i)
+            //    if (regions[i].Overlap)
+            //        overlaps.push(regions[i].id);
+        }
+
+        static void AddUniqueFloorRegion(RcRegion reg, int n)
+        {
+            for (int i = 0; i < reg.Floors.Count; ++i)
+                if (reg.Floors[i] == n)
+                    return;
+            reg.Floors.Add(n);
+        }
+
+        public static bool IsSolidEdge(CompactHeightfield chf, int[] srcReg, int x, int y, int i, int dir)
+        {
+            //相邻的span与自身是不同区域的，则视为边缘
+            CompactSpan s = chf.SpanList[i];
+            int r = 0;
+            if (RecastUtility.RcGetCon(s, dir) != RC_NOT_CONNECTED)
+            {
+                int ax = x + RecastUtility.RcGetDirOffsetX(dir);
+                int ay = y + RecastUtility.RcGetDirOffsetY(dir);
+                int ai = (int)chf.CellList[ax + ay * chf.Width].Index + RecastUtility.RcGetCon(s, dir);
+                r = srcReg[ai];
+            }
+            if (r == srcReg[i])
+                return false;
+            return true;
+        }
+
+        public static void WalkContour(CompactHeightfield chf, int[] srcReg, int x, int y, int i, int dir, List<int> cont)
+        {
+            int startDir = dir;
+            int starti = i;
+
+            CompactSpan ss = chf.SpanList[i];
+            int curReg = 0;
+            if (RecastUtility.RcGetCon(ss, dir) != RC_NOT_CONNECTED)
+            {
+                int ax = x + RecastUtility.RcGetDirOffsetX(dir);
+                int ay = y + RecastUtility.RcGetDirOffsetY(dir);
+                int ai = chf.CellList[ax + ay * chf.Width].Index + RecastUtility.RcGetCon(ss, dir);
+                curReg = srcReg[ai];
+            }
+            cont.Add(curReg);
+
+            int iter = 0;
+
+            //从如果dir方向遇到边界就尝试顺时针旋转dir继续走，dir方向可走就走一格，然后逆时针旋转dir继续尝试……，
+            while (++iter < 40000)
+            {
+                CompactSpan s = chf.SpanList[i];
+
+                if (IsSolidEdge(chf, srcReg, x, y, i, dir))
+                {
+
+                    int r = 0;
+                    if (RecastUtility.RcGetCon(s, dir) != RC_NOT_CONNECTED)
+                    {
+                        int ax = x + RecastUtility.RcGetDirOffsetX(dir);
+                        int ay = y + RecastUtility.RcGetDirOffsetY(dir);
+                        int ai = chf.CellList[ax + ay * chf.Width].Index + RecastUtility.RcGetCon(s, dir);
+                        r = srcReg[ai];
+                    }
+                    if (r != curReg)
+                    {
+                        curReg = r;
+                        cont.Add(curReg);
+                    }
+
+                    dir = (dir + 1) & 0x3;  //顺指针旋转
+                }
+                else
+                {
+                    int ni = -1;
+                    int nx = x + RecastUtility.RcGetDirOffsetX(dir);
+                    int ny = y + RecastUtility.RcGetDirOffsetY(dir);
+                    if (RecastUtility.RcGetCon(s, dir) != RC_NOT_CONNECTED)
+                    {
+                        CompactCell nc = chf.CellList[nx + ny * chf.Width];
+                        ni = nc.Index + RecastUtility.RcGetCon(s, dir);
+                    }
+                    if (ni == -1)
+                    {
+                        return;
+                    }
+                    x = nx;
+                    y = ny;
+                    i = ni; //移动一格
+                    dir = (dir + 3) & 0x3;  // 逆时针旋转
+                }
+
+                if (starti == i && startDir == dir)
+                {
+                    break;
+                }
+            }
+
+            //移除相邻的重复项
+            if (cont.Count > 1)
+            {
+                for (int j = 0; j < cont.Count;)
+                {
+                    int nj = (j + 1) % cont.Count;
+                    if (cont[j] == cont[nj])
+                    {
+                        for (int k = j; k < cont.Count - 1; ++k)
+                            cont[k] = cont[k + 1];
+                        cont.RemoveAt(cont.Count - 1);
+                    }
+                    else
+                        ++j;
+                }
+            }
+        }
+
+        public static bool CanMergeWithRegion(RcRegion rega, RcRegion regb)
+        {
+
+            if (rega.AreaType != regb.AreaType)
+            {
+                return false;
+            }
+
+            //两个region之间无多处连接
+            int n = 0;
+            for (int i = 0; i < rega.Connections.Count; ++i)
+            {
+                if (rega.Connections[i] == regb.Id)
+                    n++;
+            }
+            if (n > 1)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < rega.Floors.Count; ++i)
+            {
+                if (rega.Floors[i] == regb.Id)
+                    return false;
+            }
+            return true;
+        }
+
+        public static bool MergeRegions(RcRegion rega, RcRegion regb)
+        {
+
+            int aid = rega.Id;
+            int bid = regb.Id;
+
+            List<int> acon = new List<int>();
+            for (int i = 0; i < rega.Connections.Count; ++i)
+                acon[i] = rega.Connections[i];
+
+            List<int> bcon = regb.Connections;
+
+            //发现a的插入点
+            int insa = -1;
+            for (int i = 0; i < acon.Count; ++i)
+            {
+                if (acon[i] == bid)
+                {
+                    insa = i;
+                    break;
+                }
+            }
+            if (insa == -1)
+                return false;
+
+            // 发现b的插入点
+            int insb = -1;
+            for (int i = 0; i < bcon.Count; ++i)
+            {
+                if (bcon[i] == aid)
+                {
+                    insb = i;
+                    break;
+                }
+            }
+            if (insb == -1)
+                return false;
+
+
+            rega.Connections.Clear();
+
+            for (int i = 0, ni = acon.Count; i < ni - 1; ++i)
+                rega.Connections.Add(acon[(insa + 1 + i) % ni]);
+
+            for (int i = 0, ni = bcon.Count; i < ni - 1; ++i)
+                rega.Connections.Add(bcon[(insb + 1 + i) % ni]);
+
+            RemoveAdjacentNeighbours(rega);
+
+            for (int j = 0; j < regb.Floors.Count; ++j)
+                AddUniqueFloorRegion(rega, regb.Floors[j]);
+
+            rega.SpanCount += regb.SpanCount;
+            regb.SpanCount = 0;
+            regb.Connections.Clear();
+
+            return true;
+
+        }
+
+        private static void ReplaceNeighbour(RcRegion reg, int oldId, int newId)
+        {
+            bool neiChanged = false;
+            for (int i = 0; i < reg.Connections.Count; ++i)
+            {
+                if (reg.Connections[i] == oldId)
+                {
+                    reg.Connections[i] = newId;
+                    neiChanged = true;
+                }
+            }
+            for (int i = 0; i < reg.Floors.Count; ++i)
+            {
+                if (reg.Floors[i] == oldId)
+                    reg.Floors[i] = newId;
+            }
+            if (neiChanged)
+                RemoveAdjacentNeighbours(reg);
+        }
+
+        private static void RemoveAdjacentNeighbours(RcRegion reg)
+        {
+            //移除相邻的重复项
+            for (int i = 0; i < reg.Connections.Count && reg.Connections.Count > 1;)
+            {
+                int ni = (i + 1) % reg.Connections.Count;
+                if (reg.Connections[i] == reg.Connections[ni])
+                {
+
+                    for (int j = i; j < reg.Connections.Count - 1; ++j)
+                        reg.Connections[j] = reg.Connections[j + 1];
+                    reg.Connections.RemoveAt(reg.Connections.Count - 1);
+                }
+                else
+                    ++i;
+            }
+        }
+
+
+        //用于绘制计算出来的高度场,并标记可行走区域
         public static void BuildHeightfield(Heightfield hf)
         {
 
@@ -1559,6 +2041,9 @@ namespace GameEditor
             }
 
             root = new GameObject("EditorRoot");
+
+            int total = 0;
+            int walkable = 0;
 
             Vector3 hfBBMin = hf.MinBounds;
             float cellSize = hf.CellSize;
@@ -1579,18 +2064,84 @@ namespace GameEditor
                         float cellY = hfBBMin[1] + (float)y * cellHeight + cellHeight / 2;
 
                         GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-
+                        total++;
                         cube.transform.localScale = new Vector3(cellSize, cellHeight, cellSize);
                         cube.transform.position = new Vector3(cellX, cellY, cellZ);
                         cube.transform.SetParent(root.transform);
 
-                        //Debug.Log(string.Format("x:{0},y:{1},z:{1}", x, y, z));
+                        if (currentSpan.AreaID == AREATYPE.Walke && y == currentSpan.Max - 1)
+                        {
+                            Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
+                            Material newMat = UnityEngine.Material.Instantiate(mat);
+                            cube.GetComponent<MeshRenderer>().sharedMaterial = newMat;
+                            newMat.color = UnityEngine.Color.red;
+                            walkable++;
+                        }
+
                     }
                     currentSpan = currentSpan.Next;
                 }
             }
 
+            Debug.Log("Total Voxels:" + total + ",Walkable Voxels:" + walkable);
         }
-    }
 
+
+        //用于绘制计算出来的空心高度场，并标记区域
+        public static void BuildCompactHeightfield(CompactHeightfield chf)
+        {
+
+            GameObject root = GameObject.Find("EditorRoot");
+            if (root)
+            {
+                GameObject.DestroyImmediate(root);
+            }
+
+            root = new GameObject("EditorRoot");
+
+            Vector3 hfBBMin = chf.MinBounds;
+            float cellSize = chf.CellSize;
+            float cellHeight = chf.CellHeight;
+
+
+            int w = chf.Width;
+            int h = chf.Height;
+
+            for (int z = 0; z < h; ++z)
+            {
+                for (int x = 0; x < w; ++x)
+                {
+                    CompactCell c = chf.CellList[x + z * w];
+                    for (int i = (int)c.Index, ni = (int)(c.Index + c.Count); i < ni; ++i)
+                    {
+
+                        CompactSpan span = chf.SpanList[i];
+
+                        for (int sh = 0; sh < span.H; sh++)
+                        {
+                            float cellX = hfBBMin[0] + (float)x * cellSize + cellSize / 2;
+                            float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;
+                            float cellY = hfBBMin[1] + (float)sh * cellHeight + cellHeight / 2 + span.Y * cellHeight;
+
+                            GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                            cube.transform.localScale = new Vector3(cellSize, cellHeight, cellSize);
+                            cube.transform.position = new Vector3(cellX, cellY, cellZ);
+                            cube.transform.SetParent(root.transform);
+
+                            //if (currentSpan.AreaID == AREATYPE.Walke && y == currentSpan.Max - 1)
+                            //{
+                            //    Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
+                            //    Material newMat = UnityEngine.Material.Instantiate(mat);
+                            //    cube.GetComponent<MeshRenderer>().sharedMaterial = newMat;
+                            //    newMat.color = UnityEngine.Color.red;
+                            //    walkable++;
+                            //}
+                        }
+                    }
+                }
+
+            }
+        }
+
+    }
 }
