@@ -25,13 +25,14 @@ namespace GameEditor
         static readonly string MapElement = "MapElement";
 
         //构建寻路网格的参数
-        static readonly int MAX_HEIGHT = 50;
+        static readonly int MAX_HEIGHT = 25;
         static readonly int RC_NOT_CONNECTED = 0x3f;//空心高度场，相邻不可行走标志，RC_NOT_CONNECTED-1 为最大层级
+        static readonly int MAX_LAYERS = RC_NOT_CONNECTED - 1;
 
         static readonly float AgentMaxSlope = 45;
         static readonly float AgentMaxClimb = 3f;
         static readonly float AgentHeight = 2.0f;
-        static readonly float AgentRadius = 1.0f;
+        static readonly float AgentRadius = 1f;
         static readonly float CellSize = 1f; //xz平面的尺寸
         static readonly float CellHeight = 1f; // y轴的尺寸
 
@@ -236,8 +237,8 @@ namespace GameEditor
             }
 
             //在xz平面上，以体素为单位的长度，z轴的最大值和最小值。以包围盒的z为0点,
-            int z0 = (int)((triBBMin[2] - hfBBMin[2]) * inverseCellSize);
-            int z1 = (int)((triBBMax[2] - hfBBMin[2]) * inverseCellSize);
+            int z0 = ((int)((triBBMin[2] - hfBBMin[2]) * inverseCellSize));
+            int z1 = ((int)((triBBMax[2] - hfBBMin[2]) * inverseCellSize));
 
             // 案例里写着·使用-1比0 更好的平铺三角形？？，为什么呢
             z0 = Mathf.Clamp(z0, -1, hf.Height - 1);
@@ -289,8 +290,8 @@ namespace GameEditor
 
                 }
 
-                int x0 = (int)((minX - hfBBMin[0]) * inverseCellSize);
-                int x1 = (int)((maxX - hfBBMin[0]) * inverseCellSize);
+                int x0 = ((int)((minX - hfBBMin[0]) * inverseCellSize));
+                int x1 = ((int)((maxX - hfBBMin[0]) * inverseCellSize));
 
                 //recastnavigation 里x0 >= hf.Width ,但是本地测试单独一个正方体体素化的时候，假如多了=，会缺失一面体素
                 if (x1 < 0 || x0 > hf.Width)
@@ -640,11 +641,10 @@ namespace GameEditor
             }
 
 
-            int MAX_LAYERS = RC_NOT_CONNECTED - 1;
-            int zSize = heightfield.Width;
-            int xSize = heightfield.Height;
+            int zSize = heightfield.Height;
+            int xSize = heightfield.Width;
             int maxLayerIndex = 0;
-            int zStride = heightfield.Width;
+            int zStride = xSize;
             for (int z = 0; z < zSize; ++z)
             {
                 for (int x = 0; x < xSize; ++x)
@@ -656,6 +656,7 @@ namespace GameEditor
 
                         for (int dir = 0; dir < 4; ++dir)
                         {
+
                             RecastUtility.RcSetCon(span, dir, RC_NOT_CONNECTED);
                             int neighborX = x + RecastUtility.RcGetDirOffsetX(dir);
                             int neighborZ = z + RecastUtility.RcGetDirOffsetY(dir);
@@ -668,14 +669,15 @@ namespace GameEditor
 
                             CompactCell neighborCell = compactHeightfield.CellList[neighborX + neighborZ * zStride];
 
-                            for (int k = neighborCell.Index, nk = (int)(neighborCell.Index + neighborCell.Count); k < nk; ++k)
+                            for (int k = neighborCell.Index, nk = neighborCell.Index + neighborCell.Count; k < nk; ++k)
                             {
                                 CompactSpan neighborSpan = compactHeightfield.SpanList[k];
                                 int bot = Mathf.Max(span.Y, neighborSpan.Y);
                                 int top = Mathf.Min(span.Y + span.H, neighborSpan.Y + neighborSpan.H);
 
+
                                 //与相邻的空心体素的之间的高度大于行走高度，之间的落差小于可攀爬高度
-                                if ((top - bot) >= compactHeightfield.WalkableHeight && Mathf.Abs((int)neighborSpan.Y - (int)span.Y) <= compactHeightfield.WalkableClimb)
+                                if (((top - bot) >= compactHeightfield.WalkableHeight) && (Mathf.Abs(neighborSpan.Y - span.Y) <= compactHeightfield.WalkableClimb))
                                 {
                                     // Mark direction as walkable.
                                     int layerIndex = k - neighborCell.Index;
@@ -688,8 +690,10 @@ namespace GameEditor
                                     RecastUtility.RcSetCon(span, dir, layerIndex);
                                     break;
                                 }
+
                             }
                         }
+
                     }
                 }
             }
@@ -761,7 +765,6 @@ namespace GameEditor
                 }
             }
 
-
             int newDistance;
 
             //第一次从左下到右上遍历，计算出障碍物右上方span的距离，对于CompactSpan本身是左下侧，，，左下最边缘是障碍物,一层层向右上方感染
@@ -809,7 +812,7 @@ namespace GameEditor
                             // (0,-1) 下侧
                             int aX = x + RecastUtility.RcGetDirOffsetX(3);
                             int aY = z + RecastUtility.RcGetDirOffsetY(3);
-                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 3);
+                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 3);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
                             if (newDistance < distanceToBoundary[spanIndex])
@@ -878,7 +881,7 @@ namespace GameEditor
                             // (0,1) 上侧
                             int aX = x + RecastUtility.RcGetDirOffsetX(1);
                             int aY = z + RecastUtility.RcGetDirOffsetY(1);
-                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 1);
+                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 1);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
                             if (newDistance < distanceToBoundary[spanIndex])
@@ -904,6 +907,7 @@ namespace GameEditor
             }
 
 
+
             //大于半径x2 ，，因为算距离的时候本身就是x2
             int minBoundaryDistance = (compactHeightfield.WalkableRadius * 2);
             for (int spanIndex = 0; spanIndex < compactHeightfield.SpanCount; ++spanIndex)
@@ -913,6 +917,9 @@ namespace GameEditor
                     compactHeightfield.AreaList[spanIndex] = AREATYPE.None;
                 }
             }
+
+            BuildCompactHeightfield(compactHeightfield, distanceToBoundary);
+            return;
         }
 
 
@@ -1031,7 +1038,7 @@ namespace GameEditor
                             // (0,-1) 下侧
                             int aX = x + RecastUtility.RcGetDirOffsetX(3);
                             int aY = z + RecastUtility.RcGetDirOffsetY(3);
-                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 3);
+                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 3);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             newDistance = distanceToBoundary[aIndex] + 2;
                             if (newDistance < distanceToBoundary[spanIndex])
@@ -1100,7 +1107,7 @@ namespace GameEditor
                             // (0,1) 上侧
                             int aX = x + RecastUtility.RcGetDirOffsetX(1);
                             int aY = z + RecastUtility.RcGetDirOffsetY(1);
-                            int aIndex = (int)compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 1);
+                            int aIndex = compactHeightfield.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 1);
                             CompactSpan aSpan = compactHeightfield.SpanList[aIndex];
                             newDistance = distanceToBoundary[aIndex] + 2;
                             if (newDistance < distanceToBoundary[spanIndex])
@@ -1308,14 +1315,14 @@ namespace GameEditor
                 for (int x = 0; x < w; ++x)
                 {
                     CompactCell c = compactHeightfield.CellList[x + y * w];
-                    for (int i = (int)c.Index, ni = (int)(c.Index + c.Count); i < ni; ++i)
+                    for (int i = c.Index, ni = (c.Index + c.Count); i < ni; ++i)
                     {
                         if (compactHeightfield.AreaList[i] == AREATYPE.None || srcReg[i] != 0)
                             continue;
 
                         int level = compactHeightfield.DistanceToBoundary[i] >> loglevelsPerStack;
                         int sId = startLevel - level;
-                        if (sId >= (int)nbStacks)
+                        if (sId >= nbStacks)
                             continue;
                         if (sId < 0)
                             sId = 0;
@@ -1352,7 +1359,7 @@ namespace GameEditor
                     for (int x = 0; x < w; ++x)
                     {
                         CompactCell c = compactHeightfield.CellList[x + y * w];
-                        for (int i = (int)c.Index, ni = (int)(c.Index + c.Count); i < ni; ++i)
+                        for (int i = c.Index, ni = (c.Index + c.Count); i < ni; ++i)
                         {
                             if (compactHeightfield.DistanceToBoundary[i] >= level && srcReg[i] == 0 && compactHeightfield.AreaList[i] != AREATYPE.None)
                             {
@@ -1417,7 +1424,7 @@ namespace GameEditor
 
                         if (srcReg[neighborSpanIndex] > 0)
                         {
-                            if ((int)srcDist[neighborSpanIndex] + 2 < (int)d2)
+                            if (srcDist[neighborSpanIndex] + 2 < d2)
                             {
                                 r = srcReg[neighborSpanIndex];
                                 d2 = srcDist[neighborSpanIndex] + 2;
@@ -1588,7 +1595,7 @@ namespace GameEditor
                 for (int x = 0; x < w; ++x)
                 {
                     CompactCell c = compactHeightfield.CellList[x + y * w];
-                    for (int i = (int)c.Index, ni = (int)(c.Index + c.Count); i < ni; ++i)
+                    for (int i = c.Index, ni = (c.Index + c.Count); i < ni; ++i)
                     {
                         int r = srcReg[i];
                         if (r == 0 || r >= nreg)
@@ -1598,7 +1605,7 @@ namespace GameEditor
                         reg.SpanCount++;
 
                         // 寻找相同xz平面位置的上方的span的区域
-                        for (int j = (int)c.Index; j < ni; ++j)
+                        for (int j = c.Index; j < ni; ++j)
                         {
                             if (i == j) continue;
                             int floorId = srcReg[j];
@@ -1809,7 +1816,7 @@ namespace GameEditor
             {
                 int ax = x + RecastUtility.RcGetDirOffsetX(dir);
                 int ay = y + RecastUtility.RcGetDirOffsetY(dir);
-                int ai = (int)chf.CellList[ax + ay * chf.Width].Index + RecastUtility.RcGetCon(s, dir);
+                int ai = chf.CellList[ax + ay * chf.Width].Index + RecastUtility.RcGetCon(s, dir);
                 r = srcReg[ai];
             }
             if (r == srcReg[i])
@@ -2031,7 +2038,7 @@ namespace GameEditor
 
 
         //用于绘制计算出来的高度场,并标记可行走区域
-        public static void BuildHeightfield(Heightfield hf)
+        public static void BuildHeightfield(Heightfield hf, bool showWalk = false)
         {
 
             GameObject root = GameObject.Find("EditorRoot");
@@ -2069,7 +2076,7 @@ namespace GameEditor
                         cube.transform.position = new Vector3(cellX, cellY, cellZ);
                         cube.transform.SetParent(root.transform);
 
-                        if (currentSpan.AreaID == AREATYPE.Walke && y == currentSpan.Max - 1)
+                        if (showWalk && currentSpan.AreaID == AREATYPE.Walke && y == currentSpan.Max - 1)
                         {
                             Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
                             Material newMat = UnityEngine.Material.Instantiate(mat);
@@ -2088,7 +2095,7 @@ namespace GameEditor
 
 
         //用于绘制计算出来的空心高度场，并标记区域
-        public static void BuildCompactHeightfield(CompactHeightfield chf)
+        public static void BuildCompactHeightfield(CompactHeightfield chf, int[] distanceToBoundary = null)
         {
 
             GameObject root = GameObject.Find("EditorRoot");
@@ -2107,36 +2114,58 @@ namespace GameEditor
             int w = chf.Width;
             int h = chf.Height;
 
+            int maxDistance = 0;
+
+            if(distanceToBoundary != null)
+            {
+                foreach(int i in distanceToBoundary)
+                {
+                    maxDistance = Mathf.Max(maxDistance, i);
+                }
+            }
+
+
+
             for (int z = 0; z < h; ++z)
             {
                 for (int x = 0; x < w; ++x)
                 {
                     CompactCell c = chf.CellList[x + z * w];
-                    for (int i = (int)c.Index, ni = (int)(c.Index + c.Count); i < ni; ++i)
+                    for (int i = c.Index, ni = (c.Index + c.Count); i < ni; ++i)
                     {
 
                         CompactSpan span = chf.SpanList[i];
 
-                        for (int sh = 0; sh < span.H; sh++)
+                        //为了方便观察，CompactSpan只构建一个cellHeight，实际不止
+                        float cellX = hfBBMin[0] + (float)x * cellSize + cellSize / 2;
+                        float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;
+                        float cellY = hfBBMin[1] + (float)cellHeight / 2 + span.Y * cellHeight;
+
+                        GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        cube.transform.localScale = new Vector3(cellSize, cellHeight, cellSize);
+                        cube.transform.position = new Vector3(cellX, cellY, cellZ);
+                        cube.transform.SetParent(root.transform);
+
+                        if (distanceToBoundary != null)
                         {
-                            float cellX = hfBBMin[0] + (float)x * cellSize + cellSize / 2;
-                            float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;
-                            float cellY = hfBBMin[1] + (float)sh * cellHeight + cellHeight / 2 + span.Y * cellHeight;
-
-                            GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                            cube.transform.localScale = new Vector3(cellSize, cellHeight, cellSize);
-                            cube.transform.position = new Vector3(cellX, cellY, cellZ);
-                            cube.transform.SetParent(root.transform);
-
-                            //if (currentSpan.AreaID == AREATYPE.Walke && y == currentSpan.Max - 1)
-                            //{
-                            //    Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
-                            //    Material newMat = UnityEngine.Material.Instantiate(mat);
-                            //    cube.GetComponent<MeshRenderer>().sharedMaterial = newMat;
-                            //    newMat.color = UnityEngine.Color.red;
-                            //    walkable++;
-                            //}
+                            Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
+                            Material newMat = UnityEngine.Material.Instantiate(mat);
+                            cube.GetComponent<MeshRenderer>().sharedMaterial = newMat;
+                            float color =(float)distanceToBoundary[i] /(float) maxDistance;
+                            newMat.color = new UnityEngine.Color(color, color, color);
+                            continue;
                         }
+
+                        if (chf.AreaList[i] == AREATYPE.Walke)
+                        {
+                            Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
+                            Material newMat = UnityEngine.Material.Instantiate(mat);
+                            cube.GetComponent<MeshRenderer>().sharedMaterial = newMat;
+                            newMat.color = UnityEngine.Color.red;
+                            continue;
+                        }
+
+
                     }
                 }
 
