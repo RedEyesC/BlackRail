@@ -39,9 +39,9 @@ namespace GameEditor
         static readonly float MinRegionArea = 10; //小于此则被剔除
         static readonly float MergeRegionArea = 20; //小于此则与周围区域合并
 
-        static readonly bool FilterLowHangingObstacles = true;//过滤悬空可走的span
-        static readonly bool FilterLedgeSpans = true;//过滤高度差过大的span
-        static readonly bool FilterWalkableLowHeightSpans = true;//过滤不可通过的高度的span
+        static readonly bool FilterLowHangingObstacles = false;//过滤悬空可走的span
+        static readonly bool FilterLedgeSpans = false;//过滤高度差过大的span
+        static readonly bool FilterWalkableLowHeightSpans = false;//过滤不可通过的高度的span
 
 
 
@@ -89,27 +89,12 @@ namespace GameEditor
 
             Scene activeScene = SceneManager.GetActiveScene();
             string activeSceneName = activeScene.name;
-            var scenePath = activeScene.path;
-            string activeScenePath = scenePath.Remove(scenePath.LastIndexOf("/"));
 
             GameObject root = GameObject.Find("/" + activeSceneName);
 
             Transform navRoot = root.transform.Find(MapElement);
 
-            //合并mesh
-            MeshFilter[] meshFilters = navRoot.GetComponentsInChildren<MeshFilter>();
-            CombineInstance[] combines = new CombineInstance[meshFilters.Length];
-
-            for (int i = 0; i < meshFilters.Length; i++)
-            {
-                combines[i].mesh = meshFilters[i].sharedMesh;
-                combines[i].transform = navRoot.transform.worldToLocalMatrix * meshFilters[i].transform.localToWorldMatrix;
-            }
-
-            Mesh mesh = new Mesh();
-
-            mesh.CombineMeshes(combines, true);
-
+            Mesh mesh = CombineMesh(navRoot);
 
             Heightfield hf = new Heightfield(mesh, AgentMaxSlope, AgentMaxClimb, AgentHeight, AgentRadius, CellSize, CellHeight);
 
@@ -146,19 +131,35 @@ namespace GameEditor
             RcErodeWalkableArea(chf);
 
 
-            BuildCompactHeightfield(chf);
-            return;
-
-            //TODO 设置特殊地形标识
-            RcMarkConvexPolyArea(chf);
-
-
+            //设置特殊地形标识，用于设置的标记区域的多边形是y值恒定的多边形
+            //RcMarkConvexPolyArea(chf, vertices,AREATYPE.None);
+    
             //构建距离场
             RcBuildDistanceField(chf);
 
             //分水岭算法构建区域
             RcBuildRegions(chf);
 
+            BuildCompactHeightfield(chf);
+        }
+
+        static Mesh CombineMesh(Transform navRoot)
+        {
+            //合并mesh
+            MeshFilter[] meshFilters = navRoot.GetComponentsInChildren<MeshFilter>();
+            CombineInstance[] combines = new CombineInstance[meshFilters.Length];
+
+            for (int i = 0; i < meshFilters.Length; i++)
+            {
+                combines[i].mesh = meshFilters[i].sharedMesh;
+                combines[i].transform = navRoot.transform.worldToLocalMatrix * meshFilters[i].transform.localToWorldMatrix;
+            }
+
+            Mesh mesh = new Mesh();
+
+            mesh.CombineMeshes(combines, true);
+
+            return mesh;
         }
 
 
@@ -923,9 +924,103 @@ namespace GameEditor
         }
 
 
-        public static void RcMarkConvexPolyArea(CompactHeightfield compactHeightfield) { }
+        public static void RcMarkConvexPolyArea(CompactHeightfield compactHeightfield, Vector3[] vertices, AREATYPE areaId)
+        {
+            int xSize = compactHeightfield.Width;
+            int zSize = compactHeightfield.Height;
+            int zStride = xSize;
+
+            Vector3 MinBounds;
+            Vector3 MaxBounds;
+
+            RecastUtility.CalcBounds(vertices, out MinBounds, out MaxBounds);
 
 
+            //计算多边形在高度场内的坐标范围
+            int minx = (int)((MinBounds[0] - compactHeightfield.MinBounds[0]) / compactHeightfield.CellSize);
+            int miny = (int)((MinBounds[1] - compactHeightfield.MinBounds[1]) / compactHeightfield.CellHeight);
+            int minz = (int)((MinBounds[2] - compactHeightfield.MinBounds[2]) / compactHeightfield.CellSize);
+            int maxx = (int)((MaxBounds[0] - compactHeightfield.MinBounds[0]) / compactHeightfield.CellSize);
+            int maxy = (int)((MaxBounds[1] - compactHeightfield.MinBounds[1]) / compactHeightfield.CellHeight);
+            int maxz = (int)((MaxBounds[2] - compactHeightfield.MinBounds[2]) / compactHeightfield.CellSize);
+
+
+            if (maxx < 0) { return; }
+            if (minx >= xSize) { return; }
+            if (maxz < 0) { return; }
+            if (minz >= zSize) { return; }
+
+
+            if (minx < 0) { minx = 0; }
+            if (maxx >= xSize) { maxx = xSize - 1; }
+            if (minz < 0) { minz = 0; }
+            if (maxz >= zSize) { maxz = zSize - 1; }
+
+
+            for (int z = minz; z <= maxz; ++z)
+            {
+                for (int x = minx; x <= maxx; ++x)
+                {
+                    CompactCell cell = compactHeightfield.CellList[x + z * zStride];
+                    int maxSpanIndex = cell.Index + cell.Count;
+
+                    for (int spanIndex = (int)cell.Index; spanIndex < maxSpanIndex; ++spanIndex)
+                    {
+                        CompactSpan span = compactHeightfield.SpanList[spanIndex];
+
+                        if (compactHeightfield.AreaList[spanIndex] == AREATYPE.None)
+                        {
+                            continue;
+                        }
+
+                        if (span.Y < miny || span.Y > maxy)
+                        {
+                            continue;
+                        }
+
+                        //因为之后是投影至2d平面的运算所以 point[1] = 0
+                        float[] point = new float[3];
+                        point[0] = compactHeightfield.MinBounds[0] + (x + 0.5f) * compactHeightfield.CellSize;
+                        point[1] = 0;
+                        point[2] = compactHeightfield.MinBounds[2] + (z + 0.5f) * compactHeightfield.CellSize;
+
+                        //投影到2d平面进行运算
+                        if (pointInPoly(vertices, point))
+                        {
+                            compactHeightfield.AreaList[spanIndex] = areaId;
+                        }
+                    }
+                }
+            }
+
+
+        }
+
+
+        public static bool pointInPoly(Vector3[] verts, float[] point)
+        {
+            bool inPoly = false;
+            int nvert = verts.Length;
+
+
+            for (int i = 0, j = nvert - 1; i < nvert; j = i++)
+            {
+                Vector3 vi = verts[i];
+                Vector3 vj = verts[j];
+
+               	if ((vi[2] > point[2]) == (vj[2] > point[2]))
+                {
+                    continue;
+                }
+
+                if (point[0] >= (vj[0] - vi[0]) * (point[2] - vi[2]) / (vj[2] - vi[2]) + vi[0])
+                {
+                    continue;
+                }
+                inPoly = !inPoly;
+            }
+            return inPoly;
+        }
 
         public static void RcBuildDistanceField(CompactHeightfield compactHeightfield)
         {
@@ -2056,6 +2151,8 @@ namespace GameEditor
             float cellSize = hf.CellSize;
             float cellHeight = hf.CellHeight;
 
+            Material newMat = null;
+
             for (int i = 0; i < hf.SpanList.Length; i++)
             {
                 int x = i % hf.Width;
@@ -2078,10 +2175,15 @@ namespace GameEditor
 
                         if (showWalk && currentSpan.AreaID == AREATYPE.Walke && y == currentSpan.Max - 1)
                         {
-                            Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
-                            Material newMat = UnityEngine.Material.Instantiate(mat);
+
+                            if (newMat == null)
+                            {
+                                Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
+                                newMat = UnityEngine.Material.Instantiate(mat);
+                                newMat.color = UnityEngine.Color.red;
+                            }
+
                             cube.GetComponent<MeshRenderer>().sharedMaterial = newMat;
-                            newMat.color = UnityEngine.Color.red;
                             walkable++;
                         }
 
@@ -2094,8 +2196,8 @@ namespace GameEditor
         }
 
 
-        //用于绘制计算出来的空心高度场，并标记区域
-        public static void BuildCompactHeightfield(CompactHeightfield chf, int[] distanceToBoundary = null)
+        //用于绘制计算出来的空心高度场，绘制距离场参数,并标记区域
+        public static void BuildCompactHeightfield(CompactHeightfield chf)
         {
 
             GameObject root = GameObject.Find("EditorRoot");
@@ -2116,15 +2218,16 @@ namespace GameEditor
 
             int maxDistance = 0;
 
-            if(distanceToBoundary != null)
+            if (chf.DistanceToBoundary != null)
             {
-                foreach(int i in distanceToBoundary)
+                foreach (int i in chf.DistanceToBoundary)
                 {
                     maxDistance = Mathf.Max(maxDistance, i);
                 }
             }
 
-
+            Material newMat = null;
+            Dictionary<int, Material> distanceMat = new Dictionary<int, Material>();
 
             for (int z = 0; z < h; ++z)
             {
@@ -2136,41 +2239,53 @@ namespace GameEditor
 
                         CompactSpan span = chf.SpanList[i];
 
+
                         //为了方便观察，CompactSpan只构建一个cellHeight，实际不止
                         float cellX = hfBBMin[0] + (float)x * cellSize + cellSize / 2;
                         float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;
-                        float cellY = hfBBMin[1] + (float)cellHeight / 2 + span.Y * cellHeight;
+                        float cellY = hfBBMin[1] + (float)span.Y * cellHeight + cellHeight / 2;
 
                         GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
                         cube.transform.localScale = new Vector3(cellSize, cellHeight, cellSize);
                         cube.transform.position = new Vector3(cellX, cellY, cellZ);
                         cube.transform.SetParent(root.transform);
 
-                        if (distanceToBoundary != null)
+                        if (chf.DistanceToBoundary != null)
                         {
-                            Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
-                            Material newMat = UnityEngine.Material.Instantiate(mat);
-                            cube.GetComponent<MeshRenderer>().sharedMaterial = newMat;
-                            float color =(float)distanceToBoundary[i] /(float) maxDistance;
-                            newMat.color = new UnityEngine.Color(color, color, color);
+
+                            if (!distanceMat.ContainsKey(chf.DistanceToBoundary[i]))
+                            {
+                                Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
+                                Material cloneMat = UnityEngine.Material.Instantiate(mat);
+                                float color = (float)chf.DistanceToBoundary[i] / (float)maxDistance;
+                                cloneMat.color = new UnityEngine.Color(color, color, color);
+
+                                distanceMat.Add(chf.DistanceToBoundary[i], cloneMat);
+                            }
+
+                            cube.GetComponent<MeshRenderer>().sharedMaterial = distanceMat[chf.DistanceToBoundary[i]];
                             continue;
                         }
 
                         if (chf.AreaList[i] == AREATYPE.Walke)
                         {
-                            Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
-                            Material newMat = UnityEngine.Material.Instantiate(mat);
+
+                            if (newMat == null)
+                            {
+                                Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
+                                newMat = UnityEngine.Material.Instantiate(mat);
+                                newMat.color = UnityEngine.Color.red;
+                            }
                             cube.GetComponent<MeshRenderer>().sharedMaterial = newMat;
-                            newMat.color = UnityEngine.Color.red;
                             continue;
                         }
-
-
                     }
+
                 }
-
             }
-        }
 
+        }
     }
+
 }
+
