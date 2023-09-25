@@ -146,6 +146,9 @@ namespace GameEditor
             RcErodeWalkableArea(chf);
 
 
+            BuildCompactHeightfield(chf);
+            return;
+
             //TODO 设置特殊地形标识
             RcMarkConvexPolyArea(chf);
 
@@ -917,9 +920,6 @@ namespace GameEditor
                     compactHeightfield.AreaList[spanIndex] = AREATYPE.None;
                 }
             }
-
-            BuildCompactHeightfield(compactHeightfield, distanceToBoundary);
-            return;
         }
 
 
