@@ -189,8 +189,8 @@ namespace GameEditor
         public bool Overlap = false; //是否多层
         public int Ymin = 0xffff;
         public int Ymax = 0;
-        public List<int> Connections;
-        public List<int> Floors;
+        public List<int> Connections = new List<int>();
+        public List<int> Floors = new List<int>();
 
         public RcRegion(int index)
         {

@@ -133,14 +133,13 @@ namespace GameEditor
 
             //设置特殊地形标识，用于设置的标记区域的多边形是y值恒定的多边形
             //RcMarkConvexPolyArea(chf, vertices,AREATYPE.None);
-    
+
             //构建距离场
             RcBuildDistanceField(chf);
 
             //分水岭算法构建区域
             RcBuildRegions(chf);
 
-            BuildCompactHeightfield(chf);
         }
 
         static Mesh CombineMesh(Transform navRoot)
@@ -1008,7 +1007,7 @@ namespace GameEditor
                 Vector3 vi = verts[i];
                 Vector3 vj = verts[j];
 
-               	if ((vi[2] > point[2]) == (vj[2] > point[2]))
+                if ((vi[2] > point[2]) == (vj[2] > point[2]))
                 {
                     continue;
                 }
@@ -1334,6 +1333,11 @@ namespace GameEditor
             Stack<LevelStackEntry>[] lvlStacks = new Stack<LevelStackEntry>[NB_STACKS];
             Stack<LevelStackEntry> stack = new Stack<LevelStackEntry>();
 
+            for (int i = 0; i < NB_STACKS; i++)
+            {
+                lvlStacks[i] = new Stack<LevelStackEntry>();
+            }
+
             int[] srcReg = new int[compactHeightfield.SpanCount];
             int[] srcDist = new int[compactHeightfield.SpanCount];
 
@@ -1380,16 +1384,17 @@ namespace GameEditor
 
             }
 
-
             ExpandRegions(expandIters * 8, 0, compactHeightfield, srcReg, srcDist, stack, false);
 
             //合并区域
             compactHeightfield.MaxRegions = regionId;
 
-            MergeAndFilterRegions(compactHeightfield, srcReg, srcDist);
+            MergeAndFilterRegions(compactHeightfield, srcReg);
 
             for (int i = 0; i < compactHeightfield.SpanCount; ++i)
                 compactHeightfield.SpanList[i].Reg = srcReg[i];
+
+            BuildCompactHeightfield(compactHeightfield, 3);
 
         }
 
@@ -1672,14 +1677,14 @@ namespace GameEditor
             return count > 0;
         }
 
-        public static void MergeAndFilterRegions(CompactHeightfield compactHeightfield, int[] srcReg, int[] srcDist)
+        public static void MergeAndFilterRegions(CompactHeightfield compactHeightfield, int[] srcReg)
         {
             int w = compactHeightfield.Width;
             int h = compactHeightfield.Height;
 
             int nreg = compactHeightfield.MaxRegions + 1;
 
-            RcRegion[] regions = new RcRegion[compactHeightfield.MaxRegions];
+            RcRegion[] regions = new RcRegion[compactHeightfield.MaxRegions + 1];
             for (int i = 0; i < nreg; ++i)
             {
                 regions[i] = new RcRegion(i);
@@ -2039,9 +2044,9 @@ namespace GameEditor
             int aid = rega.Id;
             int bid = regb.Id;
 
-            List<int> acon = new List<int>();
+            List<int> acon = new List<int>(rega.Connections.Count);
             for (int i = 0; i < rega.Connections.Count; ++i)
-                acon[i] = rega.Connections[i];
+                acon.Insert(i,rega.Connections[i]);
 
             List<int> bcon = regb.Connections;
 
@@ -2197,7 +2202,7 @@ namespace GameEditor
 
 
         //用于绘制计算出来的空心高度场，绘制距离场参数,并标记区域
-        public static void BuildCompactHeightfield(CompactHeightfield chf)
+        public static void BuildCompactHeightfield(CompactHeightfield chf, int type = 1)
         {
 
             GameObject root = GameObject.Find("EditorRoot");
@@ -2226,8 +2231,12 @@ namespace GameEditor
                 }
             }
 
+            Color[] colorMap = { Color.red, Color.green, Color.blue, Color.white, Color.black,
+                Color.yellow, Color.cyan, Color.magenta, Color.gray };
+
+
             Material newMat = null;
-            Dictionary<int, Material> distanceMat = new Dictionary<int, Material>();
+            Dictionary<int, Material> matMap = new Dictionary<int, Material>();
 
             for (int z = 0; z < h; ++z)
             {
@@ -2250,24 +2259,24 @@ namespace GameEditor
                         cube.transform.position = new Vector3(cellX, cellY, cellZ);
                         cube.transform.SetParent(root.transform);
 
-                        if (chf.DistanceToBoundary != null)
+                        if (chf.DistanceToBoundary != null && type == 1)
                         {
 
-                            if (!distanceMat.ContainsKey(chf.DistanceToBoundary[i]))
+                            if (!matMap.ContainsKey(chf.DistanceToBoundary[i]))
                             {
                                 Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
                                 Material cloneMat = UnityEngine.Material.Instantiate(mat);
                                 float color = (float)chf.DistanceToBoundary[i] / (float)maxDistance;
                                 cloneMat.color = new UnityEngine.Color(color, color, color);
 
-                                distanceMat.Add(chf.DistanceToBoundary[i], cloneMat);
+                                matMap.Add(chf.DistanceToBoundary[i], cloneMat);
                             }
 
-                            cube.GetComponent<MeshRenderer>().sharedMaterial = distanceMat[chf.DistanceToBoundary[i]];
+                            cube.GetComponent<MeshRenderer>().sharedMaterial = matMap[chf.DistanceToBoundary[i]];
                             continue;
                         }
 
-                        if (chf.AreaList[i] == AREATYPE.Walke)
+                        if (chf.AreaList[i] == AREATYPE.Walke && type == 2)
                         {
 
                             if (newMat == null)
@@ -2277,6 +2286,21 @@ namespace GameEditor
                                 newMat.color = UnityEngine.Color.red;
                             }
                             cube.GetComponent<MeshRenderer>().sharedMaterial = newMat;
+                            continue;
+                        }
+
+                        if (type == 3)
+                        {
+
+                            if (!matMap.ContainsKey(span.Reg))
+                            {
+                                Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
+                                Material cloneMat = UnityEngine.Material.Instantiate(mat);
+                                cloneMat.color = colorMap[span.Reg % 8];
+                                matMap.Add(span.Reg, cloneMat);
+                            }
+
+                            cube.GetComponent<MeshRenderer>().sharedMaterial = matMap[span.Reg];
                             continue;
                         }
                     }
