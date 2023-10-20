@@ -198,4 +198,45 @@ namespace GameEditor
         }
     }
 
+    public class RcContourSet
+    {
+        public float CellSize = 0;
+        public float CellHeight = 0;
+
+        public int Width = 0;
+        public int Height = 0;
+
+        public float MaxError = 0;
+
+        public int NumConts = 0;
+
+        public List<RcContour> ContsList = new List<RcContour>();
+
+        public Vector3 MinBounds = new Vector3();
+        public Vector3 MaxBounds = new Vector3();
+
+        public RcContourSet(CompactHeightfield chf)
+        {
+
+            Width = chf.Width;
+            Height = chf.Height;
+
+            CellHeight = chf.CellHeight;
+            CellSize = chf.CellSize;
+
+            MinBounds = chf.MinBounds;
+            MaxBounds = chf.MaxBounds;
+
+        }
+
+    }
+
+    public class RcContour
+    {
+        public int[] Verts;
+        public int NumVerts;
+        public int Reg;
+        public AREATYPE Area;           
+    };
+
 }

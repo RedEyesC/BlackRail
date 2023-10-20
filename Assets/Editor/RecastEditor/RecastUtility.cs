@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace GameEditor
 {
@@ -174,6 +169,14 @@ namespace GameEditor
             //每个方向用六位存放 
             int shift = dir * 6;
             return (span.Con >> shift) & 0x3f;
+        }
+
+        public static void RcSwap<T>(T a, T b)
+        {
+            //每个方向用六位存放 
+            T t = a;
+            a = b;
+            b = t;
         }
 
         #endregion

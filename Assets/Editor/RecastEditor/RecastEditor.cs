@@ -29,6 +29,11 @@ namespace GameEditor
         static readonly int RC_NOT_CONNECTED = 0x3f;//空心高度场，相邻不可行走标志，RC_NOT_CONNECTED-1 为最大层级
         static readonly int MAX_LAYERS = RC_NOT_CONNECTED - 1;
 
+
+        static readonly int RC_BORDER_VERTEX = 0x10000;
+        static readonly int RC_AREA_BORDER = 0x20000;
+        static readonly int RC_CONTOUR_REG_MASK = 0xffff;
+
         static readonly float AgentMaxSlope = 45;
         static readonly float AgentMaxClimb = 3f;
         static readonly float AgentHeight = 2.0f;
@@ -38,6 +43,11 @@ namespace GameEditor
 
         static readonly float MinRegionArea = 10; //小于此则被剔除
         static readonly float MergeRegionArea = 20; //小于此则与周围区域合并
+
+        static readonly float MaxSimplificationError = 1; //最大简化误差 ，大于则视为简化点
+        static readonly bool TessellateWallEdges = true;//是否根据最大边缘长度细化不可行走的边缘
+        static readonly bool TessellateAreaEdges = true;//是否根据最大边缘长度是否细化区域之间的边缘
+        static readonly float MaxEdgeLen = 12; //最大边缘长度
 
         static readonly bool FilterLowHangingObstacles = false;//过滤悬空可走的span
         static readonly bool FilterLedgeSpans = false;//过滤高度差过大的span
@@ -139,6 +149,11 @@ namespace GameEditor
 
             //分水岭算法构建区域
             RcBuildRegions(chf);
+
+            RcContourSet cset = new RcContourSet(chf);
+
+            //计算区域边界
+            RcBuildContours(chf, cset);
 
         }
 
@@ -1394,7 +1409,7 @@ namespace GameEditor
             for (int i = 0; i < compactHeightfield.SpanCount; ++i)
                 compactHeightfield.SpanList[i].Reg = srcReg[i];
 
-            BuildCompactHeightfield(compactHeightfield, 3);
+            BuildCompactHeightField(compactHeightfield, 3);
 
         }
 
@@ -1518,9 +1533,6 @@ namespace GameEditor
                         {
                             continue;
                         }
-
-                        // 暂时去掉了关于边缘的这部分
-                        // & RC_BORDER_REG == 0 来判断是否不是边缘，有点奇怪，因为如果首位和RC_BORDER_REG一致，即使不是RC_BORDER_REG ，也会等于0,
 
                         if (srcReg[neighborSpanIndex] > 0)
                         {
@@ -1716,6 +1728,7 @@ namespace GameEditor
                             AddUniqueFloorRegion(reg, floorId);
                         }
 
+                        //区域已经计算完连通区域了，不用再计算了
                         if (reg.Connections.Count > 0)
                             continue;
 
@@ -2046,7 +2059,7 @@ namespace GameEditor
 
             List<int> acon = new List<int>(rega.Connections.Count);
             for (int i = 0; i < rega.Connections.Count; ++i)
-                acon.Insert(i,rega.Connections[i]);
+                acon.Insert(i, rega.Connections[i]);
 
             List<int> bcon = regb.Connections;
 
@@ -2137,6 +2150,546 @@ namespace GameEditor
         }
 
 
+        private static void RcBuildContours(CompactHeightfield compactHeightfield, RcContourSet rcContourSet)
+        {
+            int w = compactHeightfield.Width;
+            int h = compactHeightfield.Height;
+
+            int[] flags = new int[compactHeightfield.SpanCount];
+
+            List<int> verts = new List<int>();
+            List<int> simplified = new List<int>();
+
+            rcContourSet.NumConts = 0;
+
+            for (int y = 0; y < h; ++y)
+            {
+                for (int x = 0; x < w; ++x)
+                {
+                    CompactCell c = compactHeightfield.CellList[x + y * w];
+                    for (int i = c.Index, ni = c.Index + c.Count; i < ni; ++i)
+                    {
+                        int res = 0;
+
+                        CompactSpan s = compactHeightfield.SpanList[i];
+
+                        if (compactHeightfield.SpanList[i].Reg == 0)
+                        {
+                            flags[i] = 0;
+                            continue;
+                        }
+
+                        //遍历判断每个span与邻居span的关系，如果region相同则记录在该dir方向上连通，不连通则该dir方向为边界
+                        for (int dir = 0; dir < 4; ++dir)
+                        {
+                            int r = 0;
+                            if (RecastUtility.RcGetCon(s, dir) != RC_NOT_CONNECTED)
+                            {
+                                int ax = x + RecastUtility.RcGetDirOffsetX(dir);
+                                int ay = y + RecastUtility.RcGetDirOffsetY(dir);
+                                int ai = (int)compactHeightfield.CellList[ax + ay * w].Index + RecastUtility.RcGetCon(s, dir);
+                                r = compactHeightfield.SpanList[ai].Reg;
+                            }
+
+                            //相同region，则连通，连通标记为1
+                            if (r == compactHeightfield.SpanList[i].Reg)
+                                res |= (1 << dir);
+                        }
+                        //异或，反转标志，连通标记为0，不连通标记为1
+                        flags[i] = res ^ 0xf;
+                    }
+                }
+            }
+
+            for (int y = 0; y < h; ++y)
+            {
+                for (int x = 0; x < w; ++x)
+                {
+                    CompactCell c = compactHeightfield.CellList[x + y * w];
+                    for (int i = c.Index, ni = c.Index + c.Count; i < ni; ++i)
+                    {
+                        //全连通和全不连通的点都无需考虑
+                        if (flags[i] == 0 || flags[i] == 0xf)
+                        {
+                            flags[i] = 0;
+                            continue;
+                        }
+                        int reg = compactHeightfield.SpanList[i].Reg;
+                        if (reg == 0)
+                            continue;
+
+                        AREATYPE area = compactHeightfield.AreaList[i];
+
+                        verts.Clear();
+                        simplified.Clear();
+
+                        //遍历边缘，处理两个区域之间重复的边缘
+                        WalkContourPoint(x, y, i, compactHeightfield, flags, verts);
+
+                        //简化边缘
+                        SimplifyContourPoint(verts, simplified);
+
+
+                        if (simplified.Count / 4 >= 3)
+                        {
+
+                            RcContour cont = new RcContour();
+                            cont.NumVerts = simplified.Count / 4;
+                            cont.Verts = simplified.ToArray();
+                            cont.Reg = reg;
+                            cont.Area = area;
+
+                            rcContourSet.ContsList.Add(cont);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void WalkContourPoint(int x, int y, int i, CompactHeightfield compactHeightField, int[] flags, List<int> points)
+        {
+            int dir = 0;
+            //找第一个边界
+            while ((flags[i] & (1 << dir)) == 0)
+                dir++;
+
+            int startDir = dir;
+            int starti = i;
+
+            AREATYPE area = compactHeightField.AreaList[i];
+
+            int iter = 0;
+            while (++iter < 40000)
+            {
+                // dir方向是边界，则保存轮廓点后，顺时针旋转后再循环尝试
+                if ((flags[i] & (1 << dir)) != 0)
+                {
+
+                    bool isAreaBorder = false;
+                    int px = x;
+                    int py = GetCornerHeight(x, y, i, dir, compactHeightField);
+                    int pz = y;
+
+                    //span左方是边界，轮廓点取其上方span坐标；
+                    //span上方是边界，轮廓点取其右上方span坐标；
+                    //span右方是边界，轮廓点取其右方span坐标；
+                    //span下方是边界，轮廓点取其自身span坐标。
+                    switch (dir)
+                    {
+                        case 0: pz++; break;
+                        case 1: px++; pz++; break;
+                        case 2: px++; break;
+                    }
+                    int r = 0;
+
+                    CompactSpan s = compactHeightField.SpanList[i];
+                    if (RecastUtility.RcGetCon(s, dir) != RC_NOT_CONNECTED)
+                    {
+                        int ax = x + RecastUtility.RcGetDirOffsetX(dir);
+                        int ay = y + RecastUtility.RcGetDirOffsetY(dir);
+                        int ai = compactHeightField.CellList[ax + ay * compactHeightField.Width].Index + RecastUtility.RcGetCon(s, dir);
+                        r = compactHeightField.SpanList[ai].Reg;
+                        if (area != compactHeightField.AreaList[ai])
+                            isAreaBorder = true;
+                    }
+
+                    if (isAreaBorder)
+                        r |= RC_AREA_BORDER;
+
+
+                    points.Add(px);
+                    points.Add(py);
+                    points.Add(pz);
+                    points.Add(r);
+
+                    // 去掉该dir上的边界标记
+                    flags[i] &= ~(1 << dir);
+                    // 顺时针旋转dir
+                    dir = (dir + 1) & 0x3;
+                }
+                // 如果不是边界，则移动x y至这个方向，并将dir逆时针旋转
+                else
+                {
+                    int ni = -1;
+
+                    int nx = x + RecastUtility.RcGetDirOffsetX(dir);
+                    int ny = y + RecastUtility.RcGetDirOffsetY(dir);
+                    CompactSpan s = compactHeightField.SpanList[i];
+                    if (RecastUtility.RcGetCon(s, dir) != RC_NOT_CONNECTED)
+                    {
+                        CompactCell nc = compactHeightField.CellList[nx + ny * compactHeightField.Width];
+                        ni = nc.Index + RecastUtility.RcGetCon(s, dir);
+                    }
+                    if (ni == -1)
+                    {
+                        return;
+                    }
+                    x = nx;
+                    y = ny;
+                    i = ni;
+                    // 逆时针旋转di
+                    dir = (dir + 3) & 0x3;
+                }
+
+                if (starti == i && startDir == dir)
+                {
+                    break;
+                }
+            }
+        }
+
+        private static void SimplifyContourPoint(List<int> points, List<int> simplified)
+        {
+            bool hasConnections = false;
+            for (int i = 0; i < points.Count; i += 4)
+            {
+                if ((points[i + 3] & RC_CONTOUR_REG_MASK) != 0)
+                {
+                    hasConnections = true;
+                    break;
+                }
+            }
+
+            if (hasConnections)
+            {
+                //初始简化点条件
+                //当前轮廓点邻近一个region，下一个轮廓点邻接另一个region
+                //当前轮廓点邻接一个region，下一个轮廓点邻接不可行走的边界
+                for (int i = 0, ni = points.Count / 4; i < ni; ++i)
+                {
+                    int ii = (i + 1) % ni;
+                    bool differentRegs = (points[i * 4 + 3] & RC_CONTOUR_REG_MASK) != (points[ii * 4 + 3] & RC_CONTOUR_REG_MASK);
+                    bool areaBorders = (points[i * 4 + 3] & RC_AREA_BORDER) != (points[ii * 4 + 3] & RC_AREA_BORDER);
+                    if (differentRegs || areaBorders)
+                    {
+                        simplified.Add(points[i * 4 + 0]);
+                        simplified.Add(points[i * 4 + 1]);
+                        simplified.Add(points[i * 4 + 2]);
+                        simplified.Add(i);
+                    }
+                }
+            }
+
+            if (simplified.Count == 0)
+            {
+                //没有满足条件的点，此时从轮廓点中选择最左下和最右上的两个点作为初始简化点。
+                int llx = points[0];
+                int lly = points[1];
+                int llz = points[2];
+                int lli = 0;
+                int urx = points[0];
+                int ury = points[1];
+                int urz = points[2];
+                int uri = 0;
+                for (int i = 0; i < points.Count; i += 4)
+                {
+                    int x = points[i + 0];
+                    int y = points[i + 1];
+                    int z = points[i + 2];
+                    if (x < llx || (x == llx && z < llz))
+                    {
+                        llx = x;
+                        lly = y;
+                        llz = z;
+                        lli = i / 4;
+                    }
+                    if (x > urx || (x == urx && z > urz))
+                    {
+                        urx = x;
+                        ury = y;
+                        urz = z;
+                        uri = i / 4;
+                    }
+                }
+                simplified.Add(llx);
+                simplified.Add(lly);
+                simplified.Add(llz);
+                simplified.Add(lli);
+
+                simplified.Add(urx);
+                simplified.Add(ury);
+                simplified.Add(urz);
+                simplified.Add(uri);
+            }
+
+
+            int pn = points.Count / 4;
+            for (int i = 0; i < simplified.Count / 4;)
+            {
+                int ii = (i + 1) % (simplified.Count / 4);
+
+                int ax = simplified[i * 4 + 0];
+                int az = simplified[i * 4 + 2];
+                int ai = simplified[i * 4 + 3];
+
+                int bx = simplified[ii * 4 + 0];
+                int bz = simplified[ii * 4 + 2];
+                int bi = simplified[ii * 4 + 3];
+
+                float maxd = 0;
+                int maxi = -1;
+                int ci, cinc, endi;
+
+
+                if (bx > ax || (bx == ax && bz > az))
+                {
+                    cinc = 1;
+                    ci = (ai + cinc) % pn;
+                    endi = bi;
+                }
+                else
+                {
+                    cinc = pn - 1;
+                    ci = (bi + cinc) % pn;
+                    endi = ai;
+                    RecastUtility.RcSwap(ax, bx);
+                    RecastUtility.RcSwap(az, bz);
+                }
+
+                // 不可行走边界或者region边界
+                if ((points[ci * 4 + 3] & RC_CONTOUR_REG_MASK) == 0 ||
+                    (points[ci * 4 + 3] & RC_AREA_BORDER) != 0)
+                {
+                    while (ci != endi)
+                    {
+                        float d = distancePtSeg(points[ci * 4 + 0], points[ci * 4 + 2], ax, az, bx, bz);
+                        if (d > maxd)
+                        {
+                            maxd = d;
+                            maxi = ci;
+                        }
+                        ci = (ci + cinc) % pn;
+                    }
+                }
+
+                if (maxi != -1 && maxd > (MaxSimplificationError * MaxSimplificationError))
+                {
+                    // simplified i索引后面的point后移
+                    int n = simplified.Count / 4;
+                    for (int j = n - 1; j > i; --j)
+                    {
+                        simplified[j * 4 + 0] = simplified[(j - 1) * 4 + 0];
+                        simplified[j * 4 + 1] = simplified[(j - 1) * 4 + 1];
+                        simplified[j * 4 + 2] = simplified[(j - 1) * 4 + 2];
+                        simplified[j * 4 + 3] = simplified[(j - 1) * 4 + 3];
+                    }
+                    // 添加到i索引后面
+                    simplified[(i + 1) * 4 + 0] = points[maxi * 4 + 0];
+                    simplified[(i + 1) * 4 + 1] = points[maxi * 4 + 1];
+                    simplified[(i + 1) * 4 + 2] = points[maxi * 4 + 2];
+                    simplified[(i + 1) * 4 + 3] = maxi;
+
+                    // i不++，下次遍历还是从i开始，ii为新插入的point
+                }
+                else
+                {
+                    ++i;
+                }
+            }
+
+            //切割过长的边缘
+            if (MaxEdgeLen > 0 && (TessellateWallEdges | TessellateAreaEdges))
+            {
+                for (int i = 0; i < simplified.Count / 4;)
+                {
+                    int ii = (i + 1) % (simplified.Count / 4);
+
+                    int ax = simplified[i * 4 + 0];
+                    int az = simplified[i * 4 + 2];
+                    int ai = simplified[i * 4 + 3];
+
+                    int bx = simplified[ii * 4 + 0];
+                    int bz = simplified[ii * 4 + 2];
+                    int bi = simplified[ii * 4 + 3];
+
+                    int maxi = -1;
+                    int ci = (ai + 1) % pn;
+
+                    bool tess = false;
+                    //不可行走的边缘
+                    if (TessellateWallEdges && (points[ci * 4 + 3] & RC_CONTOUR_REG_MASK) == 0)
+                        tess = true;
+                    // 区域之间的边缘
+                    if (TessellateAreaEdges && ((points[ci * 4 + 3] & RC_AREA_BORDER) != 0))
+                        tess = true;
+
+                    if (tess)
+                    {
+                        int dx = bx - ax;
+                        int dz = bz - az;
+                        if (dx * dx + dz * dz > MaxEdgeLen * MaxEdgeLen)
+                        {
+
+                            //选取a，b的中点
+                            int n = bi < ai ? (bi + pn - ai) : (bi - ai);
+                            if (n > 1)
+                            {
+                                if (bx > ax || (bx == ax && bz > az))
+                                    maxi = (ai + n / 2) % pn;
+                                else
+                                    maxi = (ai + (n + 1) / 2) % pn;
+                            }
+                        }
+                    }
+
+
+                    //插入新的边缘点
+                    if (maxi != -1)
+                    {
+
+                        int n = simplified.Count / 4;
+                        for (int j = n - 1; j > i; --j)
+                        {
+                            simplified[j * 4 + 0] = simplified[(j - 1) * 4 + 0];
+                            simplified[j * 4 + 1] = simplified[(j - 1) * 4 + 1];
+                            simplified[j * 4 + 2] = simplified[(j - 1) * 4 + 2];
+                            simplified[j * 4 + 3] = simplified[(j - 1) * 4 + 3];
+                        }
+
+                        simplified[(i + 1) * 4 + 0] = points[maxi * 4 + 0];
+                        simplified[(i + 1) * 4 + 1] = points[maxi * 4 + 1];
+                        simplified[(i + 1) * 4 + 2] = points[maxi * 4 + 2];
+                        simplified[(i + 1) * 4 + 3] = maxi;
+                    }
+                    else
+                    {
+                        ++i;
+                    }
+                }
+            }
+
+            for (int i = 0; i < simplified.Count / 4; ++i)
+            {
+                //不可行走边缘顶点标志取自当前原始点，
+                //相邻区域边缘顶点标志取自下一个原始点。
+                int ai = (simplified[i * 4 + 3] + 1) % pn;
+                int bi = simplified[i * 4 + 3];
+                simplified[i * 4 + 3] = (points[ai * 4 + 3] & (RC_CONTOUR_REG_MASK | RC_AREA_BORDER)) | (points[bi * 4 + 3] & RC_BORDER_VERTEX);
+            }
+
+            //去除重复的点
+            int npts = simplified.Count / 4;
+            for (int i = 0; i < npts; ++i)
+            {
+                int ni = i + 1 % npts;
+
+                bool vequal = simplified[i * 4] == simplified[ni * 4] &&
+                    simplified[i * 4 + 1] == simplified[ni * 4 + 1] &&
+                    simplified[i * 4 + 2] == simplified[ni * 4 + 2] &&
+                     simplified[i * 4 + 3] == simplified[ni * 4 + 3];
+
+                if (vequal)
+                {
+                    for (int j = i; j < simplified.Count / 4 - 1; ++j)
+                    {
+                        simplified[j * 4 + 0] = simplified[(j + 1) * 4 + 0];
+                        simplified[j * 4 + 1] = simplified[(j + 1) * 4 + 1];
+                        simplified[j * 4 + 2] = simplified[(j + 1) * 4 + 2];
+                        simplified[j * 4 + 3] = simplified[(j + 1) * 4 + 3];
+                    }
+                    npts--;
+                }
+            }
+
+        }
+        private static int GetCornerHeight(int x, int y, int i, int dir, CompactHeightfield compactHeightField)
+        {
+
+            CompactSpan s = compactHeightField.SpanList[i];
+            int ch = s.Y;
+            // 逆时针旋转di
+            int dirp = (dir + 1) & 0x3;
+
+            int[] regs = { 0, 0, 0, 0 };
+
+            regs[0] = compactHeightField.SpanList[i].Reg | ((int)compactHeightField.AreaList[i] << 16);
+
+            //取周围4个span的最大y作为边界的y
+            if (RecastUtility.RcGetCon(s, dir) != RC_NOT_CONNECTED)
+            {
+                int ax = x + RecastUtility.RcGetDirOffsetX(dir);
+                int ay = y + RecastUtility.RcGetDirOffsetY(dir);
+                int ai = compactHeightField.CellList[ax + ay * compactHeightField.Width].Index + RecastUtility.RcGetCon(s, dir);
+                CompactSpan as1 = compactHeightField.SpanList[ai];
+                ch = Mathf.Max(ch, as1.Y);
+                regs[1] = compactHeightField.SpanList[ai].Reg | ((int)compactHeightField.AreaList[ai] << 16);
+
+                if (RecastUtility.RcGetCon(as1, dirp) != RC_NOT_CONNECTED)
+                {
+                    int ax2 = ax + RecastUtility.RcGetDirOffsetX(dirp);
+                    int ay2 = ay + RecastUtility.RcGetDirOffsetY(dirp);
+                    int ai2 = (int)compactHeightField.CellList[ax2 + ay2 * compactHeightField.Width].Index + RecastUtility.RcGetCon(as1, dirp);
+                    CompactSpan as2 = compactHeightField.SpanList[ai2];
+                    ch = Mathf.Max(ch, as2.Y);
+                    regs[2] = compactHeightField.SpanList[ai2].Reg | ((int)compactHeightField.AreaList[ai2] << 16);
+                }
+            }
+
+            if (RecastUtility.RcGetCon(s, dirp) != RC_NOT_CONNECTED)
+            {
+                int ax = x + RecastUtility.RcGetDirOffsetX(dirp);
+                int ay = y + RecastUtility.RcGetDirOffsetY(dirp);
+                int ai = compactHeightField.CellList[ax + ay * compactHeightField.Width].Index + RecastUtility.RcGetCon(s, dirp);
+                CompactSpan as1 = compactHeightField.SpanList[ai];
+                ch = Mathf.Max(ch, as1.Y);
+                regs[3] = compactHeightField.SpanList[ai].Reg | ((int)compactHeightField.AreaList[ai] << 16);
+
+                if (RecastUtility.RcGetCon(as1, dir) != RC_NOT_CONNECTED)
+                {
+                    int ax2 = ax + RecastUtility.RcGetDirOffsetX(dir);
+                    int ay2 = ay + RecastUtility.RcGetDirOffsetY(dir);
+                    int ai2 = (int)compactHeightField.CellList[ax2 + ay2 * compactHeightField.Width].Index + RecastUtility.RcGetCon(as1, dir);
+                    CompactSpan as2 = compactHeightField.SpanList[ai2];
+                    ch = Mathf.Max(ch, as2.Y);
+                    regs[2] = compactHeightField.SpanList[ai2].Reg | ((int)compactHeightField.AreaList[ai2] << 16);
+                }
+            }
+
+            // TODO
+            //for (int j = 0; j < 4; ++j)
+            //{
+            //    int a = j;
+            //    int b = (j + 1) & 0x3;
+            //    int c = (j + 2) & 0x3;
+            //    int d = (j + 3) & 0x3;
+
+            //    bool twoSameExts = (regs[a] & regs[b] & RC_BORDER_REG) != 0 && regs[a] == regs[b];
+            //    bool twoInts = ((regs[c] | regs[d]) & RC_BORDER_REG) == 0;
+            //    bool intsSameArea = (regs[c] >> 16) == (regs[d] >> 16);
+            //    bool noZeros = regs[a] != 0 && regs[b] != 0 && regs[c] != 0 && regs[d] != 0;
+            //    if (twoSameExts && twoInts && intsSameArea && noZeros)
+            //    {
+            //        isBorderVertex = true;
+            //        break;
+            //    }
+            //}
+
+            return ch;
+        }
+
+        private static float distancePtSeg(int x, int z, int px, int pz, int qx, int qz)
+        {
+
+            float pqx = (float)(qx - px);
+            float pqz = (float)(qz - pz);
+            float dx = (float)(x - px);
+            float dz = (float)(z - pz);
+            float d = pqx * pqx + pqz * pqz;
+            float t = pqx * dx + pqz * dz;
+            if (d > 0)
+                t /= d;
+            if (t < 0)
+
+                t = 0;
+            else if (t > 1)
+                t = 1;
+
+            dx = px + t * pqx - x;
+            dz = pz + t * pqz - z;
+
+            return dx * dx + dz * dz;
+        }
+
         //用于绘制计算出来的高度场,并标记可行走区域
         public static void BuildHeightfield(Heightfield hf, bool showWalk = false)
         {
@@ -2202,7 +2755,7 @@ namespace GameEditor
 
 
         //用于绘制计算出来的空心高度场，绘制距离场参数,并标记区域
-        public static void BuildCompactHeightfield(CompactHeightfield chf, int type = 1)
+        public static void BuildCompactHeightField(CompactHeightfield chf, int type = 1)
         {
 
             GameObject root = GameObject.Find("EditorRoot");
