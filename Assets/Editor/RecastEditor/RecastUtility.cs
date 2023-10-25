@@ -2,6 +2,13 @@
 
 namespace GameEditor
 {
+
+    public enum AREATYPE
+    {
+        None = 0,
+        Walke = 1,
+    }
+
     public enum RcAxis
     {
         AXIS_X = 0,
@@ -173,7 +180,6 @@ namespace GameEditor
 
         public static void RcSwap<T>(T a, T b)
         {
-            //每个方向用六位存放 
             T t = a;
             a = b;
             b = t;

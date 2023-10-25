@@ -74,6 +74,7 @@ namespace GameEditor
         {
             return Path.Combine(path_1, path_2).Replace('\\', '/');
         }
+
         public static void CreatePrefab(GameObject go, string path)
         {
             CreateFolder(path);

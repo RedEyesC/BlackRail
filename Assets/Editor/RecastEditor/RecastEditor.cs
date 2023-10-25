@@ -10,13 +10,6 @@ namespace GameEditor
 
 {
 
-    public enum AREATYPE
-    {
-        None = 0,
-        Walke = 1,
-    }
-
-
     public class RecastEditor
     {
         static readonly float PI = 3.1415926f;
@@ -136,10 +129,8 @@ namespace GameEditor
             //构建空心高度场
             CompactHeightfield chf = RcBuildCompactHeightfield(hf);
 
-
             //设置边缘不可行走
             RcErodeWalkableArea(chf);
-
 
             //设置特殊地形标识，用于设置的标记区域的多边形是y值恒定的多边形
             //RcMarkConvexPolyArea(chf, vertices,AREATYPE.None);
@@ -147,7 +138,7 @@ namespace GameEditor
             //构建距离场
             RcBuildDistanceField(chf);
 
-            //分水岭算法构建区域
+            //分水岭算法构建区域 
             RcBuildRegions(chf);
 
             RcContourSet cset = new RcContourSet(chf);
@@ -2244,6 +2235,11 @@ namespace GameEditor
                     }
                 }
             }
+
+
+
+
+
         }
 
         private static void WalkContourPoint(int x, int y, int i, CompactHeightfield compactHeightField, int[] flags, List<int> points)
@@ -2644,25 +2640,6 @@ namespace GameEditor
                     regs[2] = compactHeightField.SpanList[ai2].Reg | ((int)compactHeightField.AreaList[ai2] << 16);
                 }
             }
-
-            // TODO
-            //for (int j = 0; j < 4; ++j)
-            //{
-            //    int a = j;
-            //    int b = (j + 1) & 0x3;
-            //    int c = (j + 2) & 0x3;
-            //    int d = (j + 3) & 0x3;
-
-            //    bool twoSameExts = (regs[a] & regs[b] & RC_BORDER_REG) != 0 && regs[a] == regs[b];
-            //    bool twoInts = ((regs[c] | regs[d]) & RC_BORDER_REG) == 0;
-            //    bool intsSameArea = (regs[c] >> 16) == (regs[d] >> 16);
-            //    bool noZeros = regs[a] != 0 && regs[b] != 0 && regs[c] != 0 && regs[d] != 0;
-            //    if (twoSameExts && twoInts && intsSameArea && noZeros)
-            //    {
-            //        isBorderVertex = true;
-            //        break;
-            //    }
-            //}
 
             return ch;
         }
