@@ -59,7 +59,7 @@ namespace GameEditor
         {
             if (path.EndsWith("/"))
             {
-                path = path.Substring(0, path.Length - 1);
+                path = path[0..^1];
             }
             if (AssetDatabase.IsValidFolder(path))
             {
