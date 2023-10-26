@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace GameEditor
+namespace GameEditor.RecastEditor
 {
     public class Heightfield
     {
@@ -236,7 +236,27 @@ namespace GameEditor
         public int[] Verts;
         public int NumVerts;
         public int Reg;
-        public AREATYPE Area;           
+        public AREATYPE Area;
     };
 
+    public class RcContourRegion
+    {
+        public RcContour Outline;
+        public RcContourHole[] Holes;
+        public int NumHoles;
+    };
+
+    public class RcContourHole
+    {
+        public RcContour Contour;
+        public int MinX;
+        public int MinZ;
+        public int LeftMost;
+    };
+
+    public struct RcPotentialDiagonal
+    {
+        public int Vert;
+        public int Dist;
+    };
 }

@@ -1,8 +1,7 @@
 ﻿using UnityEngine;
 
-namespace GameEditor
+namespace GameEditor.RecastEditor
 {
-
     public enum AREATYPE
     {
         None = 0,
@@ -25,7 +24,6 @@ namespace GameEditor
     };
     internal class RecastUtility
     {
-        #region Recast
         static Vector3 tempVec1 = new Vector3();
         static Vector3 tempVec2 = new Vector3();
 
@@ -184,7 +182,5 @@ namespace GameEditor
             a = b;
             b = t;
         }
-
-        #endregion
     }
 }
