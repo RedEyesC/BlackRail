@@ -734,7 +734,7 @@ namespace GameEditor.RecastEditor
         }
 
 
-        private static void RcMarkConvexPolyArea(CompactHeightfield compactHeightfield, Vector3[] vertices, AREATYPE areaId)
+        public static void RcMarkConvexPolyArea(CompactHeightfield compactHeightfield, Vector3[] vertices, AREATYPE areaId)
         {
             int xSize = compactHeightfield.Width;
             int zSize = compactHeightfield.Height;

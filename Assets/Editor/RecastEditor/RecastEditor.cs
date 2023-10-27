@@ -11,7 +11,7 @@ namespace GameEditor.RecastEditor
 
 {
 
-    public class RecastEditor
+    public class RecastEditor 
     {
 
         [MenuItem("Assets/GameEditor/导出地图navmesh", false, 900)]
@@ -98,13 +98,14 @@ namespace GameEditor.RecastEditor
             RecastHeightField.RcErodeWalkableArea(chf);
 
             //设置特殊地形标识，用于设置的标记区域的多边形是y值恒定的多边形
-            //RcMarkConvexPolyArea(chf, vertices,AREATYPE.None);
+            //RecastHeightField.RcMarkConvexPolyArea(chf, vertices,AREATYPE.None);
 
             //构建距离场
             RecastHeightField.RcBuildDistanceField(chf);
 
             //分水岭算法构建区域 
             RecastContour.RcBuildRegions(chf);
+
 
             RcContourSet cset = new RcContourSet(chf);
 
@@ -163,10 +164,10 @@ namespace GameEditor.RecastEditor
             return areas;
         }
 
-       
+
 
         //用于绘制计算出来的高度场,并标记可行走区域
-        public static void BuildHeightfield(Heightfield hf, bool showWalk = false)
+        public static void DrawHeightfield(Heightfield hf, bool showWalk = false)
         {
 
             GameObject root = GameObject.Find("EditorRoot");
@@ -229,8 +230,8 @@ namespace GameEditor.RecastEditor
         }
 
 
-        //用于绘制计算出来的空心高度场，绘制距离场参数,并标记区域
-        public static void BuildCompactHeightField(CompactHeightfield chf, int type = 1)
+        //用于绘制计算出来的空心高度场，绘制距离场参数,并标记区域 ,type 1 距离场,type 2 可行走区域,type 3 划分区域
+        public static void DrawCompactHeightField(CompactHeightfield chf, int type = 1)
         {
 
             GameObject root = GameObject.Find("EditorRoot");
@@ -336,6 +337,25 @@ namespace GameEditor.RecastEditor
                 }
             }
 
+        }
+
+
+        //用于绘制计算出来的区域边缘
+        public static void DrawFieldContour(RcContourSet rcContourSet)
+        {
+
+            Scene activeScene = SceneManager.GetActiveScene();
+            string activeSceneName = activeScene.name;
+
+            GameObject root = GameObject.Find("/" + activeSceneName);
+
+
+            if (root.GetComponent<RecastComponent>() == null)
+            {
+                root.AddComponent<RecastComponent>();
+            }
+
+            root.GetComponent<RecastComponent>().SetContour(rcContourSet);
         }
     }
 

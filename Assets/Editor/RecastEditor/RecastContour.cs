@@ -901,8 +901,9 @@ namespace GameEditor.RecastEditor
                         WalkContourPoint(x, y, i, compactHeightfield, flags, verts);
 
                         //简化边缘
-                        SimplifyContourPoint(verts, simplified);
+                        //SimplifyContourPoint(verts, simplified);
 
+                        simplified = verts;
 
                         if (simplified.Count / 4 >= 3)
                         {
@@ -916,7 +917,12 @@ namespace GameEditor.RecastEditor
                             };
 
                             rcContourSet.ContsList.Add(cont);
+                            rcContourSet.NumConts++;
                         }
+
+
+                        RecastEditor.DrawFieldContour(rcContourSet);
+                        return;
                     }
                 }
             }
@@ -1031,15 +1037,14 @@ namespace GameEditor.RecastEditor
                 for (int iter = 0; iter < hole.NumVerts; iter++)
                 {
                     //找到空洞的bestVertex（bestVetex为最左边的点，如果有多个最左点，取其中最下的点），并把N个空洞按照bestVertex排序，按照排序好的空洞顺序遍历。
-                    //计算空洞bestVertex与外轮廓点的距离，选择距离最短并且两点连线与外轮廓和所有空洞没有交点的，把此时的bestVertex和外轮廓点的索引作为开口位置。
                     int ndiags = 0;
-                    int bestVertexIndex = bestVertex * 4;
+                    int[] corner = { hole.Verts[bestVertex * 4], hole.Verts[bestVertex * 4 + 1], hole.Verts[bestVertex * 4 + 2], hole.Verts[bestVertex * 4 + 3] };
                     for (int j = 0; j < outline.NumVerts; j++)
                     {
-                        if (InCone(j, outline.NumVerts, outline.Verts, bestVertexIndex))
+                        if (InCone(j, outline.NumVerts, outline.Verts, corner))
                         {
-                            int dx = outline.Verts[j * 4 + 0] - outline.Verts[bestVertexIndex + 0];
-                            int dz = outline.Verts[j * 4 + 2] - outline.Verts[bestVertexIndex + 2];
+                            int dx = outline.Verts[j * 4 + 0] - corner[0];
+                            int dz = outline.Verts[j * 4 + 2] - corner[2];
                             diags[ndiags].Vert = j;
                             diags[ndiags].Dist = dx * dx + dz * dz;
                             ndiags++;
@@ -1051,36 +1056,82 @@ namespace GameEditor.RecastEditor
                     index = -1;
                     for (int j = 0; j < ndiags; j++)
                     {
-                        //const int* pt = &outline->verts[diags[j].vert * 4];
-                        //bool intersect = intersectSegContour(pt, corner, diags[i].vert, outline->nverts, outline->verts);
-                        //for (int k = i; k < region.nholes && !intersect; k++)
-                        //    intersect |= intersectSegContour(pt, corner, -1, region.holes[k].contour->nverts, region.holes[k].contour->verts);
-                        //if (!intersect)
-                        //{
-                        //    index = diags[j].vert;
-                        //    break;
-                        //}
-                    }
-                    //    // If found non-intersecting diagonal, stop looking.
-                    //    if (index != -1)
-                    //        break;
-                    //    // All the potential diagonals for the current vertex were intersecting, try next vertex.
-                    //    bestVertex = (bestVertex + 1) % hole->nverts;
-                    //}
+                        int pt = diags[j].Vert * 4;
+                        //是否和与外轮廓相交
+                        bool intersect = IntersectSegContour(pt, corner, diags[i].Vert, outline.NumVerts, outline.Verts);
 
-                    //if (index == -1)
-                    //{
-                    //    ctx->log(RC_LOG_WARNING, "mergeHoles: Failed to find merge points for %p and %p.", region.outline, hole);
-                    //    continue;
-                    //}
-                    //if (!mergeContours(*region.outline, *hole, index, bestVertex))
-                    //{
-                    //    ctx->log(RC_LOG_WARNING, "mergeHoles: Failed to merge contours %p and %p.", region.outline, hole);
-                    //    continue;
-                    //}
+                        //是否和其他空洞相交
+                        for (int k = i; k < region.NumHoles && !intersect; k++)
+                            intersect |= IntersectSegContour(pt, corner, -1, region.Holes[k].Contour.NumVerts, region.Holes[k].Contour.Verts);
+                        if (!intersect)
+                        {
+                            index = diags[j].Vert;
+                            break;
+                        }
+                    }
+
+                    //只有与外轮廓和其他空洞都不相交，才会对index赋值,
+                    //选择距离最短并且两点连线与外轮廓和所有空洞没有交点的,把此时的bestVertex和外轮廓点的索引作为开口位置
+                    if (index != -1)
+                        break;
+
+                    // 尝试下一个点
+                    bestVertex = (bestVertex + 1) % hole.NumVerts;
                 }
+
+                if (index == -1)
+                {
+                    Debug.LogError("mergeHoles: Failed to find merge points");
+                    continue;
+                }
+                if (!MergeContours(region.Outline, hole, index, bestVertex))
+                {
+                    Debug.LogError("mergeHoles: Failed to merge contours %p and %p.");
+                    continue;
+                }
+
             }
         }
+
+        private static bool MergeContours(RcContour ca, RcContour cb, int ia, int ib)
+        {
+            int maxVerts = ca.NumVerts + cb.NumVerts + 2;
+            int[] verts = new int[maxVerts * 4];
+
+            int nv = 0;
+
+            for (int i = 0; i <= ca.NumVerts; ++i)
+            {
+                int dstIndex = nv * 4;
+                int srcIndex = ((ia + i) % ca.NumVerts);
+                verts[dstIndex] = ca.Verts[srcIndex];
+                verts[dstIndex + 1] = ca.Verts[srcIndex + 1];
+                verts[dstIndex + 2] = ca.Verts[srcIndex + 2];
+                verts[dstIndex + 3] = ca.Verts[srcIndex + 3];
+                nv++;
+            }
+
+            for (int i = 0; i <= cb.NumVerts; ++i)
+            {
+                int dstIndex = nv * 4;
+                int srcIndex = ((ib + i) % cb.NumVerts);
+                verts[dstIndex] = cb.Verts[srcIndex];
+                verts[dstIndex + 1] = cb.Verts[srcIndex + 1];
+                verts[dstIndex + 2] = cb.Verts[srcIndex + 2];
+                verts[dstIndex + 3] = cb.Verts[srcIndex + 3];
+                nv++;
+            }
+
+            ca.Verts = verts;
+            ca.NumVerts = nv;
+
+            cb.Verts = new int[0];
+            cb.NumVerts = 0;
+
+            return true;
+        }
+
+
         private static void FindLeftMostVertex(RcContour contour, out int minx, out int minz, out int leftmost)
         {
             minx = contour.Verts[0];
@@ -1143,12 +1194,61 @@ namespace GameEditor.RecastEditor
             return Area2(a, b, c) <= 0;
         }
 
+        private static bool Collinear(int[] a, int[] b, int[] c)
+        {
+            return Area2(a, b, c) == 0;
+        }
+
         private static int Area2(int[] a, int[] b, int[] c)
         {
             return (b[0] - a[0]) * (c[2] - a[2]) - (c[0] - a[0]) * (b[2] - a[2]);
         }
 
-        private static bool InCone(int i, int n, int[] verts, int pjIndex)
+
+        private static bool Vequal(int[] a, int[] b)
+        {
+            return a[0] == b[0] && a[2] == b[2];
+        }
+        private static bool xorb(bool x, bool y)
+        {
+            return !x ^ !y;
+        }
+
+        static bool IntersectProp(int[] a, int[] b, int[] c, int[] d)
+        {
+
+            if (Collinear(a, b, c) || Collinear(a, b, d) ||
+                Collinear(c, d, a) || Collinear(c, d, b))
+                return false;
+
+            return xorb(Left(a, b, c), Left(a, b, d)) && xorb(Left(c, d, a), Left(c, d, b));
+        }
+
+        //当a.b.c 共线，且c在ab线段上时返回ture
+        static bool Between(int[] a, int[] b, int[] c)
+        {
+            if (!Collinear(a, b, c))
+                return false;
+
+            if (a[0] != b[0])
+                return ((a[0] <= c[0]) && (c[0] <= b[0])) || ((a[0] >= c[0]) && (c[0] >= b[0]));
+            else
+                return ((a[2] <= c[2]) && (c[2] <= b[2])) || ((a[2] >= c[2]) && (c[2] >= b[2]));
+        }
+
+        //当线段ab和cd 相交 ，返回true。
+        public static bool Intersect(int[] a, int[] b, int[] c, int[] d)
+        {
+            if (IntersectProp(a, b, c, d))
+                return true;
+            else if (Between(a, b, c) || Between(a, b, d) ||
+                     Between(c, d, a) || Between(c, d, b))
+                return true;
+            else
+                return false;
+        }
+
+        private static bool InCone(int i, int n, int[] verts, int[] pj)
         {
             int piIndex = i * 4;
             int[] pi = { verts[piIndex], verts[piIndex + 1], verts[piIndex + 2] };
@@ -1159,8 +1259,6 @@ namespace GameEditor.RecastEditor
             int pin1Index = Prev(i, n);
             int[] pin1 = { verts[pin1Index], verts[pin1Index + 1], verts[pin1Index + 2] };
 
-            int[] pj = { verts[pjIndex], verts[pjIndex + 1], verts[pjIndex + 2] };
-
             //判断pj是否在以pi为顶点 以pi->pin1 、pi->pi1边组成的锥形范围内
             if (LeftOn(pin1, pi, pi1))
                 return Left(pi, pj, pin1) && Left(pj, pi, pi1);
@@ -1168,6 +1266,31 @@ namespace GameEditor.RecastEditor
             return !(LeftOn(pi, pj, pi1) && LeftOn(pj, pi, pin1));
         }
 
+
+        //是否于边缘相交
+        public static bool IntersectSegContour(int d0Index, int[] d1, int i, int n, int[] verts)
+        {
+            int[] d0 = { verts[d0Index], verts[d0Index + 1], verts[d0Index + 2], verts[d0Index + 3] };
+
+            // For each edge (k,k+1) of P
+            for (int k = 0; k < n; k++)
+            {
+                int k1 = Next(k, n);
+                // Skip edges incident to i.
+                if (i == k || i == k1)
+                    continue;
+
+                int[] p0 = { verts[k], verts[k + 1], verts[k + 2], verts[k + 3] };
+                int[] p1 = { verts[k1], verts[k1 + 1], verts[k1 + 2], verts[k1 + 3] };
+
+                if (Vequal(d0, p0) || Vequal(d1, p0) || Vequal(d0, p1) || Vequal(d1, p1))
+                    continue;
+
+                if (Intersect(d0, d1, p0, p1))
+                    return true;
+            }
+            return false;
+        }
 
         private static void WalkContourPoint(int x, int y, int i, CompactHeightfield compactHeightField, int[] flags, List<int> points)
         {
@@ -1397,10 +1520,10 @@ namespace GameEditor.RecastEditor
                         simplified[j * 4 + 3] = simplified[(j - 1) * 4 + 3];
                     }
                     // 添加到i索引后面
-                    simplified[(i + 1) * 4 + 0] = points[maxi * 4 + 0];
-                    simplified[(i + 1) * 4 + 1] = points[maxi * 4 + 1];
-                    simplified[(i + 1) * 4 + 2] = points[maxi * 4 + 2];
-                    simplified[(i + 1) * 4 + 3] = maxi;
+                    simplified.Insert((i + 1) * 4 + 0,points[maxi * 4 + 0]);
+                    simplified.Insert((i + 1) * 4 + 1, points[maxi * 4 + 1]);
+                    simplified.Insert((i + 1) * 4 + 2, points[maxi * 4 + 2]);
+                    simplified.Insert((i + 1) * 4 + 3, maxi);
 
                     // i不++，下次遍历还是从i开始，ii为新插入的point
                 }
@@ -1469,10 +1592,10 @@ namespace GameEditor.RecastEditor
                             simplified[j * 4 + 3] = simplified[(j - 1) * 4 + 3];
                         }
 
-                        simplified[(i + 1) * 4 + 0] = points[maxi * 4 + 0];
-                        simplified[(i + 1) * 4 + 1] = points[maxi * 4 + 1];
-                        simplified[(i + 1) * 4 + 2] = points[maxi * 4 + 2];
-                        simplified[(i + 1) * 4 + 3] = maxi;
+                        simplified.Insert((i + 1) * 4 + 0,points[maxi * 4 + 0]);
+                        simplified.Insert((i + 1) * 4 + 1, points[maxi * 4 + 1]);
+                        simplified.Insert((i + 1) * 4 + 2, points[maxi * 4 + 2]);
+                        simplified.Insert((i + 1) * 4 + 3, maxi);
                     }
                     else
                     {
@@ -1494,7 +1617,7 @@ namespace GameEditor.RecastEditor
             int npts = simplified.Count / 4;
             for (int i = 0; i < npts; ++i)
             {
-                int ni = i + 1 % npts;
+                int ni = Next(i, npts);
 
                 bool vequal = simplified[i * 4] == simplified[ni * 4] &&
                     simplified[i * 4 + 1] == simplified[ni * 4 + 1] &&
