@@ -11,7 +11,7 @@ namespace GameEditor.RecastEditor
 
 {
 
-    public class RecastEditor 
+    public class RecastEditor
     {
 
         [MenuItem("Assets/GameEditor/导出地图navmesh", false, 900)]
@@ -108,6 +108,8 @@ namespace GameEditor.RecastEditor
 
 
             RcContourSet cset = new RcContourSet(chf);
+
+            DrawCompactHeightField(chf, 3);
 
             //计算区域边界
             RecastContour.RcBuildContours(chf, cset);
@@ -349,13 +351,39 @@ namespace GameEditor.RecastEditor
 
             GameObject root = GameObject.Find("/" + activeSceneName);
 
+            Vector3 hfBBMin = rcContourSet.MinBounds;
+            float cellSize = rcContourSet.CellSize;
+            float cellHeight = rcContourSet.CellHeight;
 
             if (root.GetComponent<RecastComponent>() == null)
             {
                 root.AddComponent<RecastComponent>();
             }
 
-            root.GetComponent<RecastComponent>().SetContour(rcContourSet);
+            float[][] vertList = new float[rcContourSet.NumConts][];
+
+            for (int i = 0; i < rcContourSet.NumConts; ++i)
+            {
+                RcContour cont = rcContourSet.ContsList[i];
+
+                float[] contVert = new float[cont.NumVerts * 4];
+
+                for (int j = 0; j < cont.NumVerts; j++)
+                {
+                    float cellX = hfBBMin[0] + (float)cont.Verts[j * 4] * cellSize;
+                    float cellZ = hfBBMin[2] + (float)cont.Verts[j * 4 + 2] * cellSize;
+                    float cellY = hfBBMin[1] + (float)cont.Verts[j * 4 + 1] * cellHeight;
+
+                    contVert[j * 4] = cellX;
+                    contVert[j * 4 + 1] = cellY;
+                    contVert[j * 4 + 2] = cellZ;
+                    contVert[j * 4 + 3] = cont.Verts[j * 4 + 3];
+
+                }
+                vertList[i] = contVert;
+            }
+
+            root.GetComponent<RecastComponent>().SetContour(vertList);
         }
     }
 
