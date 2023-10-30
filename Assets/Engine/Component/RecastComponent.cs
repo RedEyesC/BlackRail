@@ -36,17 +36,17 @@ public class RecastComponent : MonoBehaviour
             for (int i = 0; i < RcCubeList.Length; i++)
             {
 
-                float[] cube = RcCubeList[i];
+                float[] spanCube = RcCubeList[i];
 
-                if (cube != null)
+                if (spanCube != null)
                 {
-                    int numVert = cube.Length / 4;
+                    int num = spanCube.Length / 4;
 
-                    for (int j = 0; j < numVert; j++)
+                    for (int j = 0; j < num; j++)
                     {
-                        Vector3 v = new Vector3(cube[j * 4], cube[j * 4 + 1], cube[j * 4 + 2]);
+                        Vector3 pos = new Vector3(spanCube[j * 4], spanCube[j * 4 + 1], spanCube[j * 4 + 2]);
 
-                        int reg = (int)cube[j * 4 + 3];
+                        float reg = spanCube[j * 4 + 3];
 
                         if (reg == 0)
                         {
@@ -58,10 +58,10 @@ public class RecastComponent : MonoBehaviour
                         }
                         else
                         {
-                            Gizmos.color = ColorMap[reg % 7];
+                            Gizmos.color = ColorMap[(int)reg % 8];
                         }
 
-                        Gizmos.DrawCube(v, RcCubeSize);
+                        Gizmos.DrawCube(pos, RcCubeSize);
                     }
                 }
 
