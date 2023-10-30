@@ -901,9 +901,7 @@ namespace GameEditor.RecastEditor
                         WalkContourPoint(x, y, i, compactHeightfield, flags, verts);
 
                         //简化边缘
-                        //SimplifyContourPoint(verts, simplified);
-
-                        simplified = verts;
+                        SimplifyContourPoint(verts, simplified);
 
                         if (simplified.Count / 4 >= 3)
                         {
@@ -919,14 +917,14 @@ namespace GameEditor.RecastEditor
                             rcContourSet.ContsList.Add(cont);
                             rcContourSet.NumConts++;
                         }
-
-
-                        RecastEditor.DrawFieldContour(rcContourSet);
-                        return;
                     }
                 }
             }
 
+
+            RecastEditor.DrawFieldContour(rcContourSet);
+
+            return;
             //打通空洞
             if (rcContourSet.NumConts > 0)
             {
@@ -946,7 +944,7 @@ namespace GameEditor.RecastEditor
 
                 if (nholes > 0)
                 {
-                    int nregions = compactHeightfield.MaxRegions + 1;
+                    int nregions = compactHeightfield.MaxRegions;
 
                     RcContourRegion[] regions = new RcContourRegion[nregions];
                     RcContourHole[] holes = new RcContourHole[rcContourSet.NumConts];
@@ -957,8 +955,10 @@ namespace GameEditor.RecastEditor
 
                         if (winding[i] > 0)
                         {
-                            if (regions[cont.Reg].Outline != null)
+                            if (regions[cont.Reg] != null)
                                 Debug.LogErrorFormat("rcBuildContours: Multiple outlines for region %d.", cont.Reg);
+
+                            regions[cont.Reg] = new RcContourRegion();
                             regions[cont.Reg].Outline = cont;
                         }
                         else
@@ -967,9 +967,10 @@ namespace GameEditor.RecastEditor
                         }
                     }
 
-                    for (int i = 0; i < nregions; i++)
+                    //区域id从1开始
+                    for (int i = 1; i < nregions; i++)
                     {
-                        if (regions[i].NumHoles > 0)
+                        if (regions[i] != null && regions[i].NumHoles > 0)
                         {
                             regions[i].Holes = new RcContourHole[regions[i].NumHoles];
                             regions[i].NumHoles = 0;
@@ -983,12 +984,16 @@ namespace GameEditor.RecastEditor
                         RcContourRegion reg = regions[cont.Reg];
 
                         if (winding[i] < 0)
-                            reg.Holes[reg.NumHoles++].Contour = cont;
+                        {
+                            reg.Holes[reg.NumHoles] = new RcContourHole();
+                            reg.Holes[reg.NumHoles].Contour = cont;
+                            ++reg.NumHoles;
+                        }
+
                     }
 
-
                     //合并空洞
-                    for (int i = 0; i < nregions; i++)
+                    for (int i = 1; i < nregions; i++)
                     {
                         RcContourRegion reg = regions[i];
                         if (reg.NumHoles == 0) continue;
@@ -1510,17 +1515,9 @@ namespace GameEditor.RecastEditor
 
                 if (maxi != -1 && maxd > (RecastConfig.MaxSimplificationError * RecastConfig.MaxSimplificationError))
                 {
+
                     // simplified i索引后面的point后移
-                    int n = simplified.Count / 4;
-                    for (int j = n - 1; j > i; --j)
-                    {
-                        simplified[j * 4 + 0] = simplified[(j - 1) * 4 + 0];
-                        simplified[j * 4 + 1] = simplified[(j - 1) * 4 + 1];
-                        simplified[j * 4 + 2] = simplified[(j - 1) * 4 + 2];
-                        simplified[j * 4 + 3] = simplified[(j - 1) * 4 + 3];
-                    }
-                    // 添加到i索引后面
-                    simplified.Insert((i + 1) * 4 + 0,points[maxi * 4 + 0]);
+                    simplified.Insert((i + 1) * 4 + 0, points[maxi * 4 + 0]);
                     simplified.Insert((i + 1) * 4 + 1, points[maxi * 4 + 1]);
                     simplified.Insert((i + 1) * 4 + 2, points[maxi * 4 + 2]);
                     simplified.Insert((i + 1) * 4 + 3, maxi);
@@ -1583,16 +1580,7 @@ namespace GameEditor.RecastEditor
                     if (maxi != -1)
                     {
 
-                        int n = simplified.Count / 4;
-                        for (int j = n - 1; j > i; --j)
-                        {
-                            simplified[j * 4 + 0] = simplified[(j - 1) * 4 + 0];
-                            simplified[j * 4 + 1] = simplified[(j - 1) * 4 + 1];
-                            simplified[j * 4 + 2] = simplified[(j - 1) * 4 + 2];
-                            simplified[j * 4 + 3] = simplified[(j - 1) * 4 + 3];
-                        }
-
-                        simplified.Insert((i + 1) * 4 + 0,points[maxi * 4 + 0]);
+                        simplified.Insert((i + 1) * 4 + 0, points[maxi * 4 + 0]);
                         simplified.Insert((i + 1) * 4 + 1, points[maxi * 4 + 1]);
                         simplified.Insert((i + 1) * 4 + 2, points[maxi * 4 + 2]);
                         simplified.Insert((i + 1) * 4 + 3, maxi);

@@ -9,7 +9,7 @@ namespace GameEditor.RecastEditor
         public static readonly string MapElement = "MapElement";
 
         //构建寻路网格的参数
-        public static readonly int MAX_HEIGHT = 25;
+        public static readonly int MAX_HEIGHT = 100;
         public static readonly int RC_NOT_CONNECTED = 0x3f;//空心高度场，相邻不可行走标志，RecastConfig.RC_NOT_CONNECTED-1 为最大层级
         public static readonly int MAX_LAYERS = RC_NOT_CONNECTED - 1;
 
@@ -22,8 +22,8 @@ namespace GameEditor.RecastEditor
         public static readonly float AgentMaxClimb = 3f;
         public static readonly float AgentHeight = 2.0f;
         public static readonly float AgentRadius = 1f;
-        public static readonly float CellSize = 1f; //xz平面的尺寸
-        public static readonly float CellHeight = 1f; // y轴的尺寸
+        public static readonly float CellSize = 0.5f; //xz平面的尺寸
+        public static readonly float CellHeight = 0.5f; // y轴的尺寸
 
         public static readonly float MinRegionArea = 10; //小于此则被剔除
         public static readonly float MergeRegionArea = 20; //小于此则与周围区域合并
