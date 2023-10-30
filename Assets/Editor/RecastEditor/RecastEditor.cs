@@ -106,16 +106,12 @@ namespace GameEditor.RecastEditor
             //分水岭算法构建区域 
             RecastContour.RcBuildRegions(chf);
 
+            DrawCompactHeightField(chf, 1);
 
             RcContourSet cset = new RcContourSet(chf);
 
-            //DrawCompactHeightField(chf, 3);
-
             //计算区域边界
             RecastContour.RcBuildContours(chf, cset);
-
-            //DrawFieldContour(cset);
-            
 
         }
 
@@ -239,13 +235,6 @@ namespace GameEditor.RecastEditor
         public static void DrawCompactHeightField(CompactHeightfield chf, int type = 1)
         {
 
-            GameObject root = GameObject.Find("EditorRoot");
-            if (root)
-            {
-                GameObject.DestroyImmediate(root);
-            }
-
-            root = new GameObject("EditorRoot");
 
             Vector3 hfBBMin = chf.MinBounds;
             float cellSize = chf.CellSize;
@@ -265,83 +254,65 @@ namespace GameEditor.RecastEditor
                 }
             }
 
-            Color[] colorMap = { Color.red, Color.green, Color.blue, Color.white, Color.black,
-                Color.yellow, Color.cyan, Color.magenta, Color.gray };
-
-
-            Material newMat = null;
-            Dictionary<int, Material> matMap = new Dictionary<int, Material>();
+            float[][] cubeList = new float[h * w][];
 
             for (int z = 0; z < h; ++z)
             {
                 for (int x = 0; x < w; ++x)
                 {
                     CompactCell c = chf.CellList[x + z * w];
+
+
+                    float[] spanCube = new float[c.Count * 4];
                     for (int i = c.Index, ni = (c.Index + c.Count); i < ni; ++i)
                     {
 
                         CompactSpan span = chf.SpanList[i];
-
 
                         //为了方便观察，CompactSpan只构建一个cellHeight，实际不止
                         float cellX = hfBBMin[0] + (float)x * cellSize + cellSize / 2;
                         float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;
                         float cellY = hfBBMin[1] + (float)span.Y * cellHeight + cellHeight / 2;
 
-                        GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                        cube.transform.localScale = new Vector3(cellSize, cellHeight, cellSize);
-                        cube.transform.position = new Vector3(cellX, cellY, cellZ);
-                        cube.transform.SetParent(root.transform);
+                        int index = c.Count - 1;
+
+                        spanCube[index * 4] = cellX;
+                        spanCube[index * 4 + 1] = cellY;
+                        spanCube[index * 4 + 2] = cellZ;
 
                         if (chf.DistanceToBoundary != null && type == 1)
                         {
-
-                            if (!matMap.ContainsKey(chf.DistanceToBoundary[i]))
-                            {
-                                Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
-                                Material cloneMat = UnityEngine.Material.Instantiate(mat);
-                                float color = (float)chf.DistanceToBoundary[i] / (float)maxDistance;
-                                cloneMat.color = new UnityEngine.Color(color, color, color);
-
-                                matMap.Add(chf.DistanceToBoundary[i], cloneMat);
-                            }
-
-                            cube.GetComponent<MeshRenderer>().sharedMaterial = matMap[chf.DistanceToBoundary[i]];
-                            continue;
+                            spanCube[index * 4 + 3] = (float)chf.DistanceToBoundary[i] / (float)maxDistance;
                         }
 
                         if (chf.AreaList[i] == AREATYPE.Walke && type == 2)
                         {
-
-                            if (newMat == null)
-                            {
-                                Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
-                                newMat = UnityEngine.Material.Instantiate(mat);
-                                newMat.color = UnityEngine.Color.red;
-                            }
-                            cube.GetComponent<MeshRenderer>().sharedMaterial = newMat;
-                            continue;
+                            spanCube[index * 4 + 3] = 0;
                         }
 
                         if (type == 3)
                         {
-
-                            if (!matMap.ContainsKey(span.Reg))
-                            {
-                                Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
-                                Material cloneMat = UnityEngine.Material.Instantiate(mat);
-                                cloneMat.color = colorMap[span.Reg % 8];
-                                matMap.Add(span.Reg, cloneMat);
-                            }
-
-                            cube.GetComponent<MeshRenderer>().sharedMaterial = matMap[span.Reg];
-                            continue;
+                            spanCube[index * 4 + 3] = span.Reg;
                         }
                     }
 
+                    cubeList[x + z * w] = spanCube;
                 }
             }
 
+            Vector3 cubeSize = new Vector3(cellSize, cellHeight, cellSize);
+
+            Scene activeScene = SceneManager.GetActiveScene();
+            string activeSceneName = activeScene.name;
+
+            GameObject root = GameObject.Find("/" + activeSceneName);
+
+            if (root.GetComponent<RecastComponent>() == null)
+            {
+                root.AddComponent<RecastComponent>();
+            }
+
+            root.GetComponent<RecastComponent>().SetCubeList(cubeList, cubeSize);
         }
 
 

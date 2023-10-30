@@ -921,6 +921,10 @@ namespace GameEditor.RecastEditor
                 }
             }
 
+
+            RecastEditor.DrawFieldContour(rcContourSet);
+
+            return;
             //打通空洞
             if (rcContourSet.NumConts > 0)
             {
@@ -940,7 +944,7 @@ namespace GameEditor.RecastEditor
 
                 if (nholes > 0)
                 {
-                    int nregions = compactHeightfield.MaxRegions + 1;
+                    int nregions = compactHeightfield.MaxRegions;
 
                     RcContourRegion[] regions = new RcContourRegion[nregions];
                     RcContourHole[] holes = new RcContourHole[rcContourSet.NumConts];
@@ -951,8 +955,10 @@ namespace GameEditor.RecastEditor
 
                         if (winding[i] > 0)
                         {
-                            if (regions[cont.Reg].Outline != null)
+                            if (regions[cont.Reg] != null)
                                 Debug.LogErrorFormat("rcBuildContours: Multiple outlines for region %d.", cont.Reg);
+
+                            regions[cont.Reg] = new RcContourRegion();
                             regions[cont.Reg].Outline = cont;
                         }
                         else
@@ -961,9 +967,10 @@ namespace GameEditor.RecastEditor
                         }
                     }
 
-                    for (int i = 0; i < nregions; i++)
+                    //区域id从1开始
+                    for (int i = 1; i < nregions; i++)
                     {
-                        if (regions[i].NumHoles > 0)
+                        if (regions[i] != null && regions[i].NumHoles > 0)
                         {
                             regions[i].Holes = new RcContourHole[regions[i].NumHoles];
                             regions[i].NumHoles = 0;
@@ -977,12 +984,16 @@ namespace GameEditor.RecastEditor
                         RcContourRegion reg = regions[cont.Reg];
 
                         if (winding[i] < 0)
-                            reg.Holes[reg.NumHoles++].Contour = cont;
+                        {
+                            reg.Holes[reg.NumHoles] = new RcContourHole();
+                            reg.Holes[reg.NumHoles].Contour = cont;
+                            ++reg.NumHoles;
+                        }
+
                     }
 
-
                     //合并空洞
-                    for (int i = 0; i < nregions; i++)
+                    for (int i = 1; i < nregions; i++)
                     {
                         RcContourRegion reg = regions[i];
                         if (reg.NumHoles == 0) continue;
