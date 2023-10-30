@@ -109,10 +109,13 @@ namespace GameEditor.RecastEditor
 
             RcContourSet cset = new RcContourSet(chf);
 
-            DrawCompactHeightField(chf, 3);
+            //DrawCompactHeightField(chf, 3);
 
             //计算区域边界
             RecastContour.RcBuildContours(chf, cset);
+
+            //DrawFieldContour(cset);
+            
 
         }
 

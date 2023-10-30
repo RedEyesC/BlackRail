@@ -901,9 +901,7 @@ namespace GameEditor.RecastEditor
                         WalkContourPoint(x, y, i, compactHeightfield, flags, verts);
 
                         //简化边缘
-                        //SimplifyContourPoint(verts, simplified);
-
-                        simplified = verts;
+                        SimplifyContourPoint(verts, simplified);
 
                         if (simplified.Count / 4 >= 3)
                         {
@@ -919,10 +917,6 @@ namespace GameEditor.RecastEditor
                             rcContourSet.ContsList.Add(cont);
                             rcContourSet.NumConts++;
                         }
-
-
-                        RecastEditor.DrawFieldContour(rcContourSet);
-                        return;
                     }
                 }
             }
@@ -1510,17 +1504,9 @@ namespace GameEditor.RecastEditor
 
                 if (maxi != -1 && maxd > (RecastConfig.MaxSimplificationError * RecastConfig.MaxSimplificationError))
                 {
+
                     // simplified i索引后面的point后移
-                    int n = simplified.Count / 4;
-                    for (int j = n - 1; j > i; --j)
-                    {
-                        simplified[j * 4 + 0] = simplified[(j - 1) * 4 + 0];
-                        simplified[j * 4 + 1] = simplified[(j - 1) * 4 + 1];
-                        simplified[j * 4 + 2] = simplified[(j - 1) * 4 + 2];
-                        simplified[j * 4 + 3] = simplified[(j - 1) * 4 + 3];
-                    }
-                    // 添加到i索引后面
-                    simplified.Insert((i + 1) * 4 + 0,points[maxi * 4 + 0]);
+                    simplified.Insert((i + 1) * 4 + 0, points[maxi * 4 + 0]);
                     simplified.Insert((i + 1) * 4 + 1, points[maxi * 4 + 1]);
                     simplified.Insert((i + 1) * 4 + 2, points[maxi * 4 + 2]);
                     simplified.Insert((i + 1) * 4 + 3, maxi);
@@ -1583,16 +1569,7 @@ namespace GameEditor.RecastEditor
                     if (maxi != -1)
                     {
 
-                        int n = simplified.Count / 4;
-                        for (int j = n - 1; j > i; --j)
-                        {
-                            simplified[j * 4 + 0] = simplified[(j - 1) * 4 + 0];
-                            simplified[j * 4 + 1] = simplified[(j - 1) * 4 + 1];
-                            simplified[j * 4 + 2] = simplified[(j - 1) * 4 + 2];
-                            simplified[j * 4 + 3] = simplified[(j - 1) * 4 + 3];
-                        }
-
-                        simplified.Insert((i + 1) * 4 + 0,points[maxi * 4 + 0]);
+                        simplified.Insert((i + 1) * 4 + 0, points[maxi * 4 + 0]);
                         simplified.Insert((i + 1) * 4 + 1, points[maxi * 4 + 1]);
                         simplified.Insert((i + 1) * 4 + 2, points[maxi * 4 + 2]);
                         simplified.Insert((i + 1) * 4 + 3, maxi);
