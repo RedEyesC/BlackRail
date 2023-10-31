@@ -91,6 +91,8 @@ namespace GameEditor.RecastEditor
                 RecastHeightField.RcFilterWalkableLowHeightSpans(hf);
             }
 
+            //DrawHeightfield(hf);
+
             //构建空心高度场
             CompactHeightfield chf = RecastHeightField.RcBuildCompactHeightfield(hf);
 
@@ -106,7 +108,7 @@ namespace GameEditor.RecastEditor
             //分水岭算法构建区域 
             RecastContour.RcBuildRegions(chf);
 
-            DrawCompactHeightField(chf, 1);
+            DrawCompactHeightField(chf, 3);
 
             RcContourSet cset = new RcContourSet(chf);
 
@@ -171,14 +173,6 @@ namespace GameEditor.RecastEditor
         public static void DrawHeightfield(Heightfield hf, bool showWalk = false)
         {
 
-            GameObject root = GameObject.Find("EditorRoot");
-            if (root)
-            {
-                GameObject.DestroyImmediate(root);
-            }
-
-            root = new GameObject("EditorRoot");
-
             int total = 0;
             int walkable = 0;
 
@@ -186,7 +180,7 @@ namespace GameEditor.RecastEditor
             float cellSize = hf.CellSize;
             float cellHeight = hf.CellHeight;
 
-            Material newMat = null;
+            float[][] cubeList = new float[hf.SpanList.Length][];
 
             for (int i = 0; i < hf.SpanList.Length; i++)
             {
@@ -194,6 +188,7 @@ namespace GameEditor.RecastEditor
                 int z = i / hf.Width;
 
                 Span currentSpan = hf.SpanList[i];
+                List<float> spanCube = new List<float>();
                 while (currentSpan != null)
                 {
                     for (int y = currentSpan.Min; y < currentSpan.Max; y++)
@@ -202,30 +197,43 @@ namespace GameEditor.RecastEditor
                         float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;
                         float cellY = hfBBMin[1] + (float)y * cellHeight + cellHeight / 2;
 
-                        GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
                         total++;
-                        cube.transform.localScale = new Vector3(cellSize, cellHeight, cellSize);
-                        cube.transform.position = new Vector3(cellX, cellY, cellZ);
-                        cube.transform.SetParent(root.transform);
 
-                        if (showWalk && currentSpan.AreaID == AREATYPE.Walke && y == currentSpan.Max - 1)
+
+                        spanCube.Add(cellX);
+                        spanCube.Add(cellY);
+                        spanCube.Add(cellZ);
+
+                        if (showWalk && currentSpan.AreaID != AREATYPE.Walke && y == currentSpan.Max - 1)
                         {
-
-                            if (newMat == null)
-                            {
-                                Material mat = cube.GetComponent<MeshRenderer>().sharedMaterial;
-                                newMat = UnityEngine.Material.Instantiate(mat);
-                                newMat.color = UnityEngine.Color.red;
-                            }
-
-                            cube.GetComponent<MeshRenderer>().sharedMaterial = newMat;
+                            spanCube.Add(0);
+                        }
+                        else
+                        {
+                            spanCube.Add(7);
                             walkable++;
                         }
 
                     }
+
                     currentSpan = currentSpan.Next;
                 }
+                cubeList[i] = spanCube.ToArray();
             }
+
+            Vector3 cubeSize = new Vector3(cellSize, cellHeight, cellSize);
+
+            Scene activeScene = SceneManager.GetActiveScene();
+            string activeSceneName = activeScene.name;
+
+            GameObject root = GameObject.Find("/" + activeSceneName);
+
+            if (root.GetComponent<RecastComponent>() == null)
+            {
+                root.AddComponent<RecastComponent>();
+            }
+
+            root.GetComponent<RecastComponent>().SetCubeList(cubeList, cubeSize);
 
             Debug.Log("Total Voxels:" + total + ",Walkable Voxels:" + walkable);
         }
@@ -264,6 +272,7 @@ namespace GameEditor.RecastEditor
 
 
                     float[] spanCube = new float[c.Count * 4];
+
                     for (int i = c.Index, ni = (c.Index + c.Count); i < ni; ++i)
                     {
 
@@ -274,7 +283,7 @@ namespace GameEditor.RecastEditor
                         float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;
                         float cellY = hfBBMin[1] + (float)span.Y * cellHeight + cellHeight / 2;
 
-                        int index = c.Count - 1;
+                        int index = i - c.Index;
 
                         spanCube[index * 4] = cellX;
                         spanCube[index * 4 + 1] = cellY;
@@ -284,13 +293,11 @@ namespace GameEditor.RecastEditor
                         {
                             spanCube[index * 4 + 3] = (float)chf.DistanceToBoundary[i] / (float)maxDistance;
                         }
-
-                        if (chf.AreaList[i] == AREATYPE.Walke && type == 2)
+                        else if (chf.AreaList[i] == AREATYPE.Walke && type == 2)
                         {
-                            spanCube[index * 4 + 3] = 0;
+                            spanCube[index * 4 + 3] = 7;
                         }
-
-                        if (type == 3)
+                        else if (type == 3)
                         {
                             spanCube[index * 4 + 3] = span.Reg;
                         }
