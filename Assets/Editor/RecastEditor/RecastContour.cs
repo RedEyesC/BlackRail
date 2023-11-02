@@ -921,10 +921,6 @@ namespace GameEditor.RecastEditor
                 }
             }
 
-
-            RecastEditor.DrawFieldContour(rcContourSet);
-
-            return;
             //打通空洞
             if (rcContourSet.NumConts > 0)
             {
@@ -947,7 +943,6 @@ namespace GameEditor.RecastEditor
                     int nregions = compactHeightfield.MaxRegions;
 
                     RcContourRegion[] regions = new RcContourRegion[nregions];
-                    RcContourHole[] holes = new RcContourHole[rcContourSet.NumConts];
 
                     for (int i = 0; i < rcContourSet.NumConts; ++i)
                     {
@@ -987,7 +982,7 @@ namespace GameEditor.RecastEditor
                         {
                             reg.Holes[reg.NumHoles] = new RcContourHole();
                             reg.Holes[reg.NumHoles].Contour = cont;
-                            ++reg.NumHoles;
+                            reg.NumHoles++;
                         }
 
                     }
@@ -1031,7 +1026,8 @@ namespace GameEditor.RecastEditor
 
             RcContour outline = region.Outline;
 
-            RcPotentialDiagonal[] diags = new RcPotentialDiagonal[maxVerts];
+            List<RcPotentialDiagonal> diags = new List<RcPotentialDiagonal>();
+
             for (int i = 0; i < region.NumHoles; i++)
             {
                 RcContour hole = region.Holes[i].Contour;
@@ -1050,13 +1046,12 @@ namespace GameEditor.RecastEditor
                         {
                             int dx = outline.Verts[j * 4 + 0] - corner[0];
                             int dz = outline.Verts[j * 4 + 2] - corner[2];
-                            diags[ndiags].Vert = j;
-                            diags[ndiags].Dist = dx * dx + dz * dz;
+                            diags.Add(new RcPotentialDiagonal(j, dx * dx + dz * dz));
                             ndiags++;
                         }
                     }
 
-                    System.Array.Sort(diags, CompareDiagDist);
+                    diags.Sort(CompareDiagDist);
 
                     index = -1;
                     for (int j = 0; j < ndiags; j++)
@@ -1108,7 +1103,7 @@ namespace GameEditor.RecastEditor
             for (int i = 0; i <= ca.NumVerts; ++i)
             {
                 int dstIndex = nv * 4;
-                int srcIndex = ((ia + i) % ca.NumVerts);
+                int srcIndex = ((ia + i) % ca.NumVerts) * 4;
                 verts[dstIndex] = ca.Verts[srcIndex];
                 verts[dstIndex + 1] = ca.Verts[srcIndex + 1];
                 verts[dstIndex + 2] = ca.Verts[srcIndex + 2];
@@ -1119,7 +1114,7 @@ namespace GameEditor.RecastEditor
             for (int i = 0; i <= cb.NumVerts; ++i)
             {
                 int dstIndex = nv * 4;
-                int srcIndex = ((ib + i) % cb.NumVerts);
+                int srcIndex = ((ib + i) % cb.NumVerts) * 4;
                 verts[dstIndex] = cb.Verts[srcIndex];
                 verts[dstIndex + 1] = cb.Verts[srcIndex + 1];
                 verts[dstIndex + 2] = cb.Verts[srcIndex + 2];

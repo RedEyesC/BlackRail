@@ -254,9 +254,15 @@ namespace GameEditor.RecastEditor
         public int LeftMost;
     };
 
-    public struct RcPotentialDiagonal
+    public class RcPotentialDiagonal
     {
         public int Vert;
-        public int Dist;
+        public float Dist;
+
+        public RcPotentialDiagonal(int vert, float dist)
+        {
+            Vert = vert;
+            Dist = dist;
+        }
     };
 }
