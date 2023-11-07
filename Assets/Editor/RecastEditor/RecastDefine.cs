@@ -206,8 +206,6 @@ namespace GameEditor.RecastEditor
         public int Width = 0;
         public int Height = 0;
 
-        public float MaxError = 0;
-
         public int NumConts = 0;
 
         public List<RcContour> ContsList = new List<RcContour>();
@@ -265,4 +263,39 @@ namespace GameEditor.RecastEditor
             Dist = dist;
         }
     };
+
+    public class RcPolyMesh
+    {
+        public float CellSize = 0;
+        public float CellHeight = 0;
+
+        public int NumConts = 0;
+
+        public int NumVerts = 0;
+        public int NumPolys = 0;
+        public int MaxPolys = 0;
+
+        public int[] Verts;
+        public int[] Polys;
+        public int[] Regs;
+        public int[] Flags;
+        public AREATYPE[] AreaList;
+
+        public Vector3 MinBounds = new Vector3();
+        public Vector3 MaxBounds = new Vector3();
+
+        public RcPolyMesh(RcContourSet cset)
+        {
+
+            CellHeight = cset.CellHeight;
+            CellSize = cset.CellSize;
+
+            MinBounds = cset.MinBounds;
+            MaxBounds = cset.MaxBounds;
+
+        }
+
+    }
+
+
 }

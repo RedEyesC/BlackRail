@@ -19,7 +19,7 @@ namespace GameEditor.RecastEditor
         public static readonly int RC_CONTOUR_REG_MASK = 0xffff;
 
         public static readonly float AgentMaxSlope = 45;
-        public static readonly float AgentMaxClimb = 0.9f;
+        public static readonly float AgentMaxClimb = 1f;
         public static readonly float AgentHeight = 2.0f;
         public static readonly float AgentRadius = 0.6f;
         public static readonly float CellSize = 0.3f; //xz平面的尺寸
@@ -33,8 +33,15 @@ namespace GameEditor.RecastEditor
         public static readonly bool TessellateAreaEdges = true;//是否根据最大边缘长度是否细化区域之间的边缘
         public static readonly float MaxEdgeLen = 12; //最大边缘长度
 
-        public static readonly bool FilterLowHangingObstacles = true;//过滤悬空可走的span
+        public static readonly bool FilterLowHangingObstacles = false;//过滤悬空可走的span
         public static readonly bool FilterLedgeSpans = true;//过滤高度差过大的span
-        public static readonly bool FilterWalkableLowHeightSpans = true;//过滤不可通过的高度的span
+        public static readonly bool FilterWalkableLowHeightSpans = false;//过滤不可通过的高度的span
+
+        public static readonly int MaxVertsPerPoly = 6; //单个多边形最大顶点数
+
+        public static readonly int RC_INDICE_MASK = 0x3fffffff;
+        public static readonly int RC_INDICE = 0x40000000;
+
+        public static readonly int VERTEX_BUCKET_COUNT = (1 << 12);
     }
 }

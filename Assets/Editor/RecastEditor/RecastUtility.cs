@@ -182,5 +182,105 @@ namespace GameEditor.RecastEditor
             a = b;
             b = t;
         }
+
+        public static int Prev(int i, int n)
+        {
+            return i - 1 >= 0 ? i - 1 : n - 1;
+        }
+
+        public static int Next(int i, int n)
+        {
+            return i + 1 < n ? i + 1 : 0;
+        }
+
+        public static int Area2(int[] a, int[] b, int[] c)
+        {
+            //向量ab 叉乘向量 ac   a x b =（x1y2 - x2y1） = |a||b|sin(a,b)，叉乘结果小于0,则c在ab左侧
+            return (b[0] - a[0]) * (c[2] - a[2]) - (c[0] - a[0]) * (b[2] - a[2]);
+        }
+
+
+        public static bool Left(int[] a, int[] b, int[] c)
+        {
+            return Area2(a, b, c) < 0;
+        }
+
+        public static bool LeftOn(int[] a, int[] b, int[] c)
+        {
+            return Area2(a, b, c) <= 0;
+        }
+
+        public static bool Collinear(int[] a, int[] b, int[] c)
+        {
+            return Area2(a, b, c) == 0;
+        }
+
+        public static bool Xorb(bool x, bool y)
+        {
+            return !x ^ !y;
+        }
+
+        public static bool IntersectProp(int[] a, int[] b, int[] c, int[] d)
+        {
+
+            if (Collinear(a, b, c) || Collinear(a, b, d) ||
+                Collinear(c, d, a) || Collinear(c, d, b))
+                return false;
+
+            return Xorb(Left(a, b, c), Left(a, b, d)) && Xorb(Left(c, d, a), Left(c, d, b));
+        }
+
+        //当a.b.c 共线，且c在ab线段上时返回ture
+        public static bool Between(int[] a, int[] b, int[] c)
+        {
+            if (!Collinear(a, b, c))
+                return false;
+
+            if (a[0] != b[0])
+                return ((a[0] <= c[0]) && (c[0] <= b[0])) || ((a[0] >= c[0]) && (c[0] >= b[0]));
+            else
+                return ((a[2] <= c[2]) && (c[2] <= b[2])) || ((a[2] >= c[2]) && (c[2] >= b[2]));
+        }
+
+        //当线段ab和cd 相交 ，返回true。
+        //loose 标记是否启用宽松判断条件
+        public static bool Intersect(int[] a, int[] b, int[] c, int[] d, bool loose = false)
+        {
+
+            if (IntersectProp(a, b, c, d))
+                return true;
+
+
+            if (!loose && (Between(a, b, c) || Between(a, b, d) || Between(c, d, a) || Between(c, d, b)))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+
+        }
+
+        //判断pj是否在以pi为顶点 以pi->pin1 、pi->pi1边组成的锥形范围内 。
+        //loose 标记是否启用宽松判断条件
+        public static bool InCone(int[] pi, int[] pi1, int[] pin1, int[] pj, bool loose = false)
+        {
+
+            if (LeftOn(pin1, pi, pi1))
+            {
+                if (loose)
+                {
+                    return LeftOn(pi, pj, pin1) && LeftOn(pj, pi, pi1);
+                }
+                else
+                {
+                    return Left(pi, pj, pin1) && Left(pj, pi, pi1);
+                }
+            }
+
+            return !(LeftOn(pi, pj, pi1) && LeftOn(pj, pi, pin1));
+        }
+
     }
 }

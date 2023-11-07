@@ -91,10 +91,12 @@ namespace GameEditor.RecastEditor
                 RecastHeightField.RcFilterWalkableLowHeightSpans(hf);
             }
 
-            //DrawHeightfield(hf);
+            //DrawHeightfield(hf,true);
 
             //构建空心高度场
-            CompactHeightfield chf = RecastHeightField.RcBuildCompactHeightfield(hf);
+            CompactHeightfield chf = new CompactHeightfield(hf);
+
+            RecastHeightField.RcBuildCompactHeightfield(hf,chf);
 
             //设置边缘不可行走
             RecastHeightField.RcErodeWalkableArea(chf);
@@ -108,12 +110,19 @@ namespace GameEditor.RecastEditor
             //分水岭算法构建区域 
             RecastContour.RcBuildRegions(chf);
 
-            DrawCompactHeightField(chf, 3);
+            //DrawCompactHeightField(chf, 3);
 
             RcContourSet cset = new RcContourSet(chf);
 
             //计算区域边界
             RecastContour.RcBuildContours(chf, cset);
+
+            //DrawFieldContour(cset);
+
+            RcPolyMesh ployMesh = new RcPolyMesh(cset);
+            
+            //构建PolyMesh
+            RecastMesh.RcBuildPolyMesh(cset, ployMesh);
 
         }
 
@@ -234,8 +243,6 @@ namespace GameEditor.RecastEditor
             }
 
             root.GetComponent<RecastComponent>().SetCubeList(cubeList, cubeSize);
-
-            Debug.Log("Total Voxels:" + total + ",Walkable Voxels:" + walkable);
         }
 
 
