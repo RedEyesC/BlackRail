@@ -7,26 +7,26 @@ namespace GameFramework.Runtime
 {
     public class AssetInfo
     {
-        public enum AssetState
+        public enum Assetstate
         {
             Unload,
             Loading,
             Loaded,
         }
 
-        public string AssetName;
+        public string assetName;
         
-        public AssetState State = AssetState.Unload;
+        public Assetstate state = Assetstate.Unload;
 
 
-        private UnityEngine.Object _AssetObj = null;
-        private AsyncOperation _AssetRequest = null;
+        private UnityEngine.Object _assetObj = null;
+        private AsyncOperation _assetRequest = null;
 
 
         public AssetInfo(string assetName)
         {
-            AssetName = assetName;
-            State = AssetState.Unload;
+            this.assetName = assetName;
+            this.state = Assetstate.Unload;
 
         }
 
@@ -34,25 +34,25 @@ namespace GameFramework.Runtime
         #region Get Asset
         public bool IsAssetObjLoaded()
         {
-            if (_AssetObj != null)
-                return _AssetObj;
+            if (_assetObj != null)
+                return _assetObj;
             return false;
         }
 
         public UnityEngine.Object GetAssetObj()
         {
-            if (_AssetObj != null)
+            if (_assetObj != null)
             {
-                return _AssetObj;
+                return _assetObj;
             }
             return null;
         }
 
         public T GetAssetObjWithType<T>() where T : class
         {
-            if (_AssetObj != null)
+            if (_assetObj != null)
             {
-                return _AssetObj as T;
+                return _assetObj as T;
             }
             return null;
         }
@@ -64,26 +64,26 @@ namespace GameFramework.Runtime
 
         public AsyncOperation LoadAssetAsync(string assetName)
         {
-            if (_AssetRequest == null || State == AssetState.Unload)
+            if (_assetRequest == null || state == Assetstate.Unload)
             {
-                State = AssetState.Loading;
-                _AssetRequest = Resources.LoadAsync(assetName);
+                state = Assetstate.Loading;
+                _assetRequest = Resources.LoadAsync(assetName);
             }
 
-            return _AssetRequest;
+            return _assetRequest;
         }
 
         public void OnAssetObjLoaded()
         {
 
-            State = AssetState.Loaded;
+            state = Assetstate.Loaded;
 
-            if (_AssetObj == null)
+            if (_assetObj == null)
             {
-                if (_AssetRequest != null)
+                if (_assetRequest != null)
                 {
-                    ResourceRequest req = (ResourceRequest) _AssetRequest;
-                    _AssetObj = req.asset;
+                    ResourceRequest req = (ResourceRequest) _assetRequest;
+                    _assetObj = req.asset;
                 }
 
             }
@@ -92,17 +92,17 @@ namespace GameFramework.Runtime
         public bool UnloadAsset()
         {
 
-            switch (State)
+            switch (state)
             {
-                case AssetState.Unload:
+                case Assetstate.Unload:
                     return true;
-                case AssetState.Loading:
+                case Assetstate.Loading:
                     return false;
-                case AssetState.Loaded:
+                case Assetstate.Loaded:
 
-                    if (_AssetObj != null)
+                    if (_assetObj != null)
                     {
-                        Resources.UnloadAsset(_AssetObj);
+                        Resources.UnloadAsset(_assetObj);
                     } 
                     return true;
             }
@@ -112,16 +112,16 @@ namespace GameFramework.Runtime
 
         public void Reset()
         {
-            State = AssetState.Unload;
-            _AssetObj = null;
-            _AssetRequest = null;
+            state = Assetstate.Unload;
+            _assetObj = null;
+            _assetRequest = null;
         }
 
         public bool IsLoaded
         {
             get
             {
-                return State == AssetState.Loaded;
+                return state == Assetstate.Loaded;
             }
         }
 
@@ -131,27 +131,27 @@ namespace GameFramework.Runtime
         #region  Load Scene
         public AsyncOperation LoadSceneAsync(string assetName)
         {
-            if (_AssetRequest == null || State == AssetState.Unload)
+            if (_assetRequest == null || state == Assetstate.Unload)
             {
-                State = AssetState.Loading;
-                _AssetRequest = SceneManager.LoadSceneAsync(assetName, LoadSceneMode.Additive);
+                state = Assetstate.Loading;
+                _assetRequest = SceneManager.LoadSceneAsync(assetName, LoadSceneMode.Additive);
             }
 
-            return _AssetRequest;
+            return _assetRequest;
         }
 
         public void OnSceneLoaded()
         {
 
-            State = AssetState.Loaded;
+            state = Assetstate.Loaded;
 
         }
 
         public AsyncOperation UnloadScene()
         {
-            _AssetRequest = SceneManager.UnloadSceneAsync(AssetName);
+            _assetRequest = SceneManager.UnloadSceneAsync(assetName);
 
-            return _AssetRequest;
+            return _assetRequest;
         }
 
         #endregion

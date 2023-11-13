@@ -6,7 +6,7 @@ namespace GameFramework.Runtime
 {
     public class GlobalCenter : Singleton<GlobalCenter>
     {
-        private static readonly LinkedList<GameModule> _GameModules = new LinkedList<GameModule>();
+        private static readonly LinkedList<GameModule> _gameModules = new LinkedList<GameModule>();
 
 
 
@@ -27,7 +27,7 @@ namespace GameFramework.Runtime
 
             CreateModule<AppLoopManager>();
 
-            foreach (GameModule module in _GameModules)
+            foreach (GameModule module in _gameModules)
             {
                 module.Start();
             }
@@ -41,7 +41,7 @@ namespace GameFramework.Runtime
         /// <param name="realElapseSeconds">真实流逝时间，以秒为单位。</param>
         public static void Update(float elapseSeconds, float realElapseSeconds)
         {
-            foreach (GameModule module in _GameModules)
+            foreach (GameModule module in _gameModules)
             {
                 module.Update(elapseSeconds, realElapseSeconds);
             }
@@ -52,12 +52,12 @@ namespace GameFramework.Runtime
         /// </summary>
         public static void Destroy()
         {
-            for (LinkedListNode<GameModule> current = _GameModules.Last; current != null; current = current.Previous)
+            for (LinkedListNode<GameModule> current = _gameModules.Last; current != null; current = current.Previous)
             {
                 current.Value.Destroy();
             }
 
-            _GameModules.Clear();
+            _gameModules.Clear();
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace GameFramework.Runtime
         /// <returns>要获取的游戏框架模块。</returns>
         private static GameModule GetModule(Type moduleType)
         {
-            foreach (GameModule module in _GameModules)
+            foreach (GameModule module in _gameModules)
             {
                 if (module.GetType() == moduleType)
                 {
@@ -141,10 +141,10 @@ namespace GameFramework.Runtime
                 Debug.LogErrorFormat("Can not create module '{0}'.", moduleType.FullName);
             }
 
-            LinkedListNode<GameModule> current = _GameModules.First;
+            LinkedListNode<GameModule> current = _gameModules.First;
             while (current != null)
             {
-                if (module.Priority > current.Value.Priority)
+                if (module.priority > current.Value.priority)
                 {
                     break;
                 }
@@ -154,11 +154,11 @@ namespace GameFramework.Runtime
 
             if (current != null)
             {
-                _GameModules.AddBefore(current, module);
+                _gameModules.AddBefore(current, module);
             }
             else
             {
-                _GameModules.AddLast(module);
+                _gameModules.AddLast(module);
             }
 
             return module;

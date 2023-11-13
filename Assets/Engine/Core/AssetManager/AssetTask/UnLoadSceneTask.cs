@@ -6,46 +6,42 @@ namespace GameFramework.Runtime
 
     public class UnLoadSceneTask : AssetTask
     {
-        private AssetInfo _AssetInfo = null;
-        private AsyncOperation _AsyncOperate = null;
-        private AssetRequest _Request = null;
+        private AssetInfo _assetInfo = null;
+        private AsyncOperation _asyncOperate = null;
+        private AssetRequest _request = null;
 
+        public new int taskType = (int)AssetTaskType.UnLoadAsset;
         public UnLoadSceneTask(AssetInfo assetInfo, AssetRequest req = null)
         {
-            _AssetInfo = assetInfo;
-            _Request = req;
+            _assetInfo = assetInfo;
+            _request = req;
         }
 
         protected override bool OnStart()
         {
-            _AsyncOperate = _AssetInfo.UnloadScene();
+            _asyncOperate = _assetInfo.UnloadScene();
             return true;
         }
 
         protected override bool OnUpdate()
         {
-            if (_AsyncOperate != null)
-                return _AsyncOperate.isDone;
+            if (_asyncOperate != null)
+                return _asyncOperate.isDone;
             return true;
         }
 
         protected override void OnEnd()
         {
-            _AssetInfo.Reset();
-            _Request.OnTaskFinish(true);
-            _Request.OnRequestFinish();
+            _assetInfo.Reset();
+            _request.OnTaskFinish(true);
+            _request.OnRequestFinish();
         }
 
         protected override void OnReset()
         {
-            _AssetInfo = null;
-            _Request = null;
-            _AsyncOperate = null;
+            _assetInfo = null;
+            _request = null;
+            _asyncOperate = null;
         }
-
-        private static readonly int _TaskType = (int)AssetTaskType.UnLoadAsset;
-
-        public override int TaskType { get { return _TaskType; } }
-
     }
 }

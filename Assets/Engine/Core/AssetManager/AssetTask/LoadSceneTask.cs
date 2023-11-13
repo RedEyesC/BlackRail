@@ -6,31 +6,32 @@ namespace GameFramework.Runtime
 
     public class LoadSceneTask : AssetTask
     {
-        private AssetInfo _AssetInfo = null;
-        private AsyncOperation _AsyncOperate = null;
-        private AssetRequest _Request = null;
+        private AssetInfo _assetInfo = null;
+        private AsyncOperation _asyncOperate = null;
+        private AssetRequest _request = null;
 
-        private float _TimeOutTime = 0f;
+        private float _timeOutTime = 0f;
         private bool _isHandleTimeOut = false;
-        private float _ProcessLast = 0f;
-        private float _LoadFileTimeOut = 10f;
+        private float _processLast = 0f;
+        private float _loadFileTimeOut = 10f;
 
+        public new int taskType = (int)AssetTaskType.LoadScene;
 
         public LoadSceneTask(AssetInfo assetInfo, AssetRequest req)
         {
-            _AssetInfo = assetInfo;
-            _Request = req;
+            _assetInfo = assetInfo;
+            _request = req;
         }
 
         protected override bool OnStart()
         {
-            if (_AssetInfo.IsLoaded)
+            if (_assetInfo.IsLoaded)
             {
                 return true;
             }
 
-            _TimeOutTime = Time.time + _LoadFileTimeOut;
-            _AsyncOperate = _AssetInfo.LoadSceneAsync(_AssetInfo.AssetName); 
+            _timeOutTime = Time.time + _loadFileTimeOut;
+            _asyncOperate = _assetInfo.LoadSceneAsync(_assetInfo.assetName); 
             return true;
 
         }
@@ -38,26 +39,26 @@ namespace GameFramework.Runtime
         protected override bool OnUpdate()
         {
 
-            if (_AssetInfo.IsLoaded)
+            if (_assetInfo.IsLoaded)
             {
                 return true;
             }
 
-            return _AsyncOperate == null || _AsyncOperate.isDone;
+            return _asyncOperate == null || _asyncOperate.isDone;
         }
 
         public override bool IsTimeOut()
         {
-            if ((_TimeOutTime < Time.time && _AsyncOperate.progress == _ProcessLast))
+            if ((_timeOutTime < Time.time && _asyncOperate.progress == _processLast))
             {
                 return true;
             }
             else
             {
-                if (_AsyncOperate.progress != _ProcessLast)
+                if (_asyncOperate.progress != _processLast)
                 {
-                    _TimeOutTime = Time.time + _LoadFileTimeOut;
-                    _ProcessLast = _AsyncOperate.progress;
+                    _timeOutTime = Time.time + _loadFileTimeOut;
+                    _processLast = _asyncOperate.progress;
                 }
                 return false;
             }
@@ -68,32 +69,28 @@ namespace GameFramework.Runtime
             {
                 _isHandleTimeOut = true;
 
-                _AssetInfo.Reset();
+                _assetInfo.Reset();
             }
         }
 
         protected override void OnEnd()
         {
-            _AssetInfo.OnSceneLoaded();
-            _Request.OnTaskFinish(true);
-            _Request.OnRequestFinish();
+            _assetInfo.OnSceneLoaded();
+            _request.OnTaskFinish(true);
+            _request.OnRequestFinish();
         }
 
         protected override void OnReset()
         {
-            _AssetInfo = null;
-            _AsyncOperate = null;
-            _Request = null;
+            _assetInfo = null;
+            _asyncOperate = null;
+            _request = null;
 
-            _TimeOutTime = 0f;
+            _timeOutTime = 0f;
             _isHandleTimeOut = false;
-            _ProcessLast = 0f;
-            _LoadFileTimeOut = 10f;
+            _processLast = 0f;
+            _loadFileTimeOut = 10f;
         }
-
-        private static readonly int _TaskType = (int)AssetTaskType.LoadScene;
-
-        public override int TaskType { get { return _TaskType; } }
 
     }
 }

@@ -13,12 +13,15 @@ namespace GameFramework.Runtime
             LoadScene = 1 << 4,
             UnLoadScene = 1 << 5,
         }
-        private bool _Running = false;
-        private bool _Done = false;
+        private bool _running = false;
+        private bool _done = false;
 
 
-        private static int CurTaskNum = 0;
-        private static int MaxTaskNum = 7;
+        private static int _curTaskNum = 0;
+        private static int _maxTaskNum = 7;
+
+
+        public int taskType;
 
         protected abstract bool OnStart();
         protected abstract bool OnUpdate();
@@ -32,52 +35,50 @@ namespace GameFramework.Runtime
 
         public static void SetMaxTaskNum(int n)
         {
-            MaxTaskNum = n;
+            _maxTaskNum = n;
         }
 
-        public static int GetCurTaskNum()
+        public static int Get_curTaskNum()
         {
-            return CurTaskNum;
+            return _curTaskNum;
         }
 
         public static int GetMaxTaskNum()
         {
-            return MaxTaskNum;
+            return _maxTaskNum;
         }
 
         public static void ResetTaskNum()
         {
-            MaxTaskNum = 7;
-            CurTaskNum = 0;
+            _maxTaskNum = 7;
+            _curTaskNum = 0;
         }
-
-        public abstract int TaskType { get; }
 
         public bool Update()
         {
-            if (!_Running)
+            if (!_running)
             {
-                if (CurTaskNum < MaxTaskNum)
+                if (_curTaskNum < _maxTaskNum)
                 {
                     if (OnStart())
                     {
-                        _Running = true;
-                        ++CurTaskNum;
+                        _running = true;
+                        ++_curTaskNum;
                     }
                 }
                 return false;
             }
 
-            bool done = _Done;
+            bool done = _done;
             if (!done)
             {
-                _Done = OnUpdate();
+                _done = OnUpdate();
             }
 
             if (done)
             {
-                _Running = false;
-                --CurTaskNum;
+                _running = false;
+                --_curTaskNum;
 
                 OnEnd();
                 return true;
@@ -86,8 +87,8 @@ namespace GameFramework.Runtime
             {
                 if (IsTimeOut())
                 {
-                    _Running = false;
-                    --CurTaskNum;
+                    _running = false;
+                    --_curTaskNum;
 
                     OnTimeOut();
                     return true;
@@ -98,7 +99,7 @@ namespace GameFramework.Runtime
 
         public void Reset()
         {
-            _Done = false;
+            _done = false;
             OnReset();
         }
 

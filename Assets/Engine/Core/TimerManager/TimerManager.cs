@@ -6,11 +6,11 @@ namespace GameFramework.Runtime
 
     public class TimerManager : GameModule
     {
-        private int _IdCounter = 0;
-        private float _NowTime = 0;
+        private int _idCounter = 0;
+        private float _nowTime = 0;
 
-        private List<TimerEvent> _TimerCache = new List<TimerEvent>();
-        private Dictionary<int, TimerEvent> _TimerMap = new Dictionary<int, TimerEvent>();
+        private List<TimerEvent> _timerCache = new List<TimerEvent>();
+        private Dictionary<int, TimerEvent> _timerMap = new Dictionary<int, TimerEvent>();
 
         public override void Destroy()
         {
@@ -24,19 +24,19 @@ namespace GameFramework.Runtime
 
         public override void Update(float elapseSeconds, float realElapseSeconds)
         {
-            _NowTime = elapseSeconds;
+            _nowTime = elapseSeconds;
 
-            foreach(KeyValuePair<int,TimerEvent> kvp in _TimerMap)
+            foreach(KeyValuePair<int,TimerEvent> kvp in _timerMap)
             {
-                if (kvp.Value.CallBack != null)
+                if (kvp.Value.callBack != null)
                 {
-                    if (kvp.Value.TickTime < _NowTime)
+                    if (kvp.Value.tickTime < _nowTime)
                     {
-                        kvp.Value.CallBack();
+                        kvp.Value.callBack();
 
-                        if (kvp.Value.Time > 0)
+                        if (kvp.Value.time > 0)
                         {
-                            kvp.Value.TickTime = _NowTime + kvp.Value.Time;
+                            kvp.Value.tickTime = _nowTime + kvp.Value.time;
                         }
                         else
                         {
@@ -53,61 +53,61 @@ namespace GameFramework.Runtime
         public int SetTimeout(System.Action callback, float timeout)
         {
             TimerEvent info = PopOneTimerInfo();
-            info.CallBack = callback;
-            info.TickTime = _NowTime + timeout;
+            info.callBack = callback;
+            info.tickTime = _nowTime + timeout;
 
-            _TimerMap.Add(info.Id, info);
+            _timerMap.Add(info.id, info);
 
-            return info.Id;
+            return info.id;
         }
 
         public TimerEvent PopOneTimerInfo()
         {
             TimerEvent timerInfo = null;
-            foreach (TimerEvent timerEvent in _TimerCache)
+            foreach (TimerEvent timerEvent in _timerCache)
             {
-                if (timerEvent.CallBack == null)
+                if (timerEvent.callBack == null)
                 {
                     timerInfo = timerEvent;
                 }
             }
 
-            _IdCounter++;
+            _idCounter++;
 
             if (timerInfo == null)
             {
-                timerInfo = new TimerEvent(null, 0, 0, _IdCounter);
-                _TimerCache.Add(timerInfo);
+                timerInfo = new TimerEvent(null, 0, 0, _idCounter);
+                _timerCache.Add(timerInfo);
             }
             else
             {
-                timerInfo.Id = _IdCounter;
+                timerInfo.id = _idCounter;
             }
 
             return timerInfo;
         }
 
         public void ClearTimer(int Id) { 
-            TimerEvent timerEvent = _TimerMap[Id];
+            TimerEvent timerEvent = _timerMap[Id];
 
             if (timerEvent != null)
             {
-                _TimerMap.Remove(Id);
-                timerEvent.CallBack = null;
+                _timerMap.Remove(Id);
+                timerEvent.callBack = null;
             }   
         }
 
         public void ClearAllTimer()
         {
-            foreach (KeyValuePair<int, TimerEvent> kvp in _TimerMap)
+            foreach (KeyValuePair<int, TimerEvent> kvp in _timerMap)
             { 
-                kvp.Value.CallBack = null;
+                kvp.Value.callBack = null;
             
             }
             
-            _TimerMap.Clear();
-            _TimerCache.Clear();
-            _IdCounter = 0;
+            _timerMap.Clear();
+            _timerCache.Clear();
+            _idCounter = 0;
         }
     }
 }

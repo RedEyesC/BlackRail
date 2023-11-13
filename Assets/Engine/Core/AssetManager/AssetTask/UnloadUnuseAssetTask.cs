@@ -6,7 +6,8 @@ namespace GameFramework.Runtime
 
     public class UnloadUnuseAssetTask : AssetTask
     {
-        private AsyncOperation _AsyncOperate = null;
+        private AsyncOperation _asyncOperate = null;
+        public new int taskType = (int)AssetTaskType.UnloadUnuseAsset;
         public UnloadUnuseAssetTask()
         {
 
@@ -14,14 +15,14 @@ namespace GameFramework.Runtime
 
         protected override bool OnStart()
         {
-            _AsyncOperate = Resources.UnloadUnusedAssets();
+            _asyncOperate = Resources.UnloadUnusedAssets();
             return true;
         }
 
         protected override bool OnUpdate()
         {
-            if (_AsyncOperate != null)
-                return _AsyncOperate.isDone;
+            if (_asyncOperate != null)
+                return _asyncOperate.isDone;
             return true;
         }
 
@@ -32,12 +33,10 @@ namespace GameFramework.Runtime
 
         protected override void OnReset()
         {
-            _AsyncOperate = null;
+            _asyncOperate = null;
         }
 
-        private static readonly int _TaskType = (int)AssetTaskType.UnloadUnuseAsset;
-
-        public override int TaskType { get { return _TaskType; } }
+       
 
     }
 }

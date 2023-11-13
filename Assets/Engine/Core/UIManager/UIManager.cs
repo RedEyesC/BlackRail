@@ -7,7 +7,7 @@ namespace GameFramework.Runtime
 {
     public class UIManager : GameModule
     {
-        public static Vector2 ResolutionSize = new Vector2(1280.0f, 720.0f);
+        public static Vector2 resolutionSize = new Vector2(1280.0f, 720.0f);
 
         private GameObject _UIRoot = null;
         private Transform _UIRootTrans = null;
@@ -42,12 +42,12 @@ namespace GameFramework.Runtime
             float screenHeight = Screen.height;
 
 
-            float scaleX = screenWidth / ResolutionSize.x;
-            float scaleY = screenHeight / ResolutionSize.y;
+            float scaleX = screenWidth / resolutionSize.x;
+            float scaleY = screenHeight / resolutionSize.y;
 
             CanvasScaler scaler = _UIRoot.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = ResolutionSize;
+            scaler.referenceResolution = resolutionSize;
             if (scaleX > scaleY)
                 scaler.matchWidthOrHeight = 1.0f;
             else
@@ -110,7 +110,7 @@ namespace GameFramework.Runtime
             cam.nearClipPlane = 0.1f;
             cam.farClipPlane = 1010.0f;
             cam.orthographic = true;
-            cam.orthographicSize = ResolutionSize.y / 2.0f / 100.0f;
+            cam.orthographicSize = resolutionSize.y / 2.0f / 100.0f;
             cam.depth = 200;
             cam.allowHDR = false;
             cam.allowMSAA = false;

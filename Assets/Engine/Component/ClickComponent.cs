@@ -1,16 +1,16 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class ClickEventTriggerListener : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IMoveHandler, IPointerClickHandler
+public class ClickComponent : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IMoveHandler, IPointerClickHandler
 {
 	private static readonly float DoubleClickInterval = 0.2f;
 	private static readonly float LongPressDelayTime = 0.3f;
 	private static readonly float LongPressInvokeRepeatTime = 0.1f;
 
-	private float lastPointerDownTime = 0;
-	private float lastClickTime = 0;
-	private int longPressCounter = 0;
-	private PointerEventData mCacheEventData;
+	private float _lastPointerDownTime = 0;
+	private float _lastClickTime = 0;
+	private int _longPressCounter = 0;
+	private PointerEventData _mCacheEventData;
 
 	public delegate void EventPosDelegate(float x, float y);
 	public delegate void EventVoidDelegate();
@@ -28,10 +28,10 @@ public class ClickEventTriggerListener : MonoBehaviour, IPointerDownHandler, IPo
 	public EventIntDelegate onLongPress = null;
 	public EventVoidDelegate onLongPressEnd = null;
 
-	static public ClickEventTriggerListener Get(Transform t)
+	static public ClickComponent Get(Transform t)
 	{
-		ClickEventTriggerListener listener = t.gameObject.GetComponent<ClickEventTriggerListener>();
-		if (listener == null) listener = t.gameObject.AddComponent<ClickEventTriggerListener>();
+		ClickComponent listener = t.gameObject.GetComponent<ClickComponent>();
+		if (listener == null) listener = t.gameObject.AddComponent<ClickComponent>();
 		return listener;
 	}
 
@@ -45,24 +45,24 @@ public class ClickEventTriggerListener : MonoBehaviour, IPointerDownHandler, IPo
 		if (!touchEnable)
 			return;
 
-		if (onLongPress != null && Time.time - lastPointerDownTime > LongPressDelayTime)
+		if (onLongPress != null && Time.time - _lastPointerDownTime > LongPressDelayTime)
 			return;
 
 		if (onDoubleClick != null)
 		{
-			if (Time.time - lastClickTime < DoubleClickInterval)
+			if (Time.time - _lastClickTime < DoubleClickInterval)
 			{
 				onDoubleClick();
 				CancelInvoke("InvokeClick");
-				lastClickTime = 0;
+				_lastClickTime = 0;
 			}
 			else
 			{
-				lastClickTime = Time.time;
+				_lastClickTime = Time.time;
 
 				if (onClick != null)
 				{
-					mCacheEventData = eventData;
+					_mCacheEventData = eventData;
 					Invoke("InvokeClick", DoubleClickInterval);
 				}
 			}
@@ -81,7 +81,7 @@ public class ClickEventTriggerListener : MonoBehaviour, IPointerDownHandler, IPo
 
 		if (onLongPress != null) InvokeRepeating("InvokeLongPress", LongPressDelayTime, LongPressInvokeRepeatTime);
 
-		lastPointerDownTime = Time.time;
+		_lastPointerDownTime = Time.time;
 	}
 
 	public virtual void OnPointerUp(PointerEventData eventData)
@@ -100,22 +100,22 @@ public class ClickEventTriggerListener : MonoBehaviour, IPointerDownHandler, IPo
 
 	protected virtual void InvokeClick()
 	{
-		onClick(mCacheEventData.position.x, mCacheEventData.position.y);
+		onClick(_mCacheEventData.position.x, _mCacheEventData.position.y);
 	}
 
 	protected virtual void InvokeLongPress()
 	{
-		onLongPress(++longPressCounter);
+		onLongPress(++_longPressCounter);
 	}
 
 	protected virtual void LongPressEnd()
 	{
-		if (onLongPressEnd != null && longPressCounter > 0)
+		if (onLongPressEnd != null && _longPressCounter > 0)
 		{
 			onLongPressEnd();
 		}
 
-		if (longPressCounter > 0)
-			longPressCounter = 0;
+		if (_longPressCounter > 0)
+			_longPressCounter = 0;
 	}
 }

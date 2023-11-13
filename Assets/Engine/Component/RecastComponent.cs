@@ -3,20 +3,20 @@ using UnityEngine;
 public class RecastComponent : MonoBehaviour
 {
 
-    public static float[][] RcContourSet;
-    public static float[][] RcCubeList;
-    public static Vector3 RcCubeSize;
-    public static Color[] ColorMap = {Color.green, Color.blue, Color.white, Color.black,
+    public static float[][] rcContourSet;
+    public static float[][] rcCubeList;
+    public static Vector3 rcCubeSize;
+    public static Color[] colorMap = {Color.green, Color.blue, Color.white, Color.black,
                 Color.yellow, Color.cyan, Color.magenta, Color.gray };
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.blue;
-        if (RcContourSet != null)
+        if (rcContourSet != null)
         {
 
-            for (int i = 0; i < RcContourSet.Length; i++)
+            for (int i = 0; i < rcContourSet.Length; i++)
             {
-                float[] contVert = RcContourSet[i];
+                float[] contVert = rcContourSet[i];
 
                 int numVert = contVert.Length / 4;
 
@@ -31,12 +31,12 @@ public class RecastComponent : MonoBehaviour
             }
         }
 
-        if (RcCubeList != null)
+        if (rcCubeList != null)
         {
-            for (int i = 0; i < RcCubeList.Length; i++)
+            for (int i = 0; i < rcCubeList.Length; i++)
             {
 
-                float[] spanCube = RcCubeList[i];
+                float[] spanCube = rcCubeList[i];
 
                 if (spanCube != null)
                 {
@@ -58,10 +58,10 @@ public class RecastComponent : MonoBehaviour
                         }
                         else
                         {
-                            Gizmos.color = ColorMap[(int)reg % 8];
+                            Gizmos.color = colorMap[(int)reg % 8];
                         }
 
-                        Gizmos.DrawCube(pos, RcCubeSize);
+                        Gizmos.DrawCube(pos, rcCubeSize);
                     }
                 }
 
@@ -72,13 +72,13 @@ public class RecastComponent : MonoBehaviour
 
     public void SetContour(float[][] val)
     {
-        RcContourSet = val;
+        rcContourSet = val;
     }
 
     public void SetCubeList(float[][] val, Vector3 size)
     {
-        RcCubeList = val;
-        RcCubeSize = size;
+        rcCubeList = val;
+        rcCubeSize = size;
     }
 }
 

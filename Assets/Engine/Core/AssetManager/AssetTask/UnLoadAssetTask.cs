@@ -3,13 +3,13 @@ namespace GameFramework.Runtime
 
     public class UnLoadAssetTask : AssetTask
     {
-        private AssetInfo _AssetInfo = null;
-        private AssetRequest _Request = null;
+        private AssetInfo _assetInfo = null;
+        private AssetRequest _request = null;
 
         public UnLoadAssetTask(AssetInfo assetInfo, AssetRequest req = null)
         {
-            _AssetInfo = assetInfo;
-            _Request = req;
+            _assetInfo = assetInfo;
+            _request = req;
         }
 
         protected override bool OnStart()
@@ -19,25 +19,23 @@ namespace GameFramework.Runtime
 
         protected override bool OnUpdate()
         {
-            return _AssetInfo.UnloadAsset();
+            return _assetInfo.UnloadAsset();
         }
 
         protected override void OnEnd()
         {
-            _AssetInfo.Reset();
-            _Request.OnTaskFinish(true);
-            _Request.OnRequestFinish();
+            _assetInfo.Reset();
+            _request.OnTaskFinish(true);
+            _request.OnRequestFinish();
         }
 
         protected override void OnReset()
         {
-            _AssetInfo = null;
-            _Request = null;
+            _assetInfo = null;
+            _request = null;
         }
 
         private static readonly int _TaskType = (int)AssetTaskType.UnLoadAsset;
-
-        public override int TaskType { get { return _TaskType; } }
 
     }
 }

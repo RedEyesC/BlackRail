@@ -2,24 +2,24 @@
 {
     public class AppLoopManager : GameModule
     {
-        private StateMachine _StateMachine;
+        private StateMachine _stateMachine;
 
         public override void Start()
         {
-            _StateMachine = new StateMachine();
-            _StateMachine.AddState(new AppLoopStart());
+            _stateMachine = new StateMachine();
+            _stateMachine.AddState(new AppLoopStart());
 
-            _StateMachine.ChangeState("start");
+            _stateMachine.ChangeState("start");
         }
 
         public override void Update(float elapseSeconds, float realElapseSeconds)
         {
-            _StateMachine.Update(elapseSeconds, realElapseSeconds);
+            _stateMachine.Update(elapseSeconds, realElapseSeconds);
         }
 
         public override void Destroy()
         {
-            _StateMachine.Destroy(null);
+            _stateMachine.Destroy(null);
         }
     }
 }

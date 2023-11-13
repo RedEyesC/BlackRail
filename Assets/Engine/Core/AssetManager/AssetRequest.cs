@@ -17,63 +17,63 @@ namespace GameFramework.Runtime
     public class AssetRequest
     {
 
-        public int RequestID { get; set; }
+        public int requestID { get; set; }
 
-        public AssetRequestType RequestType { get; private set; }
-        public AssetInfo AssetInfo { get; private set; }
+        public AssetRequestType requestType { get; private set; }
+        public AssetInfo assetInfo { get; private set; }
 
-        public bool IsRunning { get; private set; }
-        public bool IsSuccess { get; private set; }
-        public bool IsCancel { get; set; }
+        public bool isRunning { get; private set; }
+        public bool isSuccess { get; private set; }
+        public bool isCancel { get; set; }
 
 
-        private RequestCallBack _TaskFinishCallBack = null;
-        private Action<AssetRequest> _RequestFinishCallBack = null;
+        private RequestCallBack _taskFinishCallBack = null;
+        private Action<AssetRequest> _requestFinishCallBack = null;
 
 
         #region Initial
 
         public AssetRequest(AssetInfo assetInfo, AssetRequestType type, Action<AssetRequest> callback)
         {
-            AssetInfo = assetInfo;
+            this.assetInfo = assetInfo;
 
-            RequestType = type;
-            _RequestFinishCallBack = callback;
+            this.requestType = type;
+            this._requestFinishCallBack = callback;
 
-            IsRunning = true;
+            this.isRunning = true;
 
         }
 
         public void Reset()
         {
-            AssetInfo.UnloadAsset();
-            AssetInfo.Reset();
-            AssetInfo = null;
+            assetInfo.UnloadAsset();
+            assetInfo.Reset();
+            assetInfo = null;
 
-            _TaskFinishCallBack = null;
-            _RequestFinishCallBack = null;
+            _taskFinishCallBack = null;
+            _requestFinishCallBack = null;
 
-            IsRunning = false;
-            IsCancel = false;
-            IsSuccess = false;
+            isRunning = false;
+            isCancel = false;
+            isSuccess = false;
         }
         #endregion
 
         #region Excution
         public void ProcessRequest()
         {
-            switch (RequestType)
+            switch (requestType)
             {
                 case AssetRequestType.LoadScene:
                     {
 
-                        LoadSceneTask task = new LoadSceneTask(AssetInfo, this);
+                        LoadSceneTask task = new LoadSceneTask(assetInfo, this);
                         GlobalCenter.GetModule<AssetManager>().AddTask(task);
                     }
                     break;
                 case AssetRequestType.UnloadScene:
                     {
-                        UnLoadSceneTask task = new UnLoadSceneTask(AssetInfo, this);
+                        UnLoadSceneTask task = new UnLoadSceneTask(assetInfo, this);
                         GlobalCenter.GetModule<AssetManager>().AddTask(task);
 
                     }
@@ -81,13 +81,13 @@ namespace GameFramework.Runtime
                 case AssetRequestType.LoadOne:
                     {
 
-                        LoadAssetTask task = new LoadAssetTask(AssetInfo, this);
+                        LoadAssetTask task = new LoadAssetTask(assetInfo, this);
                         GlobalCenter.GetModule<AssetManager>().AddTask(task);
                     }
                     break;
                 case AssetRequestType.UnloadOne:
                     {
-                        UnLoadAssetTask task = new UnLoadAssetTask(AssetInfo, this);
+                        UnLoadAssetTask task = new UnLoadAssetTask(assetInfo, this);
                         GlobalCenter.GetModule<AssetManager>().AddTask(task);
 
                     }
@@ -100,26 +100,26 @@ namespace GameFramework.Runtime
 
         public void SetTaskFinishCallBack(RequestCallBack callback)
         {
-            _TaskFinishCallBack = callback;
+            _taskFinishCallBack = callback;
         }
 
         public void OnTaskFinish(bool success)
         {
-            IsRunning = false;
-            IsSuccess = success;
+            isRunning = false;
+            isSuccess = success;
 
-            if (_TaskFinishCallBack != null)
-                _TaskFinishCallBack(RequestID, IsSuccess);
+            if (_taskFinishCallBack != null)
+                _taskFinishCallBack(requestID, isSuccess);
         }
 
 
         public void OnRequestFinish()
         {
 
-            if (_RequestFinishCallBack != null)
+            if (_requestFinishCallBack != null)
             {
-                _RequestFinishCallBack(this);
-                _RequestFinishCallBack = null;
+                _requestFinishCallBack(this);
+                _requestFinishCallBack = null;
             }
         }
 

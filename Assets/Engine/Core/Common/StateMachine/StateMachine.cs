@@ -9,8 +9,8 @@ namespace GameFramework.Runtime
 
     public class StateMachine
     {
-        private Dictionary<string, StateBase> _StateMap = new Dictionary<string, StateBase>();
-        private StateBase _CurState = null;
+        private Dictionary<string, StateBase> _stateMap = new Dictionary<string, StateBase>();
+        private StateBase _curState = null;
 
         public void Start()
         {
@@ -19,41 +19,41 @@ namespace GameFramework.Runtime
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
-            if (_CurState != null)
+            if (_curState != null)
             {
-                _CurState.StateUpdate(elapseSeconds, realElapseSeconds);
+                _curState.StateUpdate(elapseSeconds, realElapseSeconds);
             }
         }
 
         public void AddState(StateBase state)
         {
-            _StateMap.Add(state.GetID(), state);
+            _stateMap.Add(state.GetID(), state);
         }
 
         public void ChangeState(string id, params object[] paramList)
         {
  
-            StateBase newState = _StateMap[id];
+            StateBase newState = _stateMap[id];
             if (newState != null)
             {
-                if (_CurState != null)
+                if (_curState != null)
                 {
-                    _CurState.StateQuit(paramList);
+                    _curState.StateQuit(paramList);
                 }
 
-                _CurState = newState;
-                _CurState.StateEnter(paramList);
+                _curState = newState;
+                _curState.StateEnter(paramList);
             }
         }
 
         public void Destroy(object[] paramList)
         {
-            if(_CurState != null)
+            if(_curState != null)
             {
-                _CurState.StateQuit(paramList);
+                _curState.StateQuit(paramList);
             }
-            _StateMap.Clear();
-            _CurState = null;
+            _stateMap.Clear();
+            _curState = null;
         }
     }
 }
