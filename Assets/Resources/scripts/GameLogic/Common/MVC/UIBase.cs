@@ -18,12 +18,12 @@ namespace GameFramework.Runtime
         }
 
 
-        protected string _PackageName;
-        protected  string _ComName;
-        protected  UIState  _State = UIState.Close;
-        protected Layer _LayerName = Layer.UI;
+        protected string _packageName;
+        protected  string _comName;
+        protected  UIState  _state = UIState.Close;
+        protected Layer _layerName = Layer.UI;
 
-        protected UnityEngine.GameObject _Root;
+        protected UnityEngine.GameObject _root;
    
 
         protected abstract void OnOpen(params object[] paramList);
@@ -34,21 +34,21 @@ namespace GameFramework.Runtime
 
         protected void SetLayer(Layer layer)
         {
-            _LayerName = layer;
+            _layerName = layer;
             SetLayerInternal();
         }
 
         private void SetLayerInternal()
         {
-            _Root.layer = (int)_LayerName ;
+            _root.layer = (int)_layerName ;
         }
 
         protected void CreateLayout(){
 
-            if (!_Root)
+            if (!_root)
             {
-                string path = Utils.GetUIPrefabPath(_PackageName, _ComName);
-                _Root = GlobalCenter.GetModule<UIManager>().CreateLayout(path); 
+                string path = Utils.GetUIPrefabPath(_packageName, _comName);
+                _root = GlobalCenter.GetModule<UIManager>().CreateLayout(path); 
             }
 
             OnLayoutCreated();
@@ -58,10 +58,10 @@ namespace GameFramework.Runtime
         protected void DestroyLayout()
         {
 
-            if (_Root)
+            if (_root)
             {
-                GlobalCenter.GetModule<UIManager>().DestroyLayout(_Root);
-                _Root = null;
+                GlobalCenter.GetModule<UIManager>().DestroyLayout(_root);
+                _root = null;
             }
 
         }
@@ -73,9 +73,9 @@ namespace GameFramework.Runtime
 
         protected UnityEngine.Transform GetChild(string name)
         {
-            if (_Root != null)
+            if (_root != null)
             {
-                return _Root.transform.Find(name);
+                return _root.transform.Find(name);
             }
 
             return null;

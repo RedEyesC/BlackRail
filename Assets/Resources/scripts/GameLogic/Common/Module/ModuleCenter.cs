@@ -6,9 +6,9 @@ namespace GameFramework.Runtime
     internal class ModuleCenter : GameModule
     {
 
-        private Dictionary<string, BaseCtrl> _CtrlMap = new Dictionary<string, BaseCtrl>();
+        private Dictionary<string, BaseCtrl> _ctrlMap = new Dictionary<string, BaseCtrl>();
 
-        private List<Type> _CtrlList = new List<Type>
+        private List<Type> _ctrlList = new List<Type>
         {
             typeof(LoginCtrl),
             typeof(SceneCtrl),
@@ -18,17 +18,17 @@ namespace GameFramework.Runtime
 
         public override void Destroy()
         {
-            _CtrlMap.Clear();
+            _ctrlMap.Clear();
         }
 
         public override void Start()
         {
             
-            foreach ( Type ctrl in _CtrlList)
+            foreach ( Type ctrl in _ctrlList)
             {
          
                 BaseCtrl Cls = (BaseCtrl)Activator.CreateInstance(ctrl);      
-                _CtrlMap[ctrl.Name] = Cls;
+                _ctrlMap[ctrl.Name] = Cls;
 
             }
 
@@ -37,9 +37,9 @@ namespace GameFramework.Runtime
         public T GetModule<T>() where T : BaseCtrl
         {
             Type interfaceType = typeof(T);
-            if (_CtrlMap.ContainsKey(interfaceType.Name))
+            if (_ctrlMap.ContainsKey(interfaceType.Name))
             {
-                return _CtrlMap[interfaceType.Name] as T;
+                return _ctrlMap[interfaceType.Name] as T;
             }
 
             return null;

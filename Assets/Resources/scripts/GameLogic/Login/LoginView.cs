@@ -9,8 +9,8 @@ namespace GameFramework.Runtime
 
         public LoginView()
         {
-            _PackageName = "ui_login";
-            _ComName = "login_view";
+            _packageName = "ui_login";
+            _comName = "login_view";
         }
 
         protected override void OnClose()

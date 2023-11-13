@@ -8,15 +8,15 @@ namespace GameFramework.Runtime
     internal class Role : Obj
     {
 
-        private Dictionary<int, ModelObj> _ModelList = new Dictionary<int, ModelObj>();
+        private Dictionary<int, ModelObj> _modelList = new Dictionary<int, ModelObj>();
 
-        private float _TargetX = 0;
-        private float _TargetY = 0;
-        private float _TargetDist = 0;
+        private float _targetX = 0;
+        private float _targetY = 0;
+        private float _targetDist = 0;
         private float _CurDist = 0;
 
-        public float Speed = 2f;
-        public float Div = 0.5f;
+        public float speed = 2f;
+        public float div = 0.5f;
 
 
 
@@ -28,19 +28,19 @@ namespace GameFramework.Runtime
         public void SetModelID(int modelType, int id)
         {
 
-            if (!_ModelList.ContainsKey(modelType))
+            if (!_modelList.ContainsKey(modelType))
             {
-                _ModelList.Add(modelType, new ModelObj());
+                _modelList.Add(modelType, new ModelObj());
             }
 
 
-            ModelObj model = _ModelList[modelType];
+            ModelObj model = _modelList[modelType];
 
             string path = Utils.GetRoleModelPath(id);
 
             model.ChangeModel(path, () =>
             {
-                model.SetParent(_RootObj.transform);
+                model.SetParent(_rootObj.transform);
             });
 
         }
@@ -49,7 +49,7 @@ namespace GameFramework.Runtime
         public void PlayAnim(string name)
         {
 
-            foreach (KeyValuePair<int, ModelObj> kvp in _ModelList)
+            foreach (KeyValuePair<int, ModelObj> kvp in _modelList)
             {
 
                 kvp.Value.PlayAnim(name);
@@ -59,10 +59,10 @@ namespace GameFramework.Runtime
 
         public void DoJoystick(int x, int y)
         {
-            _TargetX = _RootObj.transform.position.x + x * Div;
-            _TargetY = _RootObj.transform.position.z + y * Div;
+            _targetX = _rootObj.transform.position.x + x * div;
+            _targetY = _rootObj.transform.position.z + y * div;
 
-            _TargetDist = (float)Math.Sqrt(x * x * Div * Div + y * y * Div * Div);
+            _targetDist = (float)Math.Sqrt(x * x * div * div + y * y * div * div);
             _CurDist = 0;
 
             this.SetDir(x, y);
@@ -71,18 +71,18 @@ namespace GameFramework.Runtime
         public void StateUpdate(float elapseSeconds, float realElapseSeconds)
         {
 
-            if (_TargetDist > 0)
+            if (_targetDist > 0)
             {
-                float _DeltaDist = elapseSeconds * Speed;
-                _CurDist += _DeltaDist;
+                float deltaDist = elapseSeconds * speed;
+                _CurDist += deltaDist;
 
-                float x = _RootObj.transform.position.x;
-                float y = _RootObj.transform.position.z;
+                float x = _rootObj.transform.position.x;
+                float y = _rootObj.transform.position.z;
 
-                if (_CurDist < _TargetDist)
+                if (_CurDist < _targetDist)
                 {
-                    x += _DeltaDist * _Dir.x;
-                    y += _DeltaDist * _Dir.y;
+                    x += deltaDist * _dir.x;
+                    y += deltaDist * _dir.y;
 
                     SetPosition(x, 0, y);
 
@@ -90,21 +90,21 @@ namespace GameFramework.Runtime
                 }
                 else
                 {
-                    SetPosition(_TargetX, 0, _TargetY);
+                    SetPosition(_targetX, 0, _targetY);
 
-                    _TargetDist = 0;
-                    _TargetX = 0;
-                    _TargetY = 0;
+                    _targetDist = 0;
+                    _targetX = 0;
+                    _targetY = 0;
                     _CurDist = 0;
 
                     PlayAnim("idle");
                 }
             }
 
-            if (_RootObj.transform)
+            if (_rootObj.transform)
             {
-                float x = _RootObj.transform.position.x;
-                float y = _RootObj.transform.position.z;
+                float x = _rootObj.transform.position.x;
+                float y = _rootObj.transform.position.z;
                 float height = CalcMapHeight(x,y);
 
                 if(height> -999)

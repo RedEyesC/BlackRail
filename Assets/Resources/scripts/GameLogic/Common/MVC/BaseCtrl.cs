@@ -8,14 +8,14 @@ namespace GameFramework.Runtime
     internal abstract class BaseCtrl
     {
 
-        private Dictionary<string, Type> _ViewDefines = new Dictionary<string, Type>();
-        private Dictionary<string, BaseView> _ViewMap = new Dictionary<string, BaseView>();
+        private Dictionary<string, Type> _viewDefines = new Dictionary<string, Type>();
+        private Dictionary<string, BaseView> _viewMap = new Dictionary<string, BaseView>();
 
         protected void RegisterView(string viewName, Type viewType)
         {
-            if (!_ViewDefines.ContainsKey(viewName))
+            if (!_viewDefines.ContainsKey(viewName))
             {
-                _ViewDefines.Add(viewName, viewType);
+                _viewDefines.Add(viewName, viewType);
             }
         }
 
@@ -31,16 +31,16 @@ namespace GameFramework.Runtime
 
         public BaseView GetView(string name)
         {
-            if (_ViewDefines.ContainsKey(name))
+            if (_viewDefines.ContainsKey(name))
             {
-                if (!_ViewMap.ContainsKey(name))
+                if (!_viewMap.ContainsKey(name))
                 {
-                    Type type = _ViewDefines[name];
+                    Type type = _viewDefines[name];
                     BaseView view = (BaseView)Activator.CreateInstance(type);
-                    _ViewMap[name] = view;
+                    _viewMap[name] = view;
                 }
 
-                return _ViewMap[name];
+                return _viewMap[name];
             }
             else
             {

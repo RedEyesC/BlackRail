@@ -54,7 +54,6 @@ namespace GameFramework.Runtime
 
             _GameModules.Clear();
         }
-
         /// <summary>
         /// 获取游戏框架模块。
         /// </summary>
@@ -139,7 +138,7 @@ namespace GameFramework.Runtime
             LinkedListNode<GameModule> current = _GameModules.First;
             while (current != null)
             {
-                if (module.Priority > current.Value.Priority)
+                if (module.priority > current.Value.priority)
                 {
                     break;
                 }

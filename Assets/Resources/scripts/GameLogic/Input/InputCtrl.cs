@@ -6,7 +6,7 @@ namespace GameFramework.Runtime
     {
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
-            Role mainRole = GameCenter.GetModule<ModuleCenter>().GetModule<SceneCtrl>().MainRole;
+            Role mainRole = GameCenter.GetModule<ModuleCenter>().GetModule<SceneCtrl>().mainRole;
 
             int TempX = 0;
             int TempY = 0;

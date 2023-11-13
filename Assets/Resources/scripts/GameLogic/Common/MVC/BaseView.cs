@@ -5,19 +5,19 @@ namespace GameFramework.Runtime
 
     internal abstract class BaseView : UIBase
     {
-        protected object[] _OpenParams;
+        protected object[] _openParams;
 
-        protected int _CacheTime = 60;
-        private int _CacheTimeID = 0;
+        protected int _cacheTime = 60;
+        private int _cacheTimeID = 0;
 
-        private List<int> _RefPackageReqList = new List<int>();
-        private int _RefPackageReqFinishNum;
+        private List<int> _refPackageReqList = new List<int>();
+        private int _refPackageReqFinishNum;
 
-        protected bool IsOpen
+        protected bool isOpen
         {
             get
             {
-                return _State == UIState.Open;
+                return _state == UIState.Open;
             }
         }
 
@@ -25,24 +25,24 @@ namespace GameFramework.Runtime
 
         public void Open(params object[] paramList)
         {
-            if (IsOpen)
+            if (isOpen)
             {
                 ShowLayout();
                 return;
             }
-            _OpenParams = paramList;
+            _openParams = paramList;
 
-            if (_State == UIState.Close)
+            if (_state == UIState.Close)
             {
-                _State = UIState.Loading;
+                _state = UIState.Loading;
                 LoadPackage();
             }
-            else if (_State == UIState.Caching)
+            else if (_state == UIState.Caching)
             {
 
                 ClearCacheTimer();
 
-                _State = UIState.Open;
+                _state = UIState.Open;
                 ShowLayout();
                 OnLayoutCreated();
             }
@@ -52,7 +52,7 @@ namespace GameFramework.Runtime
         protected override void Close(bool immediately = false)
         {
 
-            if (_State == UIState.Open)
+            if (_state == UIState.Open)
             {
                 base.Close(immediately);
                 OnClose();
@@ -60,31 +60,31 @@ namespace GameFramework.Runtime
                 SetVisible(false);
 
 
-                if ((_CacheTime <= 0) || immediately)
+                if ((_cacheTime <= 0) || immediately)
                 {
                     UnLoadRes();
-                    _State = UIState.Close;
+                    _state = UIState.Close;
                 }
                 else
                 {
-                    if (_CacheTimeID == 0)
+                    if (_cacheTimeID == 0)
                     {
-                        _CacheTimeID = GlobalCenter.GetModule<TimerManager>().SetTimeout(() =>
+                        _cacheTimeID = GlobalCenter.GetModule<TimerManager>().SetTimeout(() =>
                         {
                             UnLoadRes();
-                            _State = UIState.Close;
+                            _state = UIState.Close;
                             ClearCacheTimer();
-                        }, _CacheTime);
+                        }, _cacheTime);
                     }
 
-                    _State = UIState.Caching;
+                    _state = UIState.Caching;
                 }
 
             }
-            else if (_State == UIState.Loading)
+            else if (_state == UIState.Loading)
             {
                 UnLoadRes();
-                _State = UIState.Close;
+                _state = UIState.Close;
             }
         }
 
@@ -95,26 +95,26 @@ namespace GameFramework.Runtime
 
         private void LoadPackage()
         {
-            _RefPackageReqList.Clear();
-            _RefPackageReqFinishNum = 0;
+            _refPackageReqList.Clear();
+            _refPackageReqFinishNum = 0;
 
-            string path = Utils.GetUIPrefabPath(_PackageName, _ComName);
+            string path = Utils.GetUIPrefabPath(_packageName, _comName);
 
             int id = GlobalCenter.GetModule<AssetManager>().LoadAssetAsync(path,OnLoadResFinish);
 
-            _RefPackageReqList.Add(id);
+            _refPackageReqList.Add(id);
         }
 
         private void OnLoadResFinish(int requestID, bool isSuccess)
         {
-            _RefPackageReqFinishNum++;
+            _refPackageReqFinishNum++;
 
-            if (_RefPackageReqFinishNum != _RefPackageReqList.Count)
+            if (_refPackageReqFinishNum != _refPackageReqList.Count)
             {
                 return;
             }
 
-            if (!_Root)
+            if (!_root)
             {
                 this.CreateLayout();
             }
@@ -129,15 +129,15 @@ namespace GameFramework.Runtime
         private void UnLoadPackage()
         {
 
-            if (_RefPackageReqList.Count > 0)
+            if (_refPackageReqList.Count > 0)
             {
 
-                foreach (var id in _RefPackageReqList)
+                foreach (var id in _refPackageReqList)
                 {
                     GlobalCenter.GetModule<AssetManager>().UnLoad(id);
                 }
 
-                _RefPackageReqList.Clear();
+                _refPackageReqList.Clear();
 
             }
 
@@ -145,10 +145,10 @@ namespace GameFramework.Runtime
 
         private void ClearCacheTimer()
         {
-            if (_CacheTimeID > 0)
+            if (_cacheTimeID > 0)
             {
-                GlobalCenter.GetModule<TimerManager>().ClearTimer(_CacheTimeID);
-                _CacheTimeID = 0;
+                GlobalCenter.GetModule<TimerManager>().ClearTimer(_cacheTimeID);
+                _cacheTimeID = 0;
             }
         }
 
@@ -156,17 +156,17 @@ namespace GameFramework.Runtime
         {
             base.OnLayoutCreated();
 
-            _State = UIState.Open;
+            _state = UIState.Open;
 
-            OnOpen(_OpenParams);
+            OnOpen(_openParams);
 
         }
 
         public void SetVisible(bool val)
         {
-            if (_Root)
+            if (_root)
             {
-                _Root.SetActive(val);
+                _root.SetActive(val);
             }
         }
     }

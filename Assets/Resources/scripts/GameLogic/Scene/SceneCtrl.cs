@@ -5,37 +5,37 @@ namespace GameFramework.Runtime
 {
     internal class SceneCtrl : BaseCtrl
     {
-        private int _MapId = 0;
-        private int _RequestId;
+        private int _mapId = 0;
+        private int _requestId;
 
 
-        public Role MainRole;
+        public Role mainRole;
 
-        private Transform _AppRoot;
+        private Transform _appRoot;
 
         public SceneCtrl()
         {
-            _AppRoot = UnityEngine.GameObject.Find("_AppRoot").transform;
+            _appRoot = UnityEngine.GameObject.Find("_appRoot").transform;
         }
 
 
         public void ClearScene()
         {
-            if (_MapId != 0)
+            if (_mapId != 0)
             {
-                _MapId = 0;
+                _mapId = 0;
 
-                string path = Utils.GetMapPath(_MapId);
-                _RequestId = GlobalCenter.GetModule<AssetManager>().UnLoadSceneAsync(path);
+                string path = Utils.GetMapPath(_mapId);
+                _requestId = GlobalCenter.GetModule<AssetManager>().UnLoadSceneAsync(path);
 
             }
         }
 
         public void LoadScene(int mapId)
         {
-            _MapId = mapId;
+            _mapId = mapId;
             string path = Utils.GetMapPath(mapId);
-            _RequestId = GlobalCenter.GetModule<AssetManager>().LoadSceneAsync(path, OnLoadResFinish);
+            _requestId = GlobalCenter.GetModule<AssetManager>().LoadSceneAsync(path, OnLoadResFinish);
 
         }
 
@@ -43,7 +43,7 @@ namespace GameFramework.Runtime
         {
             if (isSuccess)
             {
-                Debug.Log(string.Format("map id {0} is Loaded", _MapId));
+                Debug.Log(string.Format("map id {0} is Loaded", _mapId));
             }
 
         }
@@ -51,18 +51,18 @@ namespace GameFramework.Runtime
 
         public Role CreateMainRole()
         {
-            MainRole = new Role();
-            MainRole.SetModelID(1, 1);
-            return MainRole;
+            mainRole = new Role();
+            mainRole.SetModelID(1, 1);
+            return mainRole;
         }
 
 
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
-            if (MainRole != null)
+            if (mainRole != null)
             {
-                MainRole.StateUpdate(elapseSeconds, realElapseSeconds);
+                mainRole.StateUpdate(elapseSeconds, realElapseSeconds);
             }
 
 
@@ -70,7 +70,7 @@ namespace GameFramework.Runtime
 
         public float GetHeightByRayCast(float x, float y)
         {
-            float rst = _AppRoot.GetHeightByRaycast(x, y, 1 << LayerMask.NameToLayer("Default"));
+            float rst = _appRoot.GetHeightByRaycast(x, y, 1 << LayerMask.NameToLayer("Default"));
 
             return rst;
         }

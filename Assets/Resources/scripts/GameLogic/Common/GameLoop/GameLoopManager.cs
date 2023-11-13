@@ -2,27 +2,27 @@
 {
     internal class GameLoopManager : GameModule
     {
-        private StateMachine _StateMachine;
+        private StateMachine _stateMachine;
 
         public override void Start()
         {
-            _StateMachine = new StateMachine();
+            _stateMachine = new StateMachine();
 
-            _StateMachine.AddState(new GameLoopStart());
-            _StateMachine.AddState(new GameLoopPlay());
-            _StateMachine.AddState(new GameLoopLoading());
+            _stateMachine.AddState(new GameLoopStart());
+            _stateMachine.AddState(new GameLoopPlay());
+            _stateMachine.AddState(new GameLoopLoading());
 
-            _StateMachine.ChangeState("start");
+            _stateMachine.ChangeState("start");
         }
 
         public override void Update(float elapseSeconds, float realElapseSeconds)
         {
-            _StateMachine.Update(elapseSeconds, realElapseSeconds);
+            _stateMachine.Update(elapseSeconds, realElapseSeconds);
         }
 
         public override void Destroy()
         {
-            _StateMachine.Destroy(null);
+            _stateMachine.Destroy(null);
         }
     }
 }
