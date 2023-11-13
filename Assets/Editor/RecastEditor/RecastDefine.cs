@@ -6,224 +6,224 @@ namespace GameEditor.RecastEditor
     public class Heightfield
     {
         //可行走角度
-        public float WalkableSlopeAngle = 0;
+        public float walkableSlopeAngle = 0;
         //可攀爬高度
-        public int WalkableClimb = 0;
+        public int walkableClimb = 0;
         //物体高度
-        public int WalkableHeight = 0;
+        public int walkableHeight = 0;
         //物体半径
-        public int WalkableRadius = 0;
+        public int walkableRadius = 0;
 
-        public float CellSize = 0;
-        public float CellHeight = 0;
+        public float cellSize = 0;
+        public float cellHeight = 0;
 
-        public int Width = 0;
-        public int Height = 0;
+        public int width = 0;
+        public int height = 0;
 
-        public Vector3 MinBounds = new Vector3();
-        public Vector3 MaxBounds = new Vector3();
+        public Vector3 minBounds = new Vector3();
+        public Vector3 maxBounds = new Vector3();
 
-        public Span[] SpanList;
+        public Span[] spans;
 
         public Heightfield(Mesh mesh, float agentMaxSlope, float agentMaxClimb, float agentHeight, float agentRadius, float cellSize, float cellHeight)
         {
 
-            CellSize = cellSize;
-            CellHeight = cellHeight;
-            WalkableSlopeAngle = agentMaxSlope;
+            this.cellSize = cellSize;
+            this.cellHeight = cellHeight;
+            walkableSlopeAngle = agentMaxSlope;
 
-            RecastUtility.CalcBounds(mesh.vertices, out MinBounds, out MaxBounds);
+            RecastUtility.CalcBounds(mesh.vertices, out minBounds, out maxBounds);
 
-            RecastUtility.CalcGridSize(MinBounds, MaxBounds, CellSize, out Width, out Height);
+            RecastUtility.CalcGridSize(minBounds, maxBounds, cellSize, out width, out height);
 
-            SpanList = new Span[Height * Width];
+            spans = new Span[height * width];
 
-            WalkableClimb = (int)(agentMaxClimb / cellHeight);
-            WalkableHeight = (int)(agentHeight / cellHeight);
-            WalkableRadius = (int)(agentRadius / cellSize);
+            walkableClimb = (int)(agentMaxClimb / cellHeight);
+            walkableHeight = (int)(agentHeight / cellHeight);
+            walkableRadius = (int)(agentRadius / cellSize);
         }
     }
 
 
     public class Span
     {
-        public int Min;
-        public int Max;
-        public AREATYPE AreaID;
-        public Span Next = null;
+        public int min;
+        public int max;
+        public AREATYPE areaID;
+        public Span next = null;
 
         public Span(int min, int max, AREATYPE areaID)
         {
-            Min = min;
-            Max = max;
-            AreaID = areaID;
+            this.min = min;
+            this.max = max;
+            this.areaID = areaID;
         }
     }
 
     public class CompactHeightfield
     {
         //可行走角度
-        public float WalkableSlopeAngle = 0;
+        public float walkableSlopeAngle = 0;
         //可攀爬高度
-        public int WalkableClimb = 0;
+        public int walkableClimb = 0;
         //物体高度
-        public int WalkableHeight = 0;
+        public int walkableHeight = 0;
         //物体半径
-        public int WalkableRadius = 0;
+        public int walkableRadius = 0;
 
-        public float CellSize = 0;
-        public float CellHeight = 0;
+        public float cellSize = 0;
+        public float cellHeight = 0;
 
-        public int Width = 0;
-        public int Height = 0;
+        public int width = 0;
+        public int height = 0;
 
-        public int SpanCount = 0;
+        public int spanCount = 0;
 
-        public CompactCell[] CellList;
-        public CompactSpan[] SpanList;
-        public AREATYPE[] AreaList;
+        public CompactCell[] cells;
+        public CompactSpan[] spans;
+        public AREATYPE[] areas;
 
-        public Vector3 MinBounds = new Vector3();
-        public Vector3 MaxBounds = new Vector3();
+        public Vector3 minBounds = new Vector3();
+        public Vector3 maxBounds = new Vector3();
 
         //距离场
-        public int[] DistanceToBoundary;
+        public int[] distanceToBoundary;
 
         //最大距离
-        public int MaxDistance = 0;
+        public int maxDistance = 0;
 
         //最大区域id
-        public int MaxRegions = 0;
+        public int maxRegions = 0;
         public CompactHeightfield(Heightfield hf)
         {
 
-            Width = hf.Width;
-            Height = hf.Height;
+            width = hf.width;
+            height = hf.height;
 
-            CellHeight = hf.CellHeight;
-            CellSize = hf.CellSize;
+            cellHeight = hf.cellHeight;
+            cellSize = hf.cellSize;
 
-            WalkableSlopeAngle = hf.WalkableSlopeAngle;
-            WalkableClimb = hf.WalkableClimb;
-            WalkableHeight = hf.WalkableHeight;
-            WalkableRadius = hf.WalkableRadius;
+            walkableSlopeAngle = hf.walkableSlopeAngle;
+            walkableClimb = hf.walkableClimb;
+            walkableHeight = hf.walkableHeight;
+            walkableRadius = hf.walkableRadius;
 
-            CellList = new CompactCell[Width * Height];
+            cells = new CompactCell[width * height];
 
-            SpanCount = RecastUtility.RcGetHeightFieldSpanCount(hf);
+            spanCount = RecastUtility.RcGetHeightFieldSpanCount(hf);
 
-            SpanList = new CompactSpan[SpanCount];
-            AreaList = new AREATYPE[SpanCount];
-            DistanceToBoundary = new int[SpanCount];
+            spans = new CompactSpan[spanCount];
+            areas = new AREATYPE[spanCount];
+            distanceToBoundary = new int[spanCount];
 
-            MinBounds = hf.MinBounds;
-            MaxBounds = hf.MaxBounds;
+            minBounds = hf.minBounds;
+            maxBounds = hf.maxBounds;
         }
     }
 
     public class CompactCell
     {
-        public int Index = 0; //对应spanList开始的序号
-        public int Count = 0; //当前xz平面体素点存在span数量
+        public int index = 0; //对应spanList开始的序号
+        public int count = 0; //当前xz平面体素点存在span数量
 
         public CompactCell(int index, int count)
         {
-            Index = index;
-            Count = count;
+            this.index = index;
+            this.count = count;
         }
     }
 
     public class CompactSpan
     {
-        public int Y;
-        public int H;
-        public int Reg;
-        public int Con; //记录相邻的层级是否可行走,每个方向用六位来存放可行走层级，最高63层（6位都为1为不可行走,所以64-1=63）
-        public AREATYPE AreaID;
+        public int y;
+        public int h;
+        public int reg;
+        public int con; //记录相邻的层级是否可行走,每个方向用六位来存放可行走层级，最高63层（6位都为1为不可行走,所以64-1=63）
+        public AREATYPE areaID;
 
         public CompactSpan(int y, int h, AREATYPE areaID)
         {
-            Y = y;
-            H = h;
-            AreaID = areaID;
+            this.y = y;
+            this.h = h;
+            this.areaID = areaID;
         }
     }
 
     public class LevelStackEntry
     {
-        public int X;
-        public int Y;
-        public int Index;
+        public int x;
+        public int y;
+        public int index;
 
         public LevelStackEntry(int x, int y, int index)
         {
-            X = x;
-            Y = y;
-            Index = index;
+            this.x = x;
+            this.y = y;
+            this.index = index;
         }
     }
 
 
     public class DirtyEntry
     {
-        public int Index;
-        public int Region;
-        public int Distance2;
+        public int index;
+        public int region;
+        public int distance2;
 
         public DirtyEntry(int index, int region, int distance2)
         {
-            Index = index;
-            Region = region;
-            Distance2 = distance2;
+            this.index = index;
+            this.region = region;
+            this.distance2 = distance2;
         }
     }
 
 
     public class RcRegion
     {
-        public int SpanCount = 0;
-        public int Id;
-        public AREATYPE AreaType = 0;
-        public bool Remap = false;
-        public bool Visited = false;
-        public bool Overlap = false; //是否多层
-        public int Ymin = 0xffff;
-        public int Ymax = 0;
-        public List<int> Connections = new List<int>();
-        public List<int> Floors = new List<int>();
+        public int spanCount = 0;
+        public int id;
+        public AREATYPE areaType = 0;
+        public bool remap = false;
+        public bool visited = false;
+        public bool overlap = false; //是否多层
+        public int ymin = 0xffff;
+        public int ymax = 0;
+        public List<int> connections = new List<int>();
+        public List<int> floors = new List<int>();
 
         public RcRegion(int index)
         {
-            Id = index;
+            this.id = index;
         }
     }
 
     public class RcContourSet
     {
-        public float CellSize = 0;
-        public float CellHeight = 0;
+        public float cellSize = 0;
+        public float cellHeight = 0;
 
-        public int Width = 0;
-        public int Height = 0;
+        public int width = 0;
+        public int height = 0;
 
-        public int NumConts = 0;
+        public int numConts = 0;
 
-        public List<RcContour> ContsList = new List<RcContour>();
+        public List<RcContour> conts = new List<RcContour>();
 
-        public Vector3 MinBounds = new Vector3();
-        public Vector3 MaxBounds = new Vector3();
+        public Vector3 minBounds = new Vector3();
+        public Vector3 maxBounds = new Vector3();
 
         public RcContourSet(CompactHeightfield chf)
         {
 
-            Width = chf.Width;
-            Height = chf.Height;
+            width = chf.width;
+            height = chf.height;
 
-            CellHeight = chf.CellHeight;
-            CellSize = chf.CellSize;
+            cellHeight = chf.cellHeight;
+            cellSize = chf.cellSize;
 
-            MinBounds = chf.MinBounds;
-            MaxBounds = chf.MaxBounds;
+            minBounds = chf.minBounds;
+            maxBounds = chf.maxBounds;
 
         }
 
@@ -231,67 +231,67 @@ namespace GameEditor.RecastEditor
 
     public class RcContour
     {
-        public int[] Verts;
-        public int NumVerts;
-        public int Reg;
-        public AREATYPE Area;
+        public int[] verts;
+        public int numVerts;
+        public int reg;
+        public AREATYPE area;
     };
 
     public class RcContourRegion
     {
-        public RcContour Outline;
-        public RcContourHole[] Holes;
-        public int NumHoles;
+        public RcContour outline;
+        public RcContourHole[] holes;
+        public int numHoles;
     };
 
     public class RcContourHole
     {
-        public RcContour Contour;
-        public int MinX;
-        public int MinZ;
-        public int LeftMost;
+        public RcContour contour;
+        public int minX;
+        public int minZ;
+        public int leftMost;
     };
 
     public class RcPotentialDiagonal
     {
-        public int Vert;
-        public float Dist;
+        public int vert;
+        public float dist;
 
         public RcPotentialDiagonal(int vert, float dist)
         {
-            Vert = vert;
-            Dist = dist;
+            this.vert = vert;
+            this.dist = dist;
         }
     };
 
     public class RcPolyMesh
     {
-        public float CellSize = 0;
-        public float CellHeight = 0;
+        public float cellSize = 0;
+        public float cellHeight = 0;
 
-        public int NumConts = 0;
+        public int numConts = 0;
 
-        public int NumVerts = 0;
-        public int NumPolys = 0;
-        public int MaxPolys = 0;
+        public int numVerts = 0;
+        public int numPolys = 0;
+        public int maxPolys = 0;
 
-        public int[] Verts;
-        public int[] Polys;
-        public int[] Regs;
-        public int[] Flags;
-        public AREATYPE[] AreaList;
+        public int[] verts;
+        public int[] polys;
+        public int[] regs;
+        public int[] flags;
+        public AREATYPE[] areas;
 
-        public Vector3 MinBounds = new Vector3();
-        public Vector3 MaxBounds = new Vector3();
+        public Vector3 minBounds = new Vector3();
+        public Vector3 maxBounds = new Vector3();
 
         public RcPolyMesh(RcContourSet cset)
         {
 
-            CellHeight = cset.CellHeight;
-            CellSize = cset.CellSize;
+            cellHeight = cset.cellHeight;
+            cellSize = cset.cellSize;
 
-            MinBounds = cset.MinBounds;
-            MaxBounds = cset.MaxBounds;
+            minBounds = cset.minBounds;
+            maxBounds = cset.maxBounds;
 
         }
 

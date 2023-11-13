@@ -67,7 +67,7 @@ namespace GameEditor.RecastEditor
             Heightfield hf = new Heightfield(mesh, RecastConfig.AgentMaxSlope, RecastConfig.AgentMaxClimb, RecastConfig.AgentHeight, RecastConfig.AgentRadius, RecastConfig.CellSize, RecastConfig.CellHeight);
 
             //判断三角形是否可行走
-            AREATYPE[] areas = RcMarkWalkableTriangles(hf.WalkableSlopeAngle, mesh.vertices, mesh.triangles);
+            AREATYPE[] areas = RcMarkWalkableTriangles(hf.walkableSlopeAngle, mesh.vertices, mesh.triangles);
 
             //体素化三角形，构建高度场
             RecastHeightField.RcRasterizeTriangles(mesh.vertices, mesh.triangles, areas, hf);
@@ -185,22 +185,22 @@ namespace GameEditor.RecastEditor
             int total = 0;
             int walkable = 0;
 
-            Vector3 hfBBMin = hf.MinBounds;
-            float cellSize = hf.CellSize;
-            float cellHeight = hf.CellHeight;
+            Vector3 hfBBMin = hf.minBounds;
+            float cellSize = hf.cellSize;
+            float cellHeight = hf.cellHeight;
 
-            float[][] cubeList = new float[hf.SpanList.Length][];
+            float[][] cubeList = new float[hf.spans.Length][];
 
-            for (int i = 0; i < hf.SpanList.Length; i++)
+            for (int i = 0; i < hf.spans.Length; i++)
             {
-                int x = i % hf.Width;
-                int z = i / hf.Width;
+                int x = i % hf.width;
+                int z = i / hf.width;
 
-                Span currentSpan = hf.SpanList[i];
+                Span currentSpan = hf.spans[i];
                 List<float> spanCube = new List<float>();
                 while (currentSpan != null)
                 {
-                    for (int y = currentSpan.Min; y < currentSpan.Max; y++)
+                    for (int y = currentSpan.min; y < currentSpan.max; y++)
                     {
                         float cellX = hfBBMin[0] + (float)x * cellSize + cellSize / 2;
                         float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;
@@ -213,7 +213,7 @@ namespace GameEditor.RecastEditor
                         spanCube.Add(cellY);
                         spanCube.Add(cellZ);
 
-                        if (showWalk && currentSpan.AreaID != AREATYPE.Walke && y == currentSpan.Max - 1)
+                        if (showWalk && currentSpan.areaID != AREATYPE.Walke && y == currentSpan.max - 1)
                         {
                             spanCube.Add(0);
                         }
@@ -225,7 +225,7 @@ namespace GameEditor.RecastEditor
 
                     }
 
-                    currentSpan = currentSpan.Next;
+                    currentSpan = currentSpan.next;
                 }
                 cubeList[i] = spanCube.ToArray();
             }
@@ -251,19 +251,19 @@ namespace GameEditor.RecastEditor
         {
 
 
-            Vector3 hfBBMin = chf.MinBounds;
-            float cellSize = chf.CellSize;
-            float cellHeight = chf.CellHeight;
+            Vector3 hfBBMin = chf.minBounds;
+            float cellSize = chf.cellSize;
+            float cellHeight = chf.cellHeight;
 
 
-            int w = chf.Width;
-            int h = chf.Height;
+            int w = chf.width;
+            int h = chf.height;
 
             int maxDistance = 0;
 
-            if (chf.DistanceToBoundary != null)
+            if (chf.distanceToBoundary != null)
             {
-                foreach (int i in chf.DistanceToBoundary)
+                foreach (int i in chf.distanceToBoundary)
                 {
                     maxDistance = Mathf.Max(maxDistance, i);
                 }
@@ -275,38 +275,38 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = 0; x < w; ++x)
                 {
-                    CompactCell c = chf.CellList[x + z * w];
+                    CompactCell c = chf.cells[x + z * w];
 
 
-                    float[] spanCube = new float[c.Count * 4];
+                    float[] spanCube = new float[c.count * 4];
 
-                    for (int i = c.Index, ni = (c.Index + c.Count); i < ni; ++i)
+                    for (int i = c.index, ni = (c.index + c.count); i < ni; ++i)
                     {
 
-                        CompactSpan span = chf.SpanList[i];
+                        CompactSpan span = chf.spans[i];
 
                         //为了方便观察，CompactSpan只构建一个cellHeight，实际不止
                         float cellX = hfBBMin[0] + (float)x * cellSize + cellSize / 2;
                         float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;
-                        float cellY = hfBBMin[1] + (float)span.Y * cellHeight + cellHeight / 2;
+                        float cellY = hfBBMin[1] + (float)span.y * cellHeight + cellHeight / 2;
 
-                        int index = i - c.Index;
+                        int index = i - c.index;
 
                         spanCube[index * 4] = cellX;
                         spanCube[index * 4 + 1] = cellY;
                         spanCube[index * 4 + 2] = cellZ;
 
-                        if (chf.DistanceToBoundary != null && type == 1)
+                        if (chf.distanceToBoundary != null && type == 1)
                         {
-                            spanCube[index * 4 + 3] = (float)chf.DistanceToBoundary[i] / (float)maxDistance;
+                            spanCube[index * 4 + 3] = (float)chf.distanceToBoundary[i] / (float)maxDistance;
                         }
-                        else if (chf.AreaList[i] == AREATYPE.Walke && type == 2)
+                        else if (chf.areas[i] == AREATYPE.Walke && type == 2)
                         {
                             spanCube[index * 4 + 3] = 7;
                         }
                         else if (type == 3)
                         {
-                            spanCube[index * 4 + 3] = span.Reg;
+                            spanCube[index * 4 + 3] = span.reg;
                         }
                     }
 
@@ -339,33 +339,33 @@ namespace GameEditor.RecastEditor
 
             GameObject root = GameObject.Find("/" + activeSceneName);
 
-            Vector3 hfBBMin = rcContourSet.MinBounds;
-            float cellSize = rcContourSet.CellSize;
-            float cellHeight = rcContourSet.CellHeight;
+            Vector3 hfBBMin = rcContourSet.minBounds;
+            float cellSize = rcContourSet.cellSize;
+            float cellHeight = rcContourSet.cellHeight;
 
             if (root.GetComponent<RecastComponent>() == null)
             {
                 root.AddComponent<RecastComponent>();
             }
 
-            float[][] vertList = new float[rcContourSet.NumConts][];
+            float[][] vertList = new float[rcContourSet.numConts][];
 
-            for (int i = 0; i < rcContourSet.NumConts; ++i)
+            for (int i = 0; i < rcContourSet.numConts; ++i)
             {
-                RcContour cont = rcContourSet.ContsList[i];
+                RcContour cont = rcContourSet.conts[i];
 
-                float[] contVert = new float[cont.NumVerts * 4];
+                float[] contVert = new float[cont.numVerts * 4];
 
-                for (int j = 0; j < cont.NumVerts; j++)
+                for (int j = 0; j < cont.numVerts; j++)
                 {
-                    float cellX = hfBBMin[0] + (float)cont.Verts[j * 4] * cellSize;
-                    float cellZ = hfBBMin[2] + (float)cont.Verts[j * 4 + 2] * cellSize;
-                    float cellY = hfBBMin[1] + (float)cont.Verts[j * 4 + 1] * cellHeight;
+                    float cellX = hfBBMin[0] + (float)cont.verts[j * 4] * cellSize;
+                    float cellZ = hfBBMin[2] + (float)cont.verts[j * 4 + 2] * cellSize;
+                    float cellY = hfBBMin[1] + (float)cont.verts[j * 4 + 1] * cellHeight;
 
                     contVert[j * 4] = cellX;
                     contVert[j * 4 + 1] = cellY;
                     contVert[j * 4 + 2] = cellZ;
-                    contVert[j * 4 + 3] = cont.Verts[j * 4 + 3];
+                    contVert[j * 4 + 3] = cont.verts[j * 4 + 3];
 
                 }
                 vertList[i] = contVert;

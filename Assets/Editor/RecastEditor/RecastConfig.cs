@@ -18,6 +18,12 @@ namespace GameEditor.RecastEditor
         public static readonly int RC_AREA_BORDER = 0x20000;
         public static readonly int RC_CONTOUR_REG_MASK = 0xffff;
 
+        public static readonly int RC_INDICE_MASK = 0x3fffffff;
+        public static readonly int RC_INDICE = 0x40000000;
+
+        public static readonly int VERTEX_BUCKET_COUNT = (1 << 12);
+
+
         public static readonly float AgentMaxSlope = 45;
         public static readonly float AgentMaxClimb = 1f;
         public static readonly float AgentHeight = 2.0f;
@@ -39,9 +45,6 @@ namespace GameEditor.RecastEditor
 
         public static readonly int MaxVertsPerPoly = 6; //单个多边形最大顶点数
 
-        public static readonly int RC_INDICE_MASK = 0x3fffffff;
-        public static readonly int RC_INDICE = 0x40000000;
 
-        public static readonly int VERTEX_BUCKET_COUNT = (1 << 12);
     }
 }

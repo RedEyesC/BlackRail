@@ -18,7 +18,7 @@ namespace GameEditor.RecastEditor
             int regionId = 1;
 
             //使最低一位为0，使得level为2的倍数
-            int level = (chf.MaxDistance + 1) & (~1);
+            int level = (chf.maxDistance + 1) & (~1);
 
             int sId = -1;
 
@@ -30,8 +30,8 @@ namespace GameEditor.RecastEditor
                 lvlStacks[i] = new Stack<LevelStackEntry>();
             }
 
-            int[] srcReg = new int[chf.SpanCount];
-            int[] srcDist = new int[chf.SpanCount];
+            int[] srcReg = new int[chf.spanCount];
+            int[] srcDist = new int[chf.spanCount];
 
             Array.Fill(srcReg, 0);
             Array.Fill(srcDist, 0);
@@ -54,9 +54,9 @@ namespace GameEditor.RecastEditor
                 //寻找水源
                 foreach (LevelStackEntry lvlStackEntry in lvlStacks[sId])
                 {
-                    int x = lvlStackEntry.X;
-                    int y = lvlStackEntry.Y;
-                    int i = lvlStackEntry.Index;
+                    int x = lvlStackEntry.x;
+                    int y = lvlStackEntry.y;
+                    int i = lvlStackEntry.index;
                     if (i >= 0 && srcReg[i] == 0)
                     {
                         if (FloodRegion(x, y, i, level, regionId, chf, srcReg, srcDist, stack))
@@ -77,20 +77,20 @@ namespace GameEditor.RecastEditor
             ExpandRegions(expandIters * 8, 0, chf, srcReg, srcDist, stack, false);
 
             //合并区域
-            chf.MaxRegions = regionId;
+            chf.maxRegions = regionId;
 
             MergeAndFilterRegions(chf, srcReg);
 
-            for (int i = 0; i < chf.SpanCount; ++i)
-                chf.SpanList[i].Reg = srcReg[i];
+            for (int i = 0; i < chf.spanCount; ++i)
+                chf.spans[i].reg = srcReg[i];
 
         }
 
         //loglevelsPerStack 决定距离多少为一个level
         private static void SortCellsByLevel(int startLevel, CompactHeightfield chf, int[] srcReg, int nbStacks, Stack<LevelStackEntry>[] stacks, int loglevelsPerStack)
         {
-            int w = chf.Width;
-            int h = chf.Height;
+            int w = chf.width;
+            int h = chf.height;
             startLevel = startLevel >> loglevelsPerStack;
 
             for (int i = 0; i < nbStacks; i++)
@@ -102,13 +102,13 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = 0; x < w; ++x)
                 {
-                    CompactCell c = chf.CellList[x + y * w];
-                    for (int i = c.Index, ni = (c.Index + c.Count); i < ni; ++i)
+                    CompactCell c = chf.cells[x + y * w];
+                    for (int i = c.index, ni = (c.index + c.count); i < ni; ++i)
                     {
-                        if (chf.AreaList[i] == AREATYPE.None || srcReg[i] != 0)
+                        if (chf.areas[i] == AREATYPE.None || srcReg[i] != 0)
                             continue;
 
-                        int level = chf.DistanceToBoundary[i] >> loglevelsPerStack;
+                        int level = chf.distanceToBoundary[i] >> loglevelsPerStack;
                         int sId = startLevel - level;
                         if (sId >= nbStacks)
                             continue;
@@ -126,7 +126,7 @@ namespace GameEditor.RecastEditor
 
             foreach (LevelStackEntry srcEntry in srcStack)
             {
-                int i = srcEntry.Index;
+                int i = srcEntry.index;
                 if ((i < 0) || (srcReg[i] != 0))
                     continue;
                 dstStack.Push(srcEntry);
@@ -135,8 +135,8 @@ namespace GameEditor.RecastEditor
 
         private static void ExpandRegions(int maxIter, int level, CompactHeightfield chf, int[] srcReg, int[] srcDist, Stack<LevelStackEntry> stack, bool fillStack)
         {
-            int w = chf.Width;
-            int h = chf.Height;
+            int w = chf.width;
+            int h = chf.height;
 
             if (fillStack)
             {
@@ -146,10 +146,10 @@ namespace GameEditor.RecastEditor
                 {
                     for (int x = 0; x < w; ++x)
                     {
-                        CompactCell c = chf.CellList[x + y * w];
-                        for (int i = c.Index, ni = (c.Index + c.Count); i < ni; ++i)
+                        CompactCell c = chf.cells[x + y * w];
+                        for (int i = c.index, ni = (c.index + c.count); i < ni; ++i)
                         {
-                            if (chf.DistanceToBoundary[i] >= level && srcReg[i] == 0 && chf.AreaList[i] != AREATYPE.None)
+                            if (chf.distanceToBoundary[i] >= level && srcReg[i] == 0 && chf.areas[i] != AREATYPE.None)
                             {
                                 stack.Push(new LevelStackEntry(x, y, i));
                             }
@@ -162,9 +162,9 @@ namespace GameEditor.RecastEditor
                 //排除那些已经标记了区域的cell
                 foreach (LevelStackEntry entry in stack)
                 {
-                    int i = entry.Index;
+                    int i = entry.index;
                     if (srcReg[i] != 0)
-                        entry.Index = -1;
+                        entry.index = -1;
                 }
 
             }
@@ -181,9 +181,9 @@ namespace GameEditor.RecastEditor
                 //遍历假如相邻的span已经属于某个regionId，则把自身设置为同个regionId
                 foreach (LevelStackEntry entry in stack)
                 {
-                    int x = entry.X;
-                    int z = entry.Y;
-                    int spanIndex = entry.Index;
+                    int x = entry.x;
+                    int z = entry.y;
+                    int spanIndex = entry.index;
                     if (spanIndex < 0)
                     {
                         failed++;
@@ -192,17 +192,17 @@ namespace GameEditor.RecastEditor
 
                     int r = srcReg[spanIndex];
                     int d2 = 0xffff;
-                    AREATYPE area = chf.AreaList[spanIndex];
-                    CompactSpan span = chf.SpanList[spanIndex];
+                    AREATYPE area = chf.areas[spanIndex];
+                    CompactSpan span = chf.spans[spanIndex];
 
                     for (int direction = 0; direction < 4; ++direction)
                     {
                         int neighborConnection = RecastUtility.RcGetCon(span, direction);
                         int neighborX = x + RecastUtility.RcGetDirOffsetX(direction);
                         int neighborZ = z + RecastUtility.RcGetDirOffsetY(direction);
-                        int neighborSpanIndex = chf.CellList[neighborX + neighborZ * w].Index + neighborConnection;
+                        int neighborSpanIndex = chf.cells[neighborX + neighborZ * w].index + neighborConnection;
 
-                        if (chf.AreaList[neighborSpanIndex] != chf.AreaList[spanIndex])
+                        if (chf.areas[neighborSpanIndex] != chf.areas[spanIndex])
                         {
                             continue;
                         }
@@ -219,7 +219,7 @@ namespace GameEditor.RecastEditor
 
                     if (r != 0)
                     {
-                        entry.Index = -1; //标记已经使用了
+                        entry.index = -1; //标记已经使用了
                         dirtyEntries.Push(new DirtyEntry(spanIndex, r, d2));
                     }
                     else
@@ -231,9 +231,9 @@ namespace GameEditor.RecastEditor
 
                 foreach (DirtyEntry dirtyEntery in dirtyEntries)
                 {
-                    int idx = dirtyEntery.Index;
-                    srcReg[idx] = dirtyEntery.Region;
-                    srcDist[idx] = dirtyEntery.Distance2;
+                    int idx = dirtyEntery.index;
+                    srcReg[idx] = dirtyEntery.region;
+                    srcDist[idx] = dirtyEntery.distance2;
 
                 }
 
@@ -253,8 +253,8 @@ namespace GameEditor.RecastEditor
 
         private static bool FloodRegion(int x, int y, int i, int level, int r, CompactHeightfield chf, int[] srcReg, int[] srcDist, Stack<LevelStackEntry> stack)
         {
-            int w = chf.Width;
-            AREATYPE area = chf.AreaList[i];
+            int w = chf.width;
+            AREATYPE area = chf.areas[i];
 
             stack.Clear();
             stack.Push(new LevelStackEntry(x, y, i));
@@ -268,11 +268,11 @@ namespace GameEditor.RecastEditor
             while (stack.Count > 0)
             {
                 LevelStackEntry back = stack.Pop();
-                int cx = back.X;
-                int cy = back.Y;
-                int ci = back.Index;
+                int cx = back.x;
+                int cy = back.y;
+                int ci = back.index;
 
-                CompactSpan span = chf.SpanList[ci];
+                CompactSpan span = chf.spans[ci];
                 int ar = 0;
 
                 //8向遍历相邻span 如果相邻span属于其他region，则自身region标记为0
@@ -284,10 +284,10 @@ namespace GameEditor.RecastEditor
                     {
                         int neighborX = cx + RecastUtility.RcGetDirOffsetX(direction);
                         int neighborZ = cy + RecastUtility.RcGetDirOffsetY(direction);
-                        int neighborSpanIndex = chf.CellList[neighborX + neighborZ * w].Index + neighborConnection;
+                        int neighborSpanIndex = chf.cells[neighborX + neighborZ * w].index + neighborConnection;
 
                         //不在同一个area
-                        if (chf.AreaList[neighborSpanIndex] != area)
+                        if (chf.areas[neighborSpanIndex] != area)
                             continue;
 
                         int nr = srcReg[ci];
@@ -301,15 +301,15 @@ namespace GameEditor.RecastEditor
 
 
                         int direction2 = (direction + 1) & 0x3;
-                        CompactSpan neighborSpan = chf.SpanList[neighborSpanIndex];
+                        CompactSpan neighborSpan = chf.spans[neighborSpanIndex];
                         int neighbor2Connection = RecastUtility.RcGetCon(neighborSpan, direction2);
                         if (neighbor2Connection != RecastConfig.RC_NOT_CONNECTED)
                         {
                             int neighbor2X = neighborX + RecastUtility.RcGetDirOffsetX(direction2);
                             int neighbor2Z = neighborZ + RecastUtility.RcGetDirOffsetY(direction2);
-                            int neighbor2SpanIndex = chf.CellList[neighbor2X + neighbor2Z * w].Index + neighbor2Connection;
+                            int neighbor2SpanIndex = chf.cells[neighbor2X + neighbor2Z * w].index + neighbor2Connection;
 
-                            if (chf.AreaList[neighbor2SpanIndex] != area)
+                            if (chf.areas[neighbor2SpanIndex] != area)
                                 continue;
 
                             int nr2 = srcReg[neighbor2SpanIndex];
@@ -343,12 +343,12 @@ namespace GameEditor.RecastEditor
                     {
                         int neighborX = cx + RecastUtility.RcGetDirOffsetX(direction);
                         int neighborZ = cy + RecastUtility.RcGetDirOffsetY(direction);
-                        int neighborSpanIndex = chf.CellList[neighborX + neighborZ * w].Index + neighborConnection;
+                        int neighborSpanIndex = chf.cells[neighborX + neighborZ * w].index + neighborConnection;
 
-                        if (chf.AreaList[neighborSpanIndex] != area)
+                        if (chf.areas[neighborSpanIndex] != area)
                             continue;
 
-                        if (chf.DistanceToBoundary[neighborSpanIndex] > lev && srcReg[neighborSpanIndex] == 0)
+                        if (chf.distanceToBoundary[neighborSpanIndex] > lev && srcReg[neighborSpanIndex] == 0)
                         {
                             srcReg[neighborSpanIndex] = r;
                             srcDist[neighborSpanIndex] = 0;
@@ -364,12 +364,12 @@ namespace GameEditor.RecastEditor
 
         private static void MergeAndFilterRegions(CompactHeightfield chf, int[] srcReg)
         {
-            int w = chf.Width;
-            int h = chf.Height;
+            int w = chf.width;
+            int h = chf.height;
 
-            int nreg = chf.MaxRegions + 1;
+            int nreg = chf.maxRegions + 1;
 
-            RcRegion[] regions = new RcRegion[chf.MaxRegions + 1];
+            RcRegion[] regions = new RcRegion[chf.maxRegions + 1];
             for (int i = 0; i < nreg; ++i)
             {
                 regions[i] = new RcRegion(i);
@@ -379,33 +379,33 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = 0; x < w; ++x)
                 {
-                    CompactCell c = chf.CellList[x + y * w];
-                    for (int i = c.Index, ni = (c.Index + c.Count); i < ni; ++i)
+                    CompactCell c = chf.cells[x + y * w];
+                    for (int i = c.index, ni = (c.index + c.count); i < ni; ++i)
                     {
                         int r = srcReg[i];
                         if (r == 0 || r >= nreg)
                             continue;
 
                         RcRegion reg = regions[r];
-                        reg.SpanCount++;
+                        reg.spanCount++;
 
                         // 寻找相同xz平面位置的上方的span的区域
-                        for (int j = c.Index; j < ni; ++j)
+                        for (int j = c.index; j < ni; ++j)
                         {
                             if (i == j) continue;
                             int floorId = srcReg[j];
                             if (floorId == 0 || floorId >= nreg)
                                 continue;
                             if (floorId == r)
-                                reg.Overlap = true;
+                                reg.overlap = true;
                             AddUniqueFloorRegion(reg, floorId);
                         }
 
                         //区域已经计算完连通区域了，不用再计算了
-                        if (reg.Connections.Count > 0)
+                        if (reg.connections.Count > 0)
                             continue;
 
-                        reg.AreaType = chf.AreaList[i];
+                        reg.areaType = chf.areas[i];
 
 
                         int ndir = -1;
@@ -420,7 +420,7 @@ namespace GameEditor.RecastEditor
 
                         if (ndir != -1)
                         {
-                            WalkContour(chf, srcReg, x, y, i, ndir, reg.Connections);
+                            WalkContour(chf, srcReg, x, y, i, ndir, reg.connections);
                         }
                     }
                 }
@@ -432,11 +432,11 @@ namespace GameEditor.RecastEditor
             for (int i = 0; i < nreg; ++i)
             {
                 RcRegion reg = regions[i];
-                if (reg.Id == 0)
+                if (reg.id == 0)
                     continue;
-                if (reg.SpanCount == 0)
+                if (reg.spanCount == 0)
                     continue;
-                if (reg.Visited)
+                if (reg.visited)
                     continue;
 
 
@@ -445,7 +445,7 @@ namespace GameEditor.RecastEditor
                 stack.Clear();
                 trace.Clear();
 
-                reg.Visited = true;
+                reg.visited = true;
                 stack.Push(i);
 
                 while (stack.Count > 0)
@@ -454,21 +454,21 @@ namespace GameEditor.RecastEditor
 
                     RcRegion creg = regions[ri];
 
-                    spanCount += creg.SpanCount;
+                    spanCount += creg.spanCount;
                     trace.Add(ri);
 
-                    for (int j = 0; j < creg.Connections.Count; ++j)
+                    for (int j = 0; j < creg.connections.Count; ++j)
                     {
 
-                        RcRegion neireg = regions[creg.Connections[j]];
-                        if (neireg.Visited)
+                        RcRegion neireg = regions[creg.connections[j]];
+                        if (neireg.visited)
                             continue;
-                        if (neireg.Id == 0)
+                        if (neireg.id == 0)
                             continue;
 
                         //将相邻区域压入stack ，用于计算spanCount
-                        stack.Push(neireg.Id);
-                        neireg.Visited = true;
+                        stack.Push(neireg.id);
+                        neireg.visited = true;
                     }
                 }
 
@@ -477,8 +477,8 @@ namespace GameEditor.RecastEditor
                 {
                     for (int j = 0; j < trace.Count; ++j)
                     {
-                        regions[trace[j]].SpanCount = 0;
-                        regions[trace[j]].Id = 0;
+                        regions[trace[j]].spanCount = 0;
+                        regions[trace[j]].id = 0;
                     }
                 }
             }
@@ -489,37 +489,37 @@ namespace GameEditor.RecastEditor
             for (int i = 0; i < nreg; ++i)
             {
                 RcRegion reg = regions[i];
-                if (reg.Id == 0)
+                if (reg.id == 0)
                     continue;
-                if (reg.Overlap)
+                if (reg.overlap)
                     continue;
-                if (reg.SpanCount == 0)
+                if (reg.spanCount == 0)
                     continue;
 
 
-                if (reg.SpanCount > RecastConfig.MergeRegionArea)
+                if (reg.spanCount > RecastConfig.MergeRegionArea)
                     continue;
 
                 int smallest = 0xfffffff;
-                int mergeId = reg.Id;
-                for (int j = 0; j < reg.Connections.Count; ++j)
+                int mergeId = reg.id;
+                for (int j = 0; j < reg.connections.Count; ++j)
                 {
 
-                    RcRegion mreg = regions[reg.Connections[j]];
-                    if (mreg.Id == 0 || mreg.Overlap) continue;
-                    if (mreg.SpanCount < smallest &&
+                    RcRegion mreg = regions[reg.connections[j]];
+                    if (mreg.id == 0 || mreg.overlap) continue;
+                    if (mreg.spanCount < smallest &&
                         CanMergeWithRegion(reg, mreg) &&
                         CanMergeWithRegion(mreg, reg))
                     {
-                        smallest = mreg.SpanCount;
-                        mergeId = mreg.Id;
+                        smallest = mreg.spanCount;
+                        mergeId = mreg.id;
                     }
                 }
 
                 //存在可以合并
-                if (mergeId != reg.Id)
+                if (mergeId != reg.id)
                 {
-                    int oldId = reg.Id;
+                    int oldId = reg.id;
                     RcRegion target = regions[mergeId];
 
 
@@ -528,10 +528,10 @@ namespace GameEditor.RecastEditor
 
                         for (int j = 0; j < nreg; ++j)
                         {
-                            if (regions[j].Id == 0) continue;
+                            if (regions[j].id == 0) continue;
 
-                            if (regions[j].Id == oldId)
-                                regions[j].Id = mergeId;
+                            if (regions[j].id == oldId)
+                                regions[j].id = mergeId;
 
                             ReplaceNeighbour(regions[j], oldId, mergeId);
                         }
@@ -542,60 +542,60 @@ namespace GameEditor.RecastEditor
 
             for (int i = 0; i < nreg; ++i)
             {
-                regions[i].Remap = false;
-                if (regions[i].Id == 0)
+                regions[i].remap = false;
+                if (regions[i].id == 0)
                 {
                     continue;
                 }
 
-                regions[i].Remap = true;
+                regions[i].remap = true;
             }
 
             int regIdGen = 0;
             for (int i = 0; i < nreg; ++i)
             {
-                if (!regions[i].Remap)
+                if (!regions[i].remap)
                     continue;
-                int oldId = regions[i].Id;
+                int oldId = regions[i].id;
                 int newId = ++regIdGen;
                 for (int j = i; j < nreg; ++j)
                 {
-                    if (regions[j].Id == oldId)
+                    if (regions[j].id == oldId)
                     {
-                        regions[j].Id = newId;
-                        regions[j].Remap = false;
+                        regions[j].id = newId;
+                        regions[j].remap = false;
                     }
                 }
             }
-            chf.MaxRegions = regIdGen;
+            chf.maxRegions = regIdGen;
 
             //重新命名区域
-            for (int i = 0; i < chf.SpanCount; ++i)
+            for (int i = 0; i < chf.spanCount; ++i)
             {
                 if (srcReg[i] > 0)
                 {
-                    srcReg[i] = regions[srcReg[i]].Id;
+                    srcReg[i] = regions[srcReg[i]].id;
                 }
 
             }
 
             // Return regions that we found to be overlapping.
             //for (int i = 0; i < nreg; ++i)
-            //    if (regions[i].Overlap)
+            //    if (regions[i].overlap)
             //        overlaps.push(regions[i].id);
         }
 
         private static bool MergeRegions(RcRegion rega, RcRegion regb)
         {
 
-            int aid = rega.Id;
-            int bid = regb.Id;
+            int aid = rega.id;
+            int bid = regb.id;
 
-            List<int> acon = new List<int>(rega.Connections.Count);
-            for (int i = 0; i < rega.Connections.Count; ++i)
-                acon.Insert(i, rega.Connections[i]);
+            List<int> acon = new List<int>(rega.connections.Count);
+            for (int i = 0; i < rega.connections.Count; ++i)
+                acon.Insert(i, rega.connections[i]);
 
-            List<int> bcon = regb.Connections;
+            List<int> bcon = regb.connections;
 
             //发现a的插入点
             int insa = -1;
@@ -624,22 +624,22 @@ namespace GameEditor.RecastEditor
                 return false;
 
 
-            rega.Connections.Clear();
+            rega.connections.Clear();
 
             for (int i = 0, ni = acon.Count; i < ni - 1; ++i)
-                rega.Connections.Add(acon[(insa + 1 + i) % ni]);
+                rega.connections.Add(acon[(insa + 1 + i) % ni]);
 
             for (int i = 0, ni = bcon.Count; i < ni - 1; ++i)
-                rega.Connections.Add(bcon[(insb + 1 + i) % ni]);
+                rega.connections.Add(bcon[(insb + 1 + i) % ni]);
 
             RemoveAdjacentNeighbours(rega);
 
-            for (int j = 0; j < regb.Floors.Count; ++j)
-                AddUniqueFloorRegion(rega, regb.Floors[j]);
+            for (int j = 0; j < regb.floors.Count; ++j)
+                AddUniqueFloorRegion(rega, regb.floors[j]);
 
-            rega.SpanCount += regb.SpanCount;
-            regb.SpanCount = 0;
-            regb.Connections.Clear();
+            rega.spanCount += regb.spanCount;
+            regb.spanCount = 0;
+            regb.connections.Clear();
 
             return true;
 
@@ -648,18 +648,18 @@ namespace GameEditor.RecastEditor
         private static void ReplaceNeighbour(RcRegion reg, int oldId, int newId)
         {
             bool neiChanged = false;
-            for (int i = 0; i < reg.Connections.Count; ++i)
+            for (int i = 0; i < reg.connections.Count; ++i)
             {
-                if (reg.Connections[i] == oldId)
+                if (reg.connections[i] == oldId)
                 {
-                    reg.Connections[i] = newId;
+                    reg.connections[i] = newId;
                     neiChanged = true;
                 }
             }
-            for (int i = 0; i < reg.Floors.Count; ++i)
+            for (int i = 0; i < reg.floors.Count; ++i)
             {
-                if (reg.Floors[i] == oldId)
-                    reg.Floors[i] = newId;
+                if (reg.floors[i] == oldId)
+                    reg.floors[i] = newId;
             }
             if (neiChanged)
                 RemoveAdjacentNeighbours(reg);
@@ -667,10 +667,10 @@ namespace GameEditor.RecastEditor
 
         private static void AddUniqueFloorRegion(RcRegion reg, int n)
         {
-            for (int i = 0; i < reg.Floors.Count; ++i)
-                if (reg.Floors[i] == n)
+            for (int i = 0; i < reg.floors.Count; ++i)
+                if (reg.floors[i] == n)
                     return;
-            reg.Floors.Add(n);
+            reg.floors.Add(n);
         }
 
         private static void WalkContour(CompactHeightfield chf, int[] srcReg, int x, int y, int i, int dir, List<int> cont)
@@ -678,13 +678,13 @@ namespace GameEditor.RecastEditor
             int startDir = dir;
             int starti = i;
 
-            CompactSpan ss = chf.SpanList[i];
+            CompactSpan ss = chf.spans[i];
             int curReg = 0;
             if (RecastUtility.RcGetCon(ss, dir) != RecastConfig.RC_NOT_CONNECTED)
             {
                 int ax = x + RecastUtility.RcGetDirOffsetX(dir);
                 int ay = y + RecastUtility.RcGetDirOffsetY(dir);
-                int ai = chf.CellList[ax + ay * chf.Width].Index + RecastUtility.RcGetCon(ss, dir);
+                int ai = chf.cells[ax + ay * chf.width].index + RecastUtility.RcGetCon(ss, dir);
                 curReg = srcReg[ai];
             }
             cont.Add(curReg);
@@ -694,7 +694,7 @@ namespace GameEditor.RecastEditor
             //从如果dir方向遇到边界就尝试顺时针旋转dir继续走，dir方向可走就走一格，然后逆时针旋转dir继续尝试……，
             while (++iter < 40000)
             {
-                CompactSpan s = chf.SpanList[i];
+                CompactSpan s = chf.spans[i];
 
                 if (IsSolidEdge(chf, srcReg, x, y, i, dir))
                 {
@@ -704,7 +704,7 @@ namespace GameEditor.RecastEditor
                     {
                         int ax = x + RecastUtility.RcGetDirOffsetX(dir);
                         int ay = y + RecastUtility.RcGetDirOffsetY(dir);
-                        int ai = chf.CellList[ax + ay * chf.Width].Index + RecastUtility.RcGetCon(s, dir);
+                        int ai = chf.cells[ax + ay * chf.width].index + RecastUtility.RcGetCon(s, dir);
                         r = srcReg[ai];
                     }
                     if (r != curReg)
@@ -722,8 +722,8 @@ namespace GameEditor.RecastEditor
                     int ny = y + RecastUtility.RcGetDirOffsetY(dir);
                     if (RecastUtility.RcGetCon(s, dir) != RecastConfig.RC_NOT_CONNECTED)
                     {
-                        CompactCell nc = chf.CellList[nx + ny * chf.Width];
-                        ni = nc.Index + RecastUtility.RcGetCon(s, dir);
+                        CompactCell nc = chf.cells[nx + ny * chf.width];
+                        ni = nc.index + RecastUtility.RcGetCon(s, dir);
                     }
                     if (ni == -1)
                     {
@@ -762,16 +762,16 @@ namespace GameEditor.RecastEditor
         private static bool CanMergeWithRegion(RcRegion rega, RcRegion regb)
         {
 
-            if (rega.AreaType != regb.AreaType)
+            if (rega.areaType != regb.areaType)
             {
                 return false;
             }
 
             //两个region之间无多处连接
             int n = 0;
-            for (int i = 0; i < rega.Connections.Count; ++i)
+            for (int i = 0; i < rega.connections.Count; ++i)
             {
-                if (rega.Connections[i] == regb.Id)
+                if (rega.connections[i] == regb.id)
                     n++;
             }
             if (n > 1)
@@ -779,9 +779,9 @@ namespace GameEditor.RecastEditor
                 return false;
             }
 
-            for (int i = 0; i < rega.Floors.Count; ++i)
+            for (int i = 0; i < rega.floors.Count; ++i)
             {
-                if (rega.Floors[i] == regb.Id)
+                if (rega.floors[i] == regb.id)
                     return false;
             }
             return true;
@@ -791,13 +791,13 @@ namespace GameEditor.RecastEditor
         private static bool IsSolidEdge(CompactHeightfield chf, int[] srcReg, int x, int y, int i, int dir)
         {
             //相邻的span与自身是不同区域的，则视为边缘
-            CompactSpan s = chf.SpanList[i];
+            CompactSpan s = chf.spans[i];
             int r = 0;
             if (RecastUtility.RcGetCon(s, dir) != RecastConfig.RC_NOT_CONNECTED)
             {
                 int ax = x + RecastUtility.RcGetDirOffsetX(dir);
                 int ay = y + RecastUtility.RcGetDirOffsetY(dir);
-                int ai = chf.CellList[ax + ay * chf.Width].Index + RecastUtility.RcGetCon(s, dir);
+                int ai = chf.cells[ax + ay * chf.width].index + RecastUtility.RcGetCon(s, dir);
                 r = srcReg[ai];
             }
             if (r == srcReg[i])
@@ -808,15 +808,15 @@ namespace GameEditor.RecastEditor
         private static void RemoveAdjacentNeighbours(RcRegion reg)
         {
             //移除相邻的重复项
-            for (int i = 0; i < reg.Connections.Count && reg.Connections.Count > 1;)
+            for (int i = 0; i < reg.connections.Count && reg.connections.Count > 1;)
             {
-                int ni = (i + 1) % reg.Connections.Count;
-                if (reg.Connections[i] == reg.Connections[ni])
+                int ni = (i + 1) % reg.connections.Count;
+                if (reg.connections[i] == reg.connections[ni])
                 {
 
-                    for (int j = i; j < reg.Connections.Count - 1; ++j)
-                        reg.Connections[j] = reg.Connections[j + 1];
-                    reg.Connections.RemoveAt(reg.Connections.Count - 1);
+                    for (int j = i; j < reg.connections.Count - 1; ++j)
+                        reg.connections[j] = reg.connections[j + 1];
+                    reg.connections.RemoveAt(reg.connections.Count - 1);
                 }
                 else
                     ++i;
@@ -825,28 +825,28 @@ namespace GameEditor.RecastEditor
 
         public static void RcBuildContours(CompactHeightfield chf, RcContourSet rcContourSet)
         {
-            int w = chf.Width;
-            int h = chf.Height;
+            int w = chf.width;
+            int h = chf.height;
 
-            int[] flags = new int[chf.SpanCount];
+            int[] flags = new int[chf.spanCount];
 
             List<int> verts = new List<int>();
             List<int> simplified = new List<int>();
 
-            rcContourSet.NumConts = 0;
+            rcContourSet.numConts = 0;
 
             for (int y = 0; y < h; ++y)
             {
                 for (int x = 0; x < w; ++x)
                 {
-                    CompactCell c = chf.CellList[x + y * w];
-                    for (int i = c.Index, ni = c.Index + c.Count; i < ni; ++i)
+                    CompactCell c = chf.cells[x + y * w];
+                    for (int i = c.index, ni = c.index + c.count; i < ni; ++i)
                     {
                         int res = 0;
 
-                        CompactSpan s = chf.SpanList[i];
+                        CompactSpan s = chf.spans[i];
 
-                        if (chf.SpanList[i].Reg == 0)
+                        if (chf.spans[i].reg == 0)
                         {
                             flags[i] = 0;
                             continue;
@@ -860,12 +860,12 @@ namespace GameEditor.RecastEditor
                             {
                                 int ax = x + RecastUtility.RcGetDirOffsetX(dir);
                                 int ay = y + RecastUtility.RcGetDirOffsetY(dir);
-                                int ai = (int)chf.CellList[ax + ay * w].Index + RecastUtility.RcGetCon(s, dir);
-                                r = chf.SpanList[ai].Reg;
+                                int ai = (int)chf.cells[ax + ay * w].index + RecastUtility.RcGetCon(s, dir);
+                                r = chf.spans[ai].reg;
                             }
 
                             //相同region，则连通，连通标记为1
-                            if (r == chf.SpanList[i].Reg)
+                            if (r == chf.spans[i].reg)
                                 res |= (1 << dir);
                         }
                         //异或，反转标志，连通标记为0，不连通标记为1
@@ -878,8 +878,8 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = 0; x < w; ++x)
                 {
-                    CompactCell c = chf.CellList[x + y * w];
-                    for (int i = c.Index, ni = c.Index + c.Count; i < ni; ++i)
+                    CompactCell c = chf.cells[x + y * w];
+                    for (int i = c.index, ni = c.index + c.count; i < ni; ++i)
                     {
                         //全连通和全不连通的点都无需考虑
                         if (flags[i] == 0 || flags[i] == 0xf)
@@ -887,11 +887,11 @@ namespace GameEditor.RecastEditor
                             flags[i] = 0;
                             continue;
                         }
-                        int reg = chf.SpanList[i].Reg;
+                        int reg = chf.spans[i].reg;
                         if (reg == 0)
                             continue;
 
-                        AREATYPE area = chf.AreaList[i];
+                        AREATYPE area = chf.areas[i];
 
                         verts.Clear();
                         simplified.Clear();
@@ -907,81 +907,81 @@ namespace GameEditor.RecastEditor
 
                             RcContour cont = new RcContour
                             {
-                                NumVerts = simplified.Count / 4,
-                                Verts = simplified.ToArray(),
-                                Reg = reg,
-                                Area = area
+                                numVerts = simplified.Count / 4,
+                                verts = simplified.ToArray(),
+                                reg = reg,
+                                area = area
                             };
 
-                            rcContourSet.ContsList.Add(cont);
-                            rcContourSet.NumConts++;
+                            rcContourSet.conts.Add(cont);
+                            rcContourSet.numConts++;
                         }
                     }
                 }
             }
 
             //打通空洞
-            if (rcContourSet.NumConts > 0)
+            if (rcContourSet.numConts > 0)
             {
 
-                int[] winding = new int[rcContourSet.NumConts];
+                int[] winding = new int[rcContourSet.numConts];
 
                 int nholes = 0;
-                for (int i = 0; i < rcContourSet.NumConts; ++i)
+                for (int i = 0; i < rcContourSet.numConts; ++i)
                 {
-                    RcContour cont = rcContourSet.ContsList[i];
+                    RcContour cont = rcContourSet.conts[i];
 
                     //只要根据叉乘算出每个轮廓多边形的有向面积，如果结果为小于0，则为轮廓点的顺序为逆时针，这个轮廓就是一个空洞。
-                    winding[i] = CalcAreaOfPolygon2D(cont.Verts, cont.NumVerts) < 0 ? -1 : 1;
+                    winding[i] = CalcAreaOfPolygon2D(cont.verts, cont.numVerts) < 0 ? -1 : 1;
                     if (winding[i] < 0)
                         nholes++;
                 }
 
                 if (nholes > 0)
                 {
-                    int nregions = chf.MaxRegions;
+                    int nregions = chf.maxRegions;
 
                     RcContourRegion[] regions = new RcContourRegion[nregions];
 
-                    for (int i = 0; i < rcContourSet.NumConts; ++i)
+                    for (int i = 0; i < rcContourSet.numConts; ++i)
                     {
-                        RcContour cont = rcContourSet.ContsList[i];
+                        RcContour cont = rcContourSet.conts[i];
 
                         if (winding[i] > 0)
                         {
-                            if (regions[cont.Reg] != null)
-                                Debug.LogErrorFormat("rcBuildContours: Multiple outlines for region %d.", cont.Reg);
+                            if (regions[cont.reg] != null)
+                                Debug.LogErrorFormat("rcBuildContours: Multiple outlines for region %d.", cont.reg);
 
-                            regions[cont.Reg] = new RcContourRegion();
-                            regions[cont.Reg].Outline = cont;
+                            regions[cont.reg] = new RcContourRegion();
+                            regions[cont.reg].outline = cont;
                         }
                         else
                         {
-                            regions[cont.Reg].NumHoles++;
+                            regions[cont.reg].numHoles++;
                         }
                     }
 
                     //区域id从1开始
                     for (int i = 1; i < nregions; i++)
                     {
-                        if (regions[i] != null && regions[i].NumHoles > 0)
+                        if (regions[i] != null && regions[i].numHoles > 0)
                         {
-                            regions[i].Holes = new RcContourHole[regions[i].NumHoles];
-                            regions[i].NumHoles = 0;
+                            regions[i].holes = new RcContourHole[regions[i].numHoles];
+                            regions[i].numHoles = 0;
                         }
                     }
 
-                    for (int i = 0; i < rcContourSet.NumConts; ++i)
+                    for (int i = 0; i < rcContourSet.numConts; ++i)
                     {
-                        RcContour cont = rcContourSet.ContsList[i];
+                        RcContour cont = rcContourSet.conts[i];
 
-                        RcContourRegion reg = regions[cont.Reg];
+                        RcContourRegion reg = regions[cont.reg];
 
                         if (winding[i] < 0)
                         {
-                            reg.Holes[reg.NumHoles] = new RcContourHole();
-                            reg.Holes[reg.NumHoles].Contour = cont;
-                            reg.NumHoles++;
+                            reg.holes[reg.numHoles] = new RcContourHole();
+                            reg.holes[reg.numHoles].contour = cont;
+                            reg.numHoles++;
                         }
 
                     }
@@ -990,9 +990,9 @@ namespace GameEditor.RecastEditor
                     for (int i = 1; i < nregions; i++)
                     {
                         RcContourRegion reg = regions[i];
-                        if (reg.NumHoles == 0) continue;
+                        if (reg.numHoles == 0) continue;
 
-                        if (reg.Outline != null)
+                        if (reg.outline != null)
                         {
                             MergeRegionHoles(reg);
                         }
@@ -1009,52 +1009,52 @@ namespace GameEditor.RecastEditor
 
         private static void MergeRegionHoles(RcContourRegion region)
         {
-            for (int i = 0; i < region.NumHoles; i++)
+            for (int i = 0; i < region.numHoles; i++)
             {
-                FindLeftMostVertex(region.Holes[i].Contour, out region.Holes[i].MinX, out region.Holes[i].MinZ, out region.Holes[i].LeftMost);
+                FindLeftMostVertex(region.holes[i].contour, out region.holes[i].minX, out region.holes[i].minZ, out region.holes[i].leftMost);
             }
 
-            System.Array.Sort(region.Holes, CompareHoles);
+            System.Array.Sort(region.holes, CompareHoles);
 
-            int maxVerts = region.Outline.NumVerts;
+            int maxVerts = region.outline.numVerts;
 
-            for (int i = 0; i < region.NumHoles; i++)
+            for (int i = 0; i < region.numHoles; i++)
             {
-                maxVerts += region.Holes[i].Contour.NumVerts;
+                maxVerts += region.holes[i].contour.numVerts;
             }
 
-            RcContour outline = region.Outline;
+            RcContour outline = region.outline;
 
             List<RcPotentialDiagonal> diags = new List<RcPotentialDiagonal>();
 
-            for (int i = 0; i < region.NumHoles; i++)
+            for (int i = 0; i < region.numHoles; i++)
             {
-                RcContour hole = region.Holes[i].Contour;
+                RcContour hole = region.holes[i].contour;
 
 
                 int index = -1;
-                int bestVertex = region.Holes[i].LeftMost;
-                for (int iter = 0; iter < hole.NumVerts; iter++)
+                int bestVertex = region.holes[i].leftMost;
+                for (int iter = 0; iter < hole.numVerts; iter++)
                 {
                     //找到空洞的bestVertex（bestVetex为最左边的点，如果有多个最左点，取其中最下的点），并把N个空洞按照bestVertex排序，按照排序好的空洞顺序遍历。
                     int ndiags = 0;
-                    int[] corner = { hole.Verts[bestVertex * 4], hole.Verts[bestVertex * 4 + 1], hole.Verts[bestVertex * 4 + 2], hole.Verts[bestVertex * 4 + 3] };
+                    int[] corner = { hole.verts[bestVertex * 4], hole.verts[bestVertex * 4 + 1], hole.verts[bestVertex * 4 + 2], hole.verts[bestVertex * 4 + 3] };
                     
-                    for (int j = 0; j < outline.NumVerts; j++)
+                    for (int j = 0; j < outline.numVerts; j++)
                     {
                         int piIndex = j * 4;
-                        int[] pi = { outline.Verts[piIndex], outline.Verts[piIndex + 1], outline.Verts[piIndex + 2] };
+                        int[] pi = { outline.verts[piIndex], outline.verts[piIndex + 1], outline.verts[piIndex + 2] };
 
-                        int pi1Index =RecastUtility.Next(j, outline.NumVerts);
-                        int[] pi1 = { outline.Verts[pi1Index], outline.Verts[pi1Index + 1], outline.Verts[pi1Index + 2] };
+                        int pi1Index =RecastUtility.Next(j, outline.numVerts);
+                        int[] pi1 = { outline.verts[pi1Index], outline.verts[pi1Index + 1], outline.verts[pi1Index + 2] };
 
-                        int pin1Index = RecastUtility.Prev(j, outline.NumVerts);
-                        int[] pin1 = { outline.Verts[pin1Index], outline.Verts[pin1Index + 1], outline.Verts[pin1Index + 2] };
+                        int pin1Index = RecastUtility.Prev(j, outline.numVerts);
+                        int[] pin1 = { outline.verts[pin1Index], outline.verts[pin1Index + 1], outline.verts[pin1Index + 2] };
 
                         if (RecastUtility.InCone(pi, pi1, pin1, corner))
                         {
-                            int dx = outline.Verts[j * 4 + 0] - corner[0];
-                            int dz = outline.Verts[j * 4 + 2] - corner[2];
+                            int dx = outline.verts[j * 4 + 0] - corner[0];
+                            int dz = outline.verts[j * 4 + 2] - corner[2];
                             diags.Add(new RcPotentialDiagonal(j, dx * dx + dz * dz));
                             ndiags++;
                         }
@@ -1065,16 +1065,16 @@ namespace GameEditor.RecastEditor
                     index = -1;
                     for (int j = 0; j < ndiags; j++)
                     {
-                        int pt = diags[j].Vert * 4;
+                        int pt = diags[j].vert * 4;
                         //是否和与外轮廓相交
-                        bool intersect = IntersectSegContour(pt, corner, diags[i].Vert, outline.NumVerts, outline.Verts);
+                        bool intersect = IntersectSegContour(pt, corner, diags[i].vert, outline.numVerts, outline.verts);
 
                         //是否和其他空洞相交
-                        for (int k = i; k < region.NumHoles && !intersect; k++)
-                            intersect |= IntersectSegContour(pt, corner, -1, region.Holes[k].Contour.NumVerts, region.Holes[k].Contour.Verts);
+                        for (int k = i; k < region.numHoles && !intersect; k++)
+                            intersect |= IntersectSegContour(pt, corner, -1, region.holes[k].contour.numVerts, region.holes[k].contour.verts);
                         if (!intersect)
                         {
-                            index = diags[j].Vert;
+                            index = diags[j].vert;
                             break;
                         }
                     }
@@ -1085,7 +1085,7 @@ namespace GameEditor.RecastEditor
                         break;
 
                     // 尝试下一个点
-                    bestVertex = (bestVertex + 1) % hole.NumVerts;
+                    bestVertex = (bestVertex + 1) % hole.numVerts;
                 }
 
                 if (index == -1)
@@ -1093,7 +1093,7 @@ namespace GameEditor.RecastEditor
                     Debug.LogError("mergeHoles: Failed to find merge points");
                     continue;
                 }
-                if (!MergeContours(region.Outline, hole, index, bestVertex))
+                if (!MergeContours(region.outline, hole, index, bestVertex))
                 {
                     Debug.LogError("mergeHoles: Failed to merge contours %p and %p.");
                     continue;
@@ -1104,38 +1104,38 @@ namespace GameEditor.RecastEditor
 
         private static bool MergeContours(RcContour ca, RcContour cb, int ia, int ib)
         {
-            int maxVerts = ca.NumVerts + cb.NumVerts + 2;
+            int maxVerts = ca.numVerts + cb.numVerts + 2;
             int[] verts = new int[maxVerts * 4];
 
             int nv = 0;
 
-            for (int i = 0; i <= ca.NumVerts; ++i)
+            for (int i = 0; i <= ca.numVerts; ++i)
             {
                 int dstIndex = nv * 4;
-                int srcIndex = ((ia + i) % ca.NumVerts) * 4;
-                verts[dstIndex] = ca.Verts[srcIndex];
-                verts[dstIndex + 1] = ca.Verts[srcIndex + 1];
-                verts[dstIndex + 2] = ca.Verts[srcIndex + 2];
-                verts[dstIndex + 3] = ca.Verts[srcIndex + 3];
+                int srcIndex = ((ia + i) % ca.numVerts) * 4;
+                verts[dstIndex] = ca.verts[srcIndex];
+                verts[dstIndex + 1] = ca.verts[srcIndex + 1];
+                verts[dstIndex + 2] = ca.verts[srcIndex + 2];
+                verts[dstIndex + 3] = ca.verts[srcIndex + 3];
                 nv++;
             }
 
-            for (int i = 0; i <= cb.NumVerts; ++i)
+            for (int i = 0; i <= cb.numVerts; ++i)
             {
                 int dstIndex = nv * 4;
-                int srcIndex = ((ib + i) % cb.NumVerts) * 4;
-                verts[dstIndex] = cb.Verts[srcIndex];
-                verts[dstIndex + 1] = cb.Verts[srcIndex + 1];
-                verts[dstIndex + 2] = cb.Verts[srcIndex + 2];
-                verts[dstIndex + 3] = cb.Verts[srcIndex + 3];
+                int srcIndex = ((ib + i) % cb.numVerts) * 4;
+                verts[dstIndex] = cb.verts[srcIndex];
+                verts[dstIndex + 1] = cb.verts[srcIndex + 1];
+                verts[dstIndex + 2] = cb.verts[srcIndex + 2];
+                verts[dstIndex + 3] = cb.verts[srcIndex + 3];
                 nv++;
             }
 
-            ca.Verts = verts;
-            ca.NumVerts = nv;
+            ca.verts = verts;
+            ca.numVerts = nv;
 
-            cb.Verts = new int[0];
-            cb.NumVerts = 0;
+            cb.verts = new int[0];
+            cb.numVerts = 0;
 
             return true;
         }
@@ -1143,13 +1143,13 @@ namespace GameEditor.RecastEditor
 
         private static void FindLeftMostVertex(RcContour contour, out int minx, out int minz, out int leftmost)
         {
-            minx = contour.Verts[0];
-            minz = contour.Verts[2];
+            minx = contour.verts[0];
+            minz = contour.verts[2];
             leftmost = 0;
-            for (int i = 1; i < contour.NumVerts; i++)
+            for (int i = 1; i < contour.numVerts; i++)
             {
-                int x = contour.Verts[i * 4 + 0];
-                int z = contour.Verts[i * 4 + 2];
+                int x = contour.verts[i * 4 + 0];
+                int z = contour.verts[i * 4 + 2];
                 if (x < minx || (x == minx && z < minz))
                 {
                     minx = x;
@@ -1162,18 +1162,18 @@ namespace GameEditor.RecastEditor
         private static int CompareHoles(RcContourHole va, RcContourHole vb)
         {
 
-            if (va.MinX == vb.MinX)
+            if (va.minX == vb.minX)
             {
-                if (va.MinZ < vb.MinZ)
+                if (va.minZ < vb.minZ)
                     return -1;
-                if (va.MinZ > vb.MinZ)
+                if (va.minZ > vb.minZ)
                     return 1;
             }
             else
             {
-                if (va.MinX < vb.MinX)
+                if (va.minX < vb.minX)
                     return -1;
-                if (va.MinX > vb.MinX)
+                if (va.minX > vb.minX)
                     return 1;
             }
             return 0;
@@ -1183,9 +1183,9 @@ namespace GameEditor.RecastEditor
         private static int CompareDiagDist(RcPotentialDiagonal a, RcPotentialDiagonal b)
         {
 
-            if (a.Dist < b.Dist)
+            if (a.dist < b.dist)
                 return -1;
-            if (a.Dist > b.Dist)
+            if (a.dist > b.dist)
                 return 1;
             return 0;
         }
@@ -1232,7 +1232,7 @@ namespace GameEditor.RecastEditor
             int startDir = dir;
             int starti = i;
 
-            AREATYPE area = chf.AreaList[i];
+            AREATYPE area = chf.areas[i];
 
             int iter = 0;
             while (++iter < 40000)
@@ -1258,14 +1258,14 @@ namespace GameEditor.RecastEditor
                     }
                     int r = 0;
 
-                    CompactSpan s = chf.SpanList[i];
+                    CompactSpan s = chf.spans[i];
                     if (RecastUtility.RcGetCon(s, dir) != RecastConfig.RC_NOT_CONNECTED)
                     {
                         int ax = x + RecastUtility.RcGetDirOffsetX(dir);
                         int ay = y + RecastUtility.RcGetDirOffsetY(dir);
-                        int ai = chf.CellList[ax + ay * chf.Width].Index + RecastUtility.RcGetCon(s, dir);
-                        r = chf.SpanList[ai].Reg;
-                        if (area != chf.AreaList[ai])
+                        int ai = chf.cells[ax + ay * chf.width].index + RecastUtility.RcGetCon(s, dir);
+                        r = chf.spans[ai].reg;
+                        if (area != chf.areas[ai])
                             isAreaBorder = true;
                     }
 
@@ -1290,11 +1290,11 @@ namespace GameEditor.RecastEditor
 
                     int nx = x + RecastUtility.RcGetDirOffsetX(dir);
                     int ny = y + RecastUtility.RcGetDirOffsetY(dir);
-                    CompactSpan s = chf.SpanList[i];
+                    CompactSpan s = chf.spans[i];
                     if (RecastUtility.RcGetCon(s, dir) != RecastConfig.RC_NOT_CONNECTED)
                     {
-                        CompactCell nc = chf.CellList[nx + ny * chf.Width];
-                        ni = nc.Index + RecastUtility.RcGetCon(s, dir);
+                        CompactCell nc = chf.cells[nx + ny * chf.width];
+                        ni = nc.index + RecastUtility.RcGetCon(s, dir);
                     }
                     if (ni == -1)
                     {
@@ -1554,33 +1554,33 @@ namespace GameEditor.RecastEditor
         private static int GetCornerHeight(int x, int y, int i, int dir, CompactHeightfield chf)
         {
 
-            CompactSpan s = chf.SpanList[i];
-            int ch = s.Y;
+            CompactSpan s = chf.spans[i];
+            int ch = s.y;
             // 逆时针旋转di
             int dirp = (dir + 1) & 0x3;
 
             int[] regs = { 0, 0, 0, 0 };
 
-            regs[0] = chf.SpanList[i].Reg | ((int)chf.AreaList[i] << 16);
+            regs[0] = chf.spans[i].reg | ((int)chf.areas[i] << 16);
 
             //取周围4个span的最大y作为边界的y
             if (RecastUtility.RcGetCon(s, dir) != RecastConfig.RC_NOT_CONNECTED)
             {
                 int ax = x + RecastUtility.RcGetDirOffsetX(dir);
                 int ay = y + RecastUtility.RcGetDirOffsetY(dir);
-                int ai = chf.CellList[ax + ay * chf.Width].Index + RecastUtility.RcGetCon(s, dir);
-                CompactSpan as1 = chf.SpanList[ai];
-                ch = Mathf.Max(ch, as1.Y);
-                regs[1] = chf.SpanList[ai].Reg | ((int)chf.AreaList[ai] << 16);
+                int ai = chf.cells[ax + ay * chf.width].index + RecastUtility.RcGetCon(s, dir);
+                CompactSpan as1 = chf.spans[ai];
+                ch = Mathf.Max(ch, as1.y);
+                regs[1] = chf.spans[ai].reg | ((int)chf.areas[ai] << 16);
 
                 if (RecastUtility.RcGetCon(as1, dirp) != RecastConfig.RC_NOT_CONNECTED)
                 {
                     int ax2 = ax + RecastUtility.RcGetDirOffsetX(dirp);
                     int ay2 = ay + RecastUtility.RcGetDirOffsetY(dirp);
-                    int ai2 = (int)chf.CellList[ax2 + ay2 * chf.Width].Index + RecastUtility.RcGetCon(as1, dirp);
-                    CompactSpan as2 = chf.SpanList[ai2];
-                    ch = Mathf.Max(ch, as2.Y);
-                    regs[2] = chf.SpanList[ai2].Reg | ((int)chf.AreaList[ai2] << 16);
+                    int ai2 = (int)chf.cells[ax2 + ay2 * chf.width].index + RecastUtility.RcGetCon(as1, dirp);
+                    CompactSpan as2 = chf.spans[ai2];
+                    ch = Mathf.Max(ch, as2.y);
+                    regs[2] = chf.spans[ai2].reg | ((int)chf.areas[ai2] << 16);
                 }
             }
 
@@ -1588,19 +1588,19 @@ namespace GameEditor.RecastEditor
             {
                 int ax = x + RecastUtility.RcGetDirOffsetX(dirp);
                 int ay = y + RecastUtility.RcGetDirOffsetY(dirp);
-                int ai = chf.CellList[ax + ay * chf.Width].Index + RecastUtility.RcGetCon(s, dirp);
-                CompactSpan as1 = chf.SpanList[ai];
-                ch = Mathf.Max(ch, as1.Y);
-                regs[3] = chf.SpanList[ai].Reg | ((int)chf.AreaList[ai] << 16);
+                int ai = chf.cells[ax + ay * chf.width].index + RecastUtility.RcGetCon(s, dirp);
+                CompactSpan as1 = chf.spans[ai];
+                ch = Mathf.Max(ch, as1.y);
+                regs[3] = chf.spans[ai].reg | ((int)chf.areas[ai] << 16);
 
                 if (RecastUtility.RcGetCon(as1, dir) != RecastConfig.RC_NOT_CONNECTED)
                 {
                     int ax2 = ax + RecastUtility.RcGetDirOffsetX(dir);
                     int ay2 = ay + RecastUtility.RcGetDirOffsetY(dir);
-                    int ai2 = (int)chf.CellList[ax2 + ay2 * chf.Width].Index + RecastUtility.RcGetCon(as1, dir);
-                    CompactSpan as2 = chf.SpanList[ai2];
-                    ch = Mathf.Max(ch, as2.Y);
-                    regs[2] = chf.SpanList[ai2].Reg | ((int)chf.AreaList[ai2] << 16);
+                    int ai2 = (int)chf.cells[ax2 + ay2 * chf.width].index + RecastUtility.RcGetCon(as1, dir);
+                    CompactSpan as2 = chf.spans[ai2];
+                    ch = Mathf.Max(ch, as2.y);
+                    regs[2] = chf.spans[ai2].reg | ((int)chf.areas[ai2] << 16);
                 }
             }
 

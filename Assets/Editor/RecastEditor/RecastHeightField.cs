@@ -34,12 +34,12 @@ namespace GameEditor.RecastEditor
             triBBMax = Vector3.Max(triBBMax, v1);
             triBBMax = Vector3.Max(triBBMax, v2);
 
-            Vector3 hfBBMin = hf.MinBounds;
-            Vector3 hfBBMax = hf.MaxBounds;
+            Vector3 hfBBMin = hf.minBounds;
+            Vector3 hfBBMax = hf.maxBounds;
 
-            float cellSize = hf.CellSize;
-            float inverseCellSize = 1 / hf.CellSize;
-            float inverseCellHeight = 1 / hf.CellHeight;
+            float cellSize = hf.cellSize;
+            float inverseCellSize = 1 / hf.cellSize;
+            float inverseCellHeight = 1 / hf.cellHeight;
 
 
 
@@ -56,8 +56,8 @@ namespace GameEditor.RecastEditor
             int z1 = ((int)((triBBMax[2] - hfBBMin[2]) * inverseCellSize));
 
             // 案例里写着·使用-1比0 更好的平铺三角形？？，为什么呢
-            z0 = Mathf.Clamp(z0, -1, hf.Height - 1);
-            z1 = Mathf.Clamp(z1, 0, hf.Height - 1);
+            z0 = Mathf.Clamp(z0, -1, hf.height - 1);
+            z1 = Mathf.Clamp(z1, 0, hf.height - 1);
 
 
             //三角形被正方形切割最多切割出7边形，存放四组多边形的数据
@@ -108,13 +108,13 @@ namespace GameEditor.RecastEditor
                 int x0 = ((int)((minX - hfBBMin[0]) * inverseCellSize));
                 int x1 = ((int)((maxX - hfBBMin[0]) * inverseCellSize));
 
-                //recastnavigation 里x0 >= hf.Width ,但是本地测试单独一个正方体体素化的时候，假如多了=，会缺失一面体素
-                if (x1 < 0 || x0 > hf.Width)
+                //recastnavigation 里x0 >= hf.width ,但是本地测试单独一个正方体体素化的时候，假如多了=，会缺失一面体素
+                if (x1 < 0 || x0 > hf.width)
                 {
                     continue;
                 }
-                x0 = Mathf.Clamp(x0, -1, hf.Width - 1);
-                x1 = Mathf.Clamp(x1, 0, hf.Width - 1);
+                x0 = Mathf.Clamp(x0, -1, hf.width - 1);
+                x1 = Mathf.Clamp(x1, 0, hf.width - 1);
 
 
                 int nvRow2;
@@ -196,54 +196,54 @@ namespace GameEditor.RecastEditor
         {
             Span newSpan = new Span(min, max, areaType);
 
-            int columnIndex = x + z * hf.Width;
+            int columnIndex = x + z * hf.width;
 
             //缓存比newSpan小的体素的列表
             Span previousSpan = null;
             //进行比较的体素
-            Span currentSpan = hf.SpanList[columnIndex];
+            Span currentSpan = hf.spans[columnIndex];
 
             while (currentSpan != null)
             {
                 //newSpan位置在currentSpan之下
-                if (currentSpan.Min > newSpan.Max)
+                if (currentSpan.min > newSpan.max)
                 {
                     break;
                 }
 
                 //newSpan位置在currentSpan之上
-                if (currentSpan.Max < newSpan.Min)
+                if (currentSpan.max < newSpan.min)
                 {
                     //切换到链表的下一个体素
                     previousSpan = currentSpan;
-                    currentSpan = currentSpan.Next;
+                    currentSpan = currentSpan.next;
                 }
                 //newSpan位置与currentSpan重叠
                 else
                 {
-                    if (currentSpan.Min < newSpan.Min)
+                    if (currentSpan.min < newSpan.min)
                     {
-                        newSpan.Min = currentSpan.Min;
+                        newSpan.min = currentSpan.min;
                     }
-                    if (currentSpan.Max > newSpan.Max)
+                    if (currentSpan.max > newSpan.max)
                     {
-                        newSpan.Max = currentSpan.Max;
+                        newSpan.max = currentSpan.max;
                     }
 
-                    if (Mathf.Abs(newSpan.Max - currentSpan.Max) < hf.WalkableClimb)
+                    if (Mathf.Abs(newSpan.max - currentSpan.max) < hf.walkableClimb)
                     {
-                        newSpan.AreaID = (AREATYPE)Mathf.Max((int)newSpan.AreaID, (int)currentSpan.AreaID);
+                        newSpan.areaID = (AREATYPE)Mathf.Max((int)newSpan.areaID, (int)currentSpan.areaID);
                     }
 
                     //从链表中释放currentSpan
-                    Span next = currentSpan.Next;
+                    Span next = currentSpan.next;
                     if (previousSpan != null)
                     {
-                        previousSpan.Next = next;
+                        previousSpan.next = next;
                     }
                     else
                     {
-                        hf.SpanList[columnIndex] = next;
+                        hf.spans[columnIndex] = next;
                     }
 
                     //切换currentSpan 进行下一轮比较
@@ -255,13 +255,13 @@ namespace GameEditor.RecastEditor
             if (previousSpan != null)
             {
                 //将newSpan插入 previousSpan 的后面
-                newSpan.Next = previousSpan.Next;
-                previousSpan.Next = newSpan;
+                newSpan.next = previousSpan.next;
+                previousSpan.next = newSpan;
             }
             else
             {
-                newSpan.Next = hf.SpanList[columnIndex];
-                hf.SpanList[columnIndex] = newSpan;
+                newSpan.next = hf.spans[columnIndex];
+                hf.spans[columnIndex] = newSpan;
             }
 
             return true;
@@ -270,8 +270,8 @@ namespace GameEditor.RecastEditor
 
         public static void RcFilterLowHangingWalkableObstacles(Heightfield hf)
         {
-            int xSize = hf.Width;
-            int zSize = hf.Height;
+            int xSize = hf.width;
+            int zSize = hf.height;
 
             for (int z = 0; z < zSize; ++z)
             {
@@ -282,21 +282,21 @@ namespace GameEditor.RecastEditor
                     AREATYPE previousArea = 0;
 
                     //上下两个span，下span可走，上span不可走，并且上下span的上表面相差不超过walkClimb，则把上span也改为可走
-                    for (Span span = hf.SpanList[x + z * xSize]; span != null; previousSpan = span, span = span.Next)
+                    for (Span span = hf.spans[x + z * xSize]; span != null; previousSpan = span, span = span.next)
                     {
-                        bool walkable = span.AreaID == AREATYPE.Walke;
+                        bool walkable = span.areaID == AREATYPE.Walke;
 
 
                         if (!walkable && previousWasWalkable)
                         {
-                            if (Mathf.Abs(span.Max - previousSpan.Max) <= hf.WalkableClimb)
+                            if (Mathf.Abs(span.max - previousSpan.max) <= hf.walkableClimb)
                             {
-                                span.AreaID = previousArea;
+                                span.areaID = previousArea;
                             }
                         }
 
                         previousWasWalkable = walkable;
-                        previousArea = span.AreaID;
+                        previousArea = span.areaID;
                     }
                 }
             }
@@ -304,8 +304,8 @@ namespace GameEditor.RecastEditor
 
         public static void RcFilterLedgeSpans(Heightfield hf)
         {
-            int xSize = hf.Width;
-            int zSize = hf.Height;
+            int xSize = hf.width;
+            int zSize = hf.height;
 
 
 
@@ -313,23 +313,23 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = 0; x < xSize; ++x)
                 {
-                    for (Span span = hf.SpanList[x + z * xSize]; span != null; span = span.Next)
+                    for (Span span = hf.spans[x + z * xSize]; span != null; span = span.next)
                     {
                         //跳过不可行走区域
-                        if (span.AreaID == AREATYPE.None)
+                        if (span.areaID == AREATYPE.None)
                         {
                             continue;
                         }
 
-                        int bot = span.Max;
-                        int top = span.Next != null ? span.Next.Min : RecastConfig.MAX_HEIGHT;
+                        int bot = span.max;
+                        int top = span.next != null ? span.next.min : RecastConfig.MAX_HEIGHT;
 
 
                         float minNeighborHeight = RecastConfig.MAX_HEIGHT;
 
                         //相邻span的上表面的最大值与最小值
-                        int accessibleNeighborMinHeight = span.Max;
-                        int accessibleNeighborMaxHeight = span.Max;
+                        int accessibleNeighborMinHeight = span.max;
+                        int accessibleNeighborMaxHeight = span.max;
 
                         for (int direction = 0; direction < 4; ++direction)
                         {
@@ -339,35 +339,35 @@ namespace GameEditor.RecastEditor
 
                             if (dx < 0 || dy < 0 || dx >= xSize || dy >= zSize)
                             {
-                                //边缘情况认为，minNeighborHeight 一定小于 -hf.WalkableClimb而已
-                                minNeighborHeight = Mathf.Min(minNeighborHeight, -hf.WalkableClimb - bot);
+                                //边缘情况认为，minNeighborHeight 一定小于 -hf.walkableClimb而已
+                                minNeighborHeight = Mathf.Min(minNeighborHeight, -hf.walkableClimb - bot);
                                 continue;
                             }
 
 
-                            Span neighborSpan = hf.SpanList[dx + dy * xSize];
-                            int neighborBot = -hf.WalkableClimb;
-                            int neighborTop = neighborSpan != null ? neighborSpan.Min : RecastConfig.MAX_HEIGHT;
+                            Span neighborSpan = hf.spans[dx + dy * xSize];
+                            int neighborBot = -hf.walkableClimb;
+                            int neighborTop = neighborSpan != null ? neighborSpan.min : RecastConfig.MAX_HEIGHT;
 
                             // 只处理上下表面的距离大于WalkableHeight的部分，先默认处理一次？？？？
-                            if (Mathf.Min(top, neighborTop) - Mathf.Max(bot, neighborBot) > hf.WalkableHeight)
+                            if (Mathf.Min(top, neighborTop) - Mathf.Max(bot, neighborBot) > hf.walkableHeight)
                             {
                                 minNeighborHeight = Mathf.Min(minNeighborHeight, neighborBot - bot);
                             }
 
-                            for (neighborSpan = hf.SpanList[dx + dy * xSize]; neighborSpan != null; neighborSpan = neighborSpan.Next)
+                            for (neighborSpan = hf.spans[dx + dy * xSize]; neighborSpan != null; neighborSpan = neighborSpan.next)
                             {
-                                neighborBot = neighborSpan.Max;
-                                neighborTop = neighborSpan.Next != null ? neighborSpan.Next.Min : RecastConfig.MAX_HEIGHT;
+                                neighborBot = neighborSpan.max;
+                                neighborTop = neighborSpan.next != null ? neighborSpan.next.min : RecastConfig.MAX_HEIGHT;
 
                                 // 只处理上下表面的距离大于WalkableHeight的部分
-                                if (Mathf.Min(top, neighborTop) - Mathf.Max(bot, neighborBot) > hf.WalkableHeight)
+                                if (Mathf.Min(top, neighborTop) - Mathf.Max(bot, neighborBot) > hf.walkableHeight)
                                 {
 
                                     minNeighborHeight = Mathf.Min(minNeighborHeight, neighborBot - bot);
 
                                     //寻找相邻的span与自身高度差小于WalkableClimb
-                                    if (Mathf.Abs(neighborBot - bot) <= hf.WalkableClimb)
+                                    if (Mathf.Abs(neighborBot - bot) <= hf.walkableClimb)
                                     {
                                         if (neighborBot < accessibleNeighborMinHeight) accessibleNeighborMinHeight = neighborBot;
                                         if (neighborBot > accessibleNeighborMaxHeight) accessibleNeighborMaxHeight = neighborBot;
@@ -378,14 +378,14 @@ namespace GameEditor.RecastEditor
                         }
 
                         //相邻span与自身的高度差，说明span高于相邻span 大于WalkableClimb
-                        if (minNeighborHeight < -hf.WalkableClimb)
+                        if (minNeighborHeight < -hf.walkableClimb)
                         {
-                            span.AreaID = AREATYPE.None;
+                            span.areaID = AREATYPE.None;
                         }
                         //邻居span之间的上表面高度差超过walkClimb，说明span处于比较陡峭的地方，则把span标记为不可行走。
-                        else if ((accessibleNeighborMaxHeight - accessibleNeighborMinHeight) > hf.WalkableClimb)
+                        else if ((accessibleNeighborMaxHeight - accessibleNeighborMinHeight) > hf.walkableClimb)
                         {
-                            span.AreaID = AREATYPE.None;
+                            span.areaID = AREATYPE.None;
                         }
                     }
                 }
@@ -395,21 +395,21 @@ namespace GameEditor.RecastEditor
 
         public static void RcFilterWalkableLowHeightSpans(Heightfield hf)
         {
-            int xSize = hf.Width;
-            int zSize = hf.Height;
+            int xSize = hf.width;
+            int zSize = hf.height;
 
             //如果上下两个span之间的空隙小于等于walkHeight，则把下span标记为不可行走。
             for (int z = 0; z < zSize; ++z)
             {
                 for (int x = 0; x < xSize; ++x)
                 {
-                    for (Span span = hf.SpanList[x + z * xSize]; span != null; span = span.Next)
+                    for (Span span = hf.spans[x + z * xSize]; span != null; span = span.next)
                     {
-                        int bot = span.Max;
-                        int top = span.Next != null ? span.Next.Min : RecastConfig.MAX_HEIGHT;
-                        if ((top - bot) < hf.WalkableHeight)
+                        int bot = span.max;
+                        int top = span.next != null ? span.next.min : RecastConfig.MAX_HEIGHT;
+                        if ((top - bot) < hf.walkableHeight)
                         {
-                            span.AreaID = AREATYPE.None;
+                            span.areaID = AREATYPE.None;
                         }
                     }
                 }
@@ -419,52 +419,52 @@ namespace GameEditor.RecastEditor
         public static void RcBuildCompactHeightfield(Heightfield hf, CompactHeightfield chf)
         {
             int currentCellIndex = 0;
-            int numColumns = hf.Width * hf.Height;
+            int numColumns = hf.width * hf.height;
 
             for (int columnIndex = 0; columnIndex < numColumns; ++columnIndex)
             {
-                Span span = hf.SpanList[columnIndex];
+                Span span = hf.spans[columnIndex];
 
                 CompactCell cell = new CompactCell(0, 0);
 
-                chf.CellList[columnIndex] = cell;
+                chf.cells[columnIndex] = cell;
 
                 if (span == null)
                 {
                     continue;
                 }
 
-                cell.Index = currentCellIndex;
+                cell.index = currentCellIndex;
 
-                for (; span != null; span = span.Next)
+                for (; span != null; span = span.next)
                 {
-                    if (span.AreaID != AREATYPE.None)
+                    if (span.areaID != AREATYPE.None)
                     {
-                        int bot = span.Max;
-                        int top = span.Next != null ? span.Next.Min : RecastConfig.MAX_HEIGHT;
+                        int bot = span.max;
+                        int top = span.next != null ? span.next.min : RecastConfig.MAX_HEIGHT;
 
-                        chf.SpanList[currentCellIndex] = new CompactSpan(Mathf.Clamp(bot, 0, RecastConfig.MAX_HEIGHT), Mathf.Clamp(top - bot, 0, RecastConfig.MAX_HEIGHT), span.AreaID);
-                        chf.AreaList[currentCellIndex] = span.AreaID;
+                        chf.spans[currentCellIndex] = new CompactSpan(Mathf.Clamp(bot, 0, RecastConfig.MAX_HEIGHT), Mathf.Clamp(top - bot, 0, RecastConfig.MAX_HEIGHT), span.areaID);
+                        chf.areas[currentCellIndex] = span.areaID;
 
                         currentCellIndex++;
-                        cell.Count++;
+                        cell.count++;
                     }
                 }
             }
 
 
-            int zSize = hf.Height;
-            int xSize = hf.Width;
+            int zSize = hf.height;
+            int xSize = hf.width;
             int maxLayerIndex = 0;
             int zStride = xSize;
             for (int z = 0; z < zSize; ++z)
             {
                 for (int x = 0; x < xSize; ++x)
                 {
-                    CompactCell cell = chf.CellList[x + z * zStride];
-                    for (int i = cell.Index, ni = (cell.Index + cell.Count); i < ni; ++i)
+                    CompactCell cell = chf.cells[x + z * zStride];
+                    for (int i = cell.index, ni = (cell.index + cell.count); i < ni; ++i)
                     {
-                        CompactSpan span = chf.SpanList[i];
+                        CompactSpan span = chf.spans[i];
 
                         for (int dir = 0; dir < 4; ++dir)
                         {
@@ -479,20 +479,20 @@ namespace GameEditor.RecastEditor
                             }
 
 
-                            CompactCell neighborCell = chf.CellList[neighborX + neighborZ * zStride];
+                            CompactCell neighborCell = chf.cells[neighborX + neighborZ * zStride];
 
-                            for (int k = neighborCell.Index, nk = neighborCell.Index + neighborCell.Count; k < nk; ++k)
+                            for (int k = neighborCell.index, nk = neighborCell.index + neighborCell.count; k < nk; ++k)
                             {
-                                CompactSpan neighborSpan = chf.SpanList[k];
-                                int bot = Mathf.Max(span.Y, neighborSpan.Y);
-                                int top = Mathf.Min(span.Y + span.H, neighborSpan.Y + neighborSpan.H);
+                                CompactSpan neighborSpan = chf.spans[k];
+                                int bot = Mathf.Max(span.y, neighborSpan.y);
+                                int top = Mathf.Min(span.y + span.h, neighborSpan.y + neighborSpan.h);
 
 
                                 //与相邻的空心体素的之间的高度大于行走高度，之间的落差小于可攀爬高度
-                                if (((top - bot) >= chf.WalkableHeight) && (Mathf.Abs(neighborSpan.Y - span.Y) <= chf.WalkableClimb))
+                                if (((top - bot) >= chf.walkableHeight) && (Mathf.Abs(neighborSpan.y - span.y) <= chf.walkableClimb))
                                 {
                                     // Mark direction as walkable.
-                                    int layerIndex = k - neighborCell.Index;
+                                    int layerIndex = k - neighborCell.index;
                                     if (layerIndex < 0 || layerIndex > RecastConfig.MAX_LAYERS)
                                     {
                                         maxLayerIndex = Mathf.Max(maxLayerIndex, layerIndex);
@@ -518,33 +518,33 @@ namespace GameEditor.RecastEditor
 
         public static void RcErodeWalkableArea(CompactHeightfield chf)
         {
-            int xSize = chf.Width;
-            int zSize = chf.Height;
+            int xSize = chf.width;
+            int zSize = chf.height;
             int zStride = xSize;
 
 
-            int[] distanceToBoundary = new int[chf.SpanCount];
+            int[] distanceToBoundary = new int[chf.spanCount];
 
 
             for (int z = 0; z < zSize; ++z)
             {
                 for (int x = 0; x < xSize; ++x)
                 {
-                    CompactCell cell = chf.CellList[x + z * zStride];
-                    for (int spanIndex = cell.Index, maxSpanIndex = (cell.Index + cell.Count); spanIndex < maxSpanIndex; ++spanIndex)
+                    CompactCell cell = chf.cells[x + z * zStride];
+                    for (int spanIndex = cell.index, maxSpanIndex = (cell.index + cell.count); spanIndex < maxSpanIndex; ++spanIndex)
                     {
 
                         //设置默认值
                         distanceToBoundary[spanIndex] = 255;
 
                         //不可行走设置为边缘
-                        if (chf.AreaList[spanIndex] == AREATYPE.None)
+                        if (chf.areas[spanIndex] == AREATYPE.None)
                         {
                             distanceToBoundary[spanIndex] = 0;
                             continue;
                         }
 
-                        CompactSpan span = chf.SpanList[spanIndex];
+                        CompactSpan span = chf.spans[spanIndex];
 
                         int neighborCount = 0;
                         for (int direction = 0; direction < 4; ++direction)
@@ -557,9 +557,9 @@ namespace GameEditor.RecastEditor
 
                             int neighborX = x + RecastUtility.RcGetDirOffsetX(direction);
                             int neighborZ = z + RecastUtility.RcGetDirOffsetY(direction);
-                            int neighborSpanIndex = chf.CellList[neighborX + neighborZ * zStride].Index + neighborConnection;
+                            int neighborSpanIndex = chf.cells[neighborX + neighborZ * zStride].index + neighborConnection;
 
-                            if (chf.AreaList[neighborSpanIndex] == AREATYPE.None)
+                            if (chf.areas[neighborSpanIndex] == AREATYPE.None)
                             {
                                 break;
                             }
@@ -583,19 +583,19 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = 0; x < xSize; ++x)
                 {
-                    CompactCell cell = chf.CellList[x + z * zStride];
-                    int maxSpanIndex = (cell.Index + cell.Count);
-                    for (int spanIndex = cell.Index; spanIndex < maxSpanIndex; ++spanIndex)
+                    CompactCell cell = chf.cells[x + z * zStride];
+                    int maxSpanIndex = (cell.index + cell.count);
+                    for (int spanIndex = cell.index; spanIndex < maxSpanIndex; ++spanIndex)
                     {
-                        CompactSpan span = chf.SpanList[spanIndex];
+                        CompactSpan span = chf.spans[spanIndex];
 
                         if (RecastUtility.RcGetCon(span, 0) != RecastConfig.RC_NOT_CONNECTED)
                         {
                             // (-1,0) 左侧
                             int aX = x + RecastUtility.RcGetDirOffsetX(0);
                             int aY = z + RecastUtility.RcGetDirOffsetY(0);
-                            int aIndex = chf.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 0);
-                            CompactSpan aSpan = chf.SpanList[aIndex];
+                            int aIndex = chf.cells[aX + aY * xSize].index + RecastUtility.RcGetCon(span, 0);
+                            CompactSpan aSpan = chf.spans[aIndex];
                             // 正交的邻居距离+2
                             newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
                             if (newDistance < distanceToBoundary[spanIndex])
@@ -608,7 +608,7 @@ namespace GameEditor.RecastEditor
                             {
                                 int bX = aX + RecastUtility.RcGetDirOffsetX(3);
                                 int bY = aY + RecastUtility.RcGetDirOffsetY(3);
-                                int bIndex = chf.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 3);
+                                int bIndex = chf.cells[bX + bY * xSize].index + RecastUtility.RcGetCon(aSpan, 3);
                                 // 斜方向的邻居距离+3
                                 newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
                                 if (newDistance < distanceToBoundary[spanIndex])
@@ -622,8 +622,8 @@ namespace GameEditor.RecastEditor
                             // (0,-1) 下侧
                             int aX = x + RecastUtility.RcGetDirOffsetX(3);
                             int aY = z + RecastUtility.RcGetDirOffsetY(3);
-                            int aIndex = chf.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 3);
-                            CompactSpan aSpan = chf.SpanList[aIndex];
+                            int aIndex = chf.cells[aX + aY * xSize].index + RecastUtility.RcGetCon(span, 3);
+                            CompactSpan aSpan = chf.spans[aIndex];
                             newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
                             if (newDistance < distanceToBoundary[spanIndex])
                             {
@@ -635,7 +635,7 @@ namespace GameEditor.RecastEditor
                             {
                                 int bX = aX + RecastUtility.RcGetDirOffsetX(2);
                                 int bY = aY + RecastUtility.RcGetDirOffsetY(2);
-                                int bIndex = chf.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 2);
+                                int bIndex = chf.cells[bX + bY * xSize].index + RecastUtility.RcGetCon(aSpan, 2);
                                 newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
                                 if (newDistance < distanceToBoundary[spanIndex])
                                 {
@@ -652,19 +652,19 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = xSize - 1; x > 0; --x)
                 {
-                    CompactCell cell = chf.CellList[x + z * zStride];
-                    int maxSpanIndex = (cell.Index + cell.Count);
-                    for (int spanIndex = cell.Index; spanIndex < maxSpanIndex; ++spanIndex)
+                    CompactCell cell = chf.cells[x + z * zStride];
+                    int maxSpanIndex = (cell.index + cell.count);
+                    for (int spanIndex = cell.index; spanIndex < maxSpanIndex; ++spanIndex)
                     {
-                        CompactSpan span = chf.SpanList[spanIndex];
+                        CompactSpan span = chf.spans[spanIndex];
 
                         if (RecastUtility.RcGetCon(span, 2) != RecastConfig.RC_NOT_CONNECTED)
                         {
                             // (1,0) 右侧
                             int aX = x + RecastUtility.RcGetDirOffsetX(2);
                             int aY = z + RecastUtility.RcGetDirOffsetY(2);
-                            int aIndex = chf.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 2);
-                            CompactSpan aSpan = chf.SpanList[aIndex];
+                            int aIndex = chf.cells[aX + aY * xSize].index + RecastUtility.RcGetCon(span, 2);
+                            CompactSpan aSpan = chf.spans[aIndex];
                             // 正交的邻居距离+2
                             newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
                             if (newDistance < distanceToBoundary[spanIndex])
@@ -677,7 +677,7 @@ namespace GameEditor.RecastEditor
                             {
                                 int bX = aX + RecastUtility.RcGetDirOffsetX(1);
                                 int bY = aY + RecastUtility.RcGetDirOffsetY(1);
-                                int bIndex = chf.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 1);
+                                int bIndex = chf.cells[bX + bY * xSize].index + RecastUtility.RcGetCon(aSpan, 1);
                                 // 斜方向的邻居距离+3
                                 newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
                                 if (newDistance < distanceToBoundary[spanIndex])
@@ -691,8 +691,8 @@ namespace GameEditor.RecastEditor
                             // (0,1) 上侧
                             int aX = x + RecastUtility.RcGetDirOffsetX(1);
                             int aY = z + RecastUtility.RcGetDirOffsetY(1);
-                            int aIndex = chf.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 1);
-                            CompactSpan aSpan = chf.SpanList[aIndex];
+                            int aIndex = chf.cells[aX + aY * xSize].index + RecastUtility.RcGetCon(span, 1);
+                            CompactSpan aSpan = chf.spans[aIndex];
                             newDistance = Mathf.Min(distanceToBoundary[aIndex] + 2, 255);
                             if (newDistance < distanceToBoundary[spanIndex])
                             {
@@ -704,7 +704,7 @@ namespace GameEditor.RecastEditor
                             {
                                 int bX = aX + RecastUtility.RcGetDirOffsetX(0);
                                 int bY = aY + RecastUtility.RcGetDirOffsetY(0);
-                                int bIndex = chf.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 0);
+                                int bIndex = chf.cells[bX + bY * xSize].index + RecastUtility.RcGetCon(aSpan, 0);
                                 newDistance = Mathf.Min(distanceToBoundary[bIndex] + 3, 255);
                                 if (newDistance < distanceToBoundary[spanIndex])
                                 {
@@ -719,12 +719,12 @@ namespace GameEditor.RecastEditor
 
 
             //大于半径x2 ，，因为算距离的时候本身就是x2
-            int minBoundaryDistance = (chf.WalkableRadius * 2);
-            for (int spanIndex = 0; spanIndex < chf.SpanCount; ++spanIndex)
+            int minBoundaryDistance = (chf.walkableRadius * 2);
+            for (int spanIndex = 0; spanIndex < chf.spanCount; ++spanIndex)
             {
                 if (distanceToBoundary[spanIndex] < minBoundaryDistance)
                 {
-                    chf.AreaList[spanIndex] = AREATYPE.None;
+                    chf.areas[spanIndex] = AREATYPE.None;
                 }
             }
         }
@@ -732,8 +732,8 @@ namespace GameEditor.RecastEditor
 
         public static void RcMarkConvexPolyArea(CompactHeightfield chf, Vector3[] vertices, AREATYPE areaId)
         {
-            int xSize = chf.Width;
-            int zSize = chf.Height;
+            int xSize = chf.width;
+            int zSize = chf.height;
             int zStride = xSize;
 
             Vector3 MinBounds;
@@ -743,12 +743,12 @@ namespace GameEditor.RecastEditor
 
 
             //计算多边形在高度场内的坐标范围
-            int minx = (int)((MinBounds[0] - chf.MinBounds[0]) / chf.CellSize);
-            int miny = (int)((MinBounds[1] - chf.MinBounds[1]) / chf.CellHeight);
-            int minz = (int)((MinBounds[2] - chf.MinBounds[2]) / chf.CellSize);
-            int maxx = (int)((MaxBounds[0] - chf.MinBounds[0]) / chf.CellSize);
-            int maxy = (int)((MaxBounds[1] - chf.MinBounds[1]) / chf.CellHeight);
-            int maxz = (int)((MaxBounds[2] - chf.MinBounds[2]) / chf.CellSize);
+            int minx = (int)((MinBounds[0] - chf.minBounds[0]) / chf.cellSize);
+            int miny = (int)((MinBounds[1] - chf.minBounds[1]) / chf.cellHeight);
+            int minz = (int)((MinBounds[2] - chf.minBounds[2]) / chf.cellSize);
+            int maxx = (int)((MaxBounds[0] - chf.minBounds[0]) / chf.cellSize);
+            int maxy = (int)((MaxBounds[1] - chf.minBounds[1]) / chf.cellHeight);
+            int maxz = (int)((MaxBounds[2] - chf.minBounds[2]) / chf.cellSize);
 
 
             if (maxx < 0) { return; }
@@ -767,33 +767,33 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = minx; x <= maxx; ++x)
                 {
-                    CompactCell cell = chf.CellList[x + z * zStride];
-                    int maxSpanIndex = cell.Index + cell.Count;
+                    CompactCell cell = chf.cells[x + z * zStride];
+                    int maxSpanIndex = cell.index + cell.count;
 
-                    for (int spanIndex = (int)cell.Index; spanIndex < maxSpanIndex; ++spanIndex)
+                    for (int spanIndex = (int)cell.index; spanIndex < maxSpanIndex; ++spanIndex)
                     {
-                        CompactSpan span = chf.SpanList[spanIndex];
+                        CompactSpan span = chf.spans[spanIndex];
 
-                        if (chf.AreaList[spanIndex] == AREATYPE.None)
+                        if (chf.areas[spanIndex] == AREATYPE.None)
                         {
                             continue;
                         }
 
-                        if (span.Y < miny || span.Y > maxy)
+                        if (span.y < miny || span.y > maxy)
                         {
                             continue;
                         }
 
                         //因为之后是投影至2d平面的运算所以 point[1] = 0
                         float[] point = new float[3];
-                        point[0] = chf.MinBounds[0] + (x + 0.5f) * chf.CellSize;
+                        point[0] = chf.minBounds[0] + (x + 0.5f) * chf.cellSize;
                         point[1] = 0;
-                        point[2] = chf.MinBounds[2] + (z + 0.5f) * chf.CellSize;
+                        point[2] = chf.minBounds[2] + (z + 0.5f) * chf.cellSize;
 
                         //投影到2d平面进行运算
                         if (PointInPoly(vertices, point))
                         {
-                            chf.AreaList[spanIndex] = areaId;
+                            chf.areas[spanIndex] = areaId;
                         }
                     }
                 }
@@ -841,26 +841,26 @@ namespace GameEditor.RecastEditor
 
         private static void CalculateDistanceField(CompactHeightfield chf)
         {
-            int xSize = chf.Width;
-            int zSize = chf.Height;
+            int xSize = chf.width;
+            int zSize = chf.height;
             int zStride = xSize;
 
 
-            int[] distanceToBoundary = new int[chf.SpanCount];
+            int[] distanceToBoundary = new int[chf.spanCount];
 
 
             for (int z = 0; z < zSize; ++z)
             {
                 for (int x = 0; x < xSize; ++x)
                 {
-                    CompactCell cell = chf.CellList[x + z * zStride];
-                    for (int spanIndex = cell.Index, maxSpanIndex = (cell.Index + cell.Count); spanIndex < maxSpanIndex; ++spanIndex)
+                    CompactCell cell = chf.cells[x + z * zStride];
+                    for (int spanIndex = cell.index, maxSpanIndex = (cell.index + cell.count); spanIndex < maxSpanIndex; ++spanIndex)
                     {
 
                         //设置默认值
                         distanceToBoundary[spanIndex] = 0xffff;
 
-                        CompactSpan span = chf.SpanList[spanIndex];
+                        CompactSpan span = chf.spans[spanIndex];
 
                         int neighborCount = 0;
                         for (int direction = 0; direction < 4; ++direction)
@@ -873,9 +873,9 @@ namespace GameEditor.RecastEditor
 
                             int neighborX = x + RecastUtility.RcGetDirOffsetX(direction);
                             int neighborZ = z + RecastUtility.RcGetDirOffsetY(direction);
-                            int neighborSpanIndex = chf.CellList[neighborX + neighborZ * zStride].Index + neighborConnection;
+                            int neighborSpanIndex = chf.cells[neighborX + neighborZ * zStride].index + neighborConnection;
 
-                            if (chf.AreaList[neighborSpanIndex] != chf.AreaList[spanIndex])
+                            if (chf.areas[neighborSpanIndex] != chf.areas[spanIndex])
                             {
                                 break;
                             }
@@ -900,19 +900,19 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = 0; x < xSize; ++x)
                 {
-                    CompactCell cell = chf.CellList[x + z * zStride];
-                    int maxSpanIndex = (cell.Index + cell.Count);
-                    for (int spanIndex = cell.Index; spanIndex < maxSpanIndex; ++spanIndex)
+                    CompactCell cell = chf.cells[x + z * zStride];
+                    int maxSpanIndex = (cell.index + cell.count);
+                    for (int spanIndex = cell.index; spanIndex < maxSpanIndex; ++spanIndex)
                     {
-                        CompactSpan span = chf.SpanList[spanIndex];
+                        CompactSpan span = chf.spans[spanIndex];
 
                         if (RecastUtility.RcGetCon(span, 0) != RecastConfig.RC_NOT_CONNECTED)
                         {
                             // (-1,0) 左侧
                             int aX = x + RecastUtility.RcGetDirOffsetX(0);
                             int aY = z + RecastUtility.RcGetDirOffsetY(0);
-                            int aIndex = chf.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 0);
-                            CompactSpan aSpan = chf.SpanList[aIndex];
+                            int aIndex = chf.cells[aX + aY * xSize].index + RecastUtility.RcGetCon(span, 0);
+                            CompactSpan aSpan = chf.spans[aIndex];
                             // 正交的邻居距离+2
                             newDistance = distanceToBoundary[aIndex] + 2;
                             if (newDistance < distanceToBoundary[spanIndex])
@@ -925,7 +925,7 @@ namespace GameEditor.RecastEditor
                             {
                                 int bX = aX + RecastUtility.RcGetDirOffsetX(3);
                                 int bY = aY + RecastUtility.RcGetDirOffsetY(3);
-                                int bIndex = chf.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 3);
+                                int bIndex = chf.cells[bX + bY * xSize].index + RecastUtility.RcGetCon(aSpan, 3);
                                 // 斜方向的邻居距离+3
                                 newDistance = distanceToBoundary[bIndex] + 3;
                                 if (newDistance < distanceToBoundary[spanIndex])
@@ -939,8 +939,8 @@ namespace GameEditor.RecastEditor
                             // (0,-1) 下侧
                             int aX = x + RecastUtility.RcGetDirOffsetX(3);
                             int aY = z + RecastUtility.RcGetDirOffsetY(3);
-                            int aIndex = chf.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 3);
-                            CompactSpan aSpan = chf.SpanList[aIndex];
+                            int aIndex = chf.cells[aX + aY * xSize].index + RecastUtility.RcGetCon(span, 3);
+                            CompactSpan aSpan = chf.spans[aIndex];
                             newDistance = distanceToBoundary[aIndex] + 2;
                             if (newDistance < distanceToBoundary[spanIndex])
                             {
@@ -952,7 +952,7 @@ namespace GameEditor.RecastEditor
                             {
                                 int bX = aX + RecastUtility.RcGetDirOffsetX(2);
                                 int bY = aY + RecastUtility.RcGetDirOffsetY(2);
-                                int bIndex = chf.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 2);
+                                int bIndex = chf.cells[bX + bY * xSize].index + RecastUtility.RcGetCon(aSpan, 2);
                                 newDistance = distanceToBoundary[bIndex] + 3;
                                 if (newDistance < distanceToBoundary[spanIndex])
                                 {
@@ -969,19 +969,19 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = xSize - 1; x > 0; --x)
                 {
-                    CompactCell cell = chf.CellList[x + z * zStride];
-                    int maxSpanIndex = (cell.Index + cell.Count);
-                    for (int spanIndex = cell.Index; spanIndex < maxSpanIndex; ++spanIndex)
+                    CompactCell cell = chf.cells[x + z * zStride];
+                    int maxSpanIndex = (cell.index + cell.count);
+                    for (int spanIndex = cell.index; spanIndex < maxSpanIndex; ++spanIndex)
                     {
-                        CompactSpan span = chf.SpanList[spanIndex];
+                        CompactSpan span = chf.spans[spanIndex];
 
                         if (RecastUtility.RcGetCon(span, 2) != RecastConfig.RC_NOT_CONNECTED)
                         {
                             // (1,0) 右侧
                             int aX = x + RecastUtility.RcGetDirOffsetX(2);
                             int aY = z + RecastUtility.RcGetDirOffsetY(2);
-                            int aIndex = chf.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 2);
-                            CompactSpan aSpan = chf.SpanList[aIndex];
+                            int aIndex = chf.cells[aX + aY * xSize].index + RecastUtility.RcGetCon(span, 2);
+                            CompactSpan aSpan = chf.spans[aIndex];
                             // 正交的邻居距离+2
                             newDistance = distanceToBoundary[aIndex] + 2;
                             if (newDistance < distanceToBoundary[spanIndex])
@@ -994,7 +994,7 @@ namespace GameEditor.RecastEditor
                             {
                                 int bX = aX + RecastUtility.RcGetDirOffsetX(1);
                                 int bY = aY + RecastUtility.RcGetDirOffsetY(1);
-                                int bIndex = chf.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 1);
+                                int bIndex = chf.cells[bX + bY * xSize].index + RecastUtility.RcGetCon(aSpan, 1);
                                 // 斜方向的邻居距离+3
                                 newDistance = distanceToBoundary[bIndex] + 3;
                                 if (newDistance < distanceToBoundary[spanIndex])
@@ -1008,8 +1008,8 @@ namespace GameEditor.RecastEditor
                             // (0,1) 上侧
                             int aX = x + RecastUtility.RcGetDirOffsetX(1);
                             int aY = z + RecastUtility.RcGetDirOffsetY(1);
-                            int aIndex = chf.CellList[aX + aY * xSize].Index + RecastUtility.RcGetCon(span, 1);
-                            CompactSpan aSpan = chf.SpanList[aIndex];
+                            int aIndex = chf.cells[aX + aY * xSize].index + RecastUtility.RcGetCon(span, 1);
+                            CompactSpan aSpan = chf.spans[aIndex];
                             newDistance = distanceToBoundary[aIndex] + 2;
                             if (newDistance < distanceToBoundary[spanIndex])
                             {
@@ -1021,7 +1021,7 @@ namespace GameEditor.RecastEditor
                             {
                                 int bX = aX + RecastUtility.RcGetDirOffsetX(0);
                                 int bY = aY + RecastUtility.RcGetDirOffsetY(0);
-                                int bIndex = chf.CellList[bX + bY * xSize].Index + RecastUtility.RcGetCon(aSpan, 0);
+                                int bIndex = chf.cells[bX + bY * xSize].index + RecastUtility.RcGetCon(aSpan, 0);
                                 newDistance = distanceToBoundary[bIndex] + 3;
                                 if (newDistance < distanceToBoundary[spanIndex])
                                 {
@@ -1040,31 +1040,31 @@ namespace GameEditor.RecastEditor
                 maxDist = Mathf.Max(maxDist, distanceToBoundary[i]);
             }
 
-            chf.MaxDistance = maxDist;
-            chf.DistanceToBoundary = distanceToBoundary;
+            chf.maxDistance = maxDist;
+            chf.distanceToBoundary = distanceToBoundary;
         }
 
 
         private static void BoxBlur(CompactHeightfield chf, int thr)
         {
-            int xSize = chf.Width;
-            int zSize = chf.Height;
+            int xSize = chf.width;
+            int zSize = chf.height;
             int zStride = xSize;
 
             thr = thr * 2;
 
-            int[] distanceToBoundary = new int[chf.SpanCount];
+            int[] distanceToBoundary = new int[chf.spanCount];
 
 
             for (int z = 0; z < zSize; ++z)
             {
                 for (int x = 0; x < xSize; ++x)
                 {
-                    CompactCell cell = chf.CellList[x + z * zStride];
-                    for (int spanIndex = cell.Index, maxSpanIndex = (cell.Index + cell.Count); spanIndex < maxSpanIndex; ++spanIndex)
+                    CompactCell cell = chf.cells[x + z * zStride];
+                    for (int spanIndex = cell.index, maxSpanIndex = (cell.index + cell.count); spanIndex < maxSpanIndex; ++spanIndex)
                     {
 
-                        int cd = chf.DistanceToBoundary[spanIndex];
+                        int cd = chf.distanceToBoundary[spanIndex];
 
                         if (cd <= thr)
                         {
@@ -1072,7 +1072,7 @@ namespace GameEditor.RecastEditor
                             continue;
                         }
 
-                        CompactSpan span = chf.SpanList[spanIndex];
+                        CompactSpan span = chf.spans[spanIndex];
 
                         int d = cd;
 
@@ -1083,11 +1083,11 @@ namespace GameEditor.RecastEditor
                             {
                                 int neighborX = x + RecastUtility.RcGetDirOffsetX(direction);
                                 int neighborZ = z + RecastUtility.RcGetDirOffsetY(direction);
-                                int neighborSpanIndex = chf.CellList[neighborX + neighborZ * zStride].Index + neighborConnection;
+                                int neighborSpanIndex = chf.cells[neighborX + neighborZ * zStride].index + neighborConnection;
 
-                                d = d + chf.DistanceToBoundary[neighborSpanIndex];
+                                d = d + chf.distanceToBoundary[neighborSpanIndex];
 
-                                CompactSpan neighborSpan = chf.SpanList[neighborSpanIndex];
+                                CompactSpan neighborSpan = chf.spans[neighborSpanIndex];
 
                                 int direction2 = (direction + 1) & 0x3;
                                 int neighbor2Connection = RecastUtility.RcGetCon(neighborSpan, direction2);
@@ -1095,8 +1095,8 @@ namespace GameEditor.RecastEditor
                                 {
                                     int neighbor2X = x + RecastUtility.RcGetDirOffsetX(direction2);
                                     int neighbor2Z = z + RecastUtility.RcGetDirOffsetY(direction2);
-                                    int neighbor2SpanIndex = chf.CellList[neighbor2X + neighbor2Z * zStride].Index + neighbor2Connection;
-                                    d = d + chf.DistanceToBoundary[neighbor2SpanIndex];
+                                    int neighbor2SpanIndex = chf.cells[neighbor2X + neighbor2Z * zStride].index + neighbor2Connection;
+                                    d = d + chf.distanceToBoundary[neighbor2SpanIndex];
                                 }
                                 else
                                 {
@@ -1118,7 +1118,7 @@ namespace GameEditor.RecastEditor
                 }
             }
 
-            chf.DistanceToBoundary = distanceToBoundary;
+            chf.distanceToBoundary = distanceToBoundary;
         }
 
     }

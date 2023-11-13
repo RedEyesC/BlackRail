@@ -145,13 +145,13 @@ namespace GameEditor.RecastEditor
         public static int RcGetHeightFieldSpanCount(Heightfield heightfield)
         {
 
-            int numCols = heightfield.Width * heightfield.Height;
+            int numCols = heightfield.width * heightfield.height;
             int spanCount = 0;
             for (int columnIndex = 0; columnIndex < numCols; ++columnIndex)
             {
-                for (Span span = heightfield.SpanList[columnIndex]; span != null; span = span.Next)
+                for (Span span = heightfield.spans[columnIndex]; span != null; span = span.next)
                 {
-                    if (span.AreaID != AREATYPE.None)
+                    if (span.areaID != AREATYPE.None)
                     {
                         spanCount++;
                     }
@@ -164,8 +164,8 @@ namespace GameEditor.RecastEditor
         {
             //每个方向用六位存放 
             int shift = dir * 6;
-            int con = span.Con;
-            span.Con = ((con & ~(0x3f << shift)) | (i & 0x3f) << shift);
+            int con = span.con;
+            span.con = ((con & ~(0x3f << shift)) | (i & 0x3f) << shift);
         }
 
 
@@ -173,7 +173,7 @@ namespace GameEditor.RecastEditor
         {
             //每个方向用六位存放 
             int shift = dir * 6;
-            return (span.Con >> shift) & 0x3f;
+            return (span.con >> shift) & 0x3f;
         }
 
         public static void RcSwap<T>(T a, T b)

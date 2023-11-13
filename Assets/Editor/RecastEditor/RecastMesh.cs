@@ -11,28 +11,28 @@ namespace GameEditor.RecastEditor
             int maxVertices = 0;
             int maxTris = 0;
             int maxVertsPerCont = 0;
-            for (int i = 0; i < cset.NumConts; ++i)
+            for (int i = 0; i < cset.numConts; ++i)
             {
-                if (cset.ContsList[i].NumVerts < 3)
+                if (cset.conts[i].numVerts < 3)
                 {
                     continue;
                 }
-                maxVertices += cset.ContsList[i].NumVerts;
-                maxTris += cset.ContsList[i].NumVerts - 2;
-                maxVertsPerCont = Mathf.Max(maxVertsPerCont, cset.ContsList[i].NumVerts);
+                maxVertices += cset.conts[i].numVerts;
+                maxTris += cset.conts[i].numVerts - 2;
+                maxVertsPerCont = Mathf.Max(maxVertsPerCont, cset.conts[i].numVerts);
             }
 
-            ployMesh.Verts = new int[maxVertsPerCont * 3];
-            Array.Fill(ployMesh.Verts, 0);
+            ployMesh.verts = new int[maxVertsPerCont * 3];
+            Array.Fill(ployMesh.verts, 0);
 
-            ployMesh.Polys = new int[maxTris * RecastConfig.MaxVertsPerPoly * 2];
-            Array.Fill(ployMesh.Polys, 0xff);
+            ployMesh.polys = new int[maxTris * RecastConfig.MaxVertsPerPoly * 2];
+            Array.Fill(ployMesh.polys, 0xff);
 
-            ployMesh.Regs = new int[maxTris];
-            Array.Fill(ployMesh.Regs, 0);
+            ployMesh.regs = new int[maxTris];
+            Array.Fill(ployMesh.regs, 0);
 
-            ployMesh.AreaList = new AREATYPE[maxTris];
-            Array.Fill(ployMesh.AreaList, AREATYPE.None);
+            ployMesh.areas = new AREATYPE[maxTris];
+            Array.Fill(ployMesh.areas, AREATYPE.None);
 
 
 
@@ -50,21 +50,21 @@ namespace GameEditor.RecastEditor
 
             int[] polys = new int[(maxVertsPerCont + 1) * RecastConfig.MaxVertsPerPoly];
 
-            for (int i = 0; i < cset.NumConts; ++i)
+            for (int i = 0; i < cset.numConts; ++i)
             {
-                RcContour cont = cset.ContsList[i];
+                RcContour cont = cset.conts[i];
 
-                if (cont.NumVerts < 3)
+                if (cont.numVerts < 3)
                     continue;
 
 
-                for (int j = 0; j < cont.NumVerts; ++j)
+                for (int j = 0; j < cont.numVerts; ++j)
                 {
                     indices[j] = j;
                 }
 
                 //拆分多边形为三角形
-                int ntris = Triangulate(cont.NumVerts, cont.Verts, indices, tris);
+                int ntris = Triangulate(cont.numVerts, cont.verts, indices, tris);
                 if (ntris <= 0)
                 {
 
@@ -74,15 +74,15 @@ namespace GameEditor.RecastEditor
 
 
                 //添加cont的vert到 polyMesh.verts，合并相近节点
-                for (int j = 0; j < cont.NumVerts; ++j)
+                for (int j = 0; j < cont.numVerts; ++j)
                 {
                     int vIndex = j * 4;
 
                     //返回polyMesh.verts中的索引
-                    indices[j] = AddVertex(cont.Verts[vIndex], cont.Verts[vIndex + 1], cont.Verts[vIndex + 2], firstVert, nextVert, ployMesh);
+                    indices[j] = AddVertex(cont.verts[vIndex], cont.verts[vIndex + 1], cont.verts[vIndex + 2], firstVert, nextVert, ployMesh);
 
                     //假如该顶点是边缘，则加入移除列表
-                    if ((cont.Verts[vIndex + 3] & RecastConfig.RC_BORDER_VERTEX) != 0)
+                    if ((cont.verts[vIndex + 3] & RecastConfig.RC_BORDER_VERTEX) != 0)
                     {
                         vflags[indices[j]] = 1;
                     }
@@ -125,7 +125,7 @@ namespace GameEditor.RecastEditor
                                 int pk = polys[k * RecastConfig.MaxVertsPerPoly];
                                 int ea = 0;
                                 int eb = 0;
-                                int v = GetPolyMergeValue(pj, pk, ployMesh.Verts, ea, eb); ;
+                                int v = GetPolyMergeValue(pj, pk, ployMesh.verts, ea, eb); ;
                                 if (v > bestMergeVal)
                                 {
                                     bestMergeVal = v;
@@ -151,7 +151,7 @@ namespace GameEditor.RecastEditor
         private static int AddVertex(int x, int y, int z, int[] firstVert, int[] nextVert, RcPolyMesh polyMesh)
         {
 
-            int[] verts = polyMesh.Verts;
+            int[] verts = polyMesh.verts;
             int bucket = ComputeVertexHash(x, 0, z);
             int i = firstVert[bucket];
 
@@ -167,8 +167,8 @@ namespace GameEditor.RecastEditor
                 i = nextVert[i];
             }
 
-            i = polyMesh.NumVerts;
-            polyMesh.NumVerts++;
+            i = polyMesh.numVerts;
+            polyMesh.numVerts++;
 
             int vj = i * 3;
             verts[vj] = x;
