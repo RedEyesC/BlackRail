@@ -6,7 +6,7 @@ namespace GameEditor.RecastEditor
 {
     internal class RecastMesh
     {
-        static public void RcBuildPolyMesh(RcContourSet cset, RcPolyMesh ployMesh)
+        static public void RcBuildPolyMesh(RcContourSet cset, RcPolyMesh pmesh)
         {
             int maxVertices = 0;
             int maxTris = 0;
@@ -22,17 +22,17 @@ namespace GameEditor.RecastEditor
                 maxVertsPerCont = Mathf.Max(maxVertsPerCont, cset.conts[i].numVerts);
             }
 
-            ployMesh.verts = new int[maxVertices * 3];
-            Array.Fill(ployMesh.verts, 0);
+            pmesh.verts = new int[maxVertices * 3];
+            Array.Fill(pmesh.verts, 0);
 
-            ployMesh.polys = new int[maxTris * RecastConfig.MaxVertsPerPoly * 2];
-            Array.Fill(ployMesh.polys, RecastConfig.RC_MESH_NULL_IDX);
+            pmesh.polys = new int[maxTris * RecastConfig.MaxVertsPerPoly * 2];
+            Array.Fill(pmesh.polys, RecastConfig.RC_MESH_NULL_IDX);
 
-            ployMesh.regs = new int[maxTris];
-            Array.Fill(ployMesh.regs, 0);
+            pmesh.regs = new int[maxTris];
+            Array.Fill(pmesh.regs, 0);
 
-            ployMesh.areas = new AREATYPE[maxTris];
-            Array.Fill(ployMesh.areas, AREATYPE.None);
+            pmesh.areas = new AREATYPE[maxTris];
+            Array.Fill(pmesh.areas, AREATYPE.None);
 
 
 
@@ -83,7 +83,7 @@ namespace GameEditor.RecastEditor
                     int vIndex = j * 4;
 
                     //返回polyMesh.verts中的索引
-                    indices[j] = AddVertex(cont.verts[vIndex], cont.verts[vIndex + 1], cont.verts[vIndex + 2], firstVert, nextVert, ployMesh);
+                    indices[j] = AddVertex(cont.verts[vIndex], cont.verts[vIndex + 1], cont.verts[vIndex + 2], firstVert, nextVert, pmesh);
                 }
 
                 int npolys = 0;
@@ -124,7 +124,7 @@ namespace GameEditor.RecastEditor
                                 int pk = k * RecastConfig.MaxVertsPerPoly;
                                 int ea = -1;
                                 int eb = -1;
-                                int v = GetPolyMergeValue(pj, pk, ployMesh.verts, polys, out ea, out eb); ;
+                                int v = GetPolyMergeValue(pj, pk, pmesh.verts, polys, out ea, out eb); ;
                                 if (v > bestMergeVal)
                                 {
                                     bestMergeVal = v;
@@ -172,36 +172,224 @@ namespace GameEditor.RecastEditor
 
                 for (int j = 0; j < npolys; ++j)
                 {
-                    if (ployMesh.numPolys >= maxTris)
+                    if (pmesh.numPolys >= maxTris)
                     {
                         break;
                     }
 
-                    int offset = ployMesh.numPolys * RecastConfig.MaxVertsPerPoly * 2;
+                    int offset = pmesh.numPolys * RecastConfig.MaxVertsPerPoly * 2;
 
                     for (int k = 0; k < RecastConfig.MaxVertsPerPoly; ++k)
                     {
-                        ployMesh.polys[offset + k] = polys[j * RecastConfig.MaxVertsPerPoly + k];
+                        pmesh.polys[offset + k] = polys[j * RecastConfig.MaxVertsPerPoly + k];
                     }
 
-                    ployMesh.regs[ployMesh.numPolys] = cont.reg;
-                    ployMesh.areas[ployMesh.numPolys] = cont.area;
-                    ployMesh.numPolys++;
+                    pmesh.regs[pmesh.numPolys] = cont.reg;
+                    pmesh.areas[pmesh.numPolys] = cont.area;
+                    pmesh.numPolys++;
 
-                    if (ployMesh.numPolys > maxTris)
+                    if (pmesh.numPolys > maxTris)
                     {
-                        Debug.LogErrorFormat("removeVertex: Too many polygons {0} (max:{1}).", ployMesh.numPolys, maxTris);
+                        Debug.LogErrorFormat("removeVertex: Too many polygons {0} (max:{1}).", pmesh.numPolys, maxTris);
                     }
                 }
 
             }
 
-            if (!BuildMeshAdjacency(ployMesh.polys, ployMesh.numPolys, ployMesh.numVerts))
+            if (!BuildMeshAdjacency(pmesh.polys, pmesh.numPolys, pmesh.numVerts))
             {
                 Debug.LogError("rcBuildPolyMesh: Adjacency failed.");
             }
 
         }
+
+
+        public static void RcBuildPolyMeshDetail(RcPolyMesh pmesh, RcCompactHeightfield chf, RcPolyMeshDetail dmesh)
+        {
+            if (pmesh.numPolys == 0 || pmesh.numVerts == 0)
+                return;
+
+            int nvp = pmesh.numPolys;
+            float cs = pmesh.cellSize;
+            float ch = pmesh.cellHeight;
+            Vector3 orig = pmesh.minBounds;
+            float heightSearchRadius = Mathf.Max(1, Mathf.Ceil(RecastConfig.MaxSimplificationError));
+
+
+            RcHeightPatch hp = new RcHeightPatch();
+
+            int[] bounds = new int[pmesh.numPolys * 4];
+            float[] poly = new float[pmesh.numPolys * 3];
+
+            int nPolyVerts = 0;
+            int maxhw = 0;
+            int maxhh = 0;
+
+            //获取每个多边形的xy范围
+            for (int i = 0; i < pmesh.numPolys; ++i)
+            {
+                int pIndex = i * nvp * 2;
+
+                int xmin = chf.width;
+                int xmax = 0;
+                int ymin = chf.height;
+                int ymax = 0;
+
+                for (int j = 0; j < nvp; ++j)
+                {
+                    if (pmesh.polys[pIndex] == RecastConfig.RC_MESH_NULL_IDX)
+                    {
+                        break;
+                    }
+
+                    int vIndex = pmesh.polys[pIndex] * 3;
+                    xmin = Mathf.Min(xmin, pmesh.verts[vIndex]);
+                    xmax = Mathf.Max(xmax, pmesh.verts[vIndex]);
+                    ymin = Mathf.Min(ymin, pmesh.verts[vIndex + 2]);
+                    ymax = Mathf.Max(ymax, pmesh.verts[vIndex + 2]);
+                    nPolyVerts++;
+                }
+                xmin = Mathf.Max(0, xmin - 1);
+                xmax = Mathf.Min(chf.width, xmax + 1);
+                ymin = Mathf.Max(0, ymin - 1);
+                ymax = Mathf.Min(chf.height, ymax + 1);
+                if (xmin >= xmax || ymin >= ymax)
+                {
+                    continue;
+                }
+                maxhw = Mathf.Max(maxhw, xmax - xmin);
+                maxhh = Mathf.Max(maxhh, ymax - ymin);
+
+                bounds[i * 4 + 0] = xmin;
+                bounds[i * 4 + 1] = xmax;
+                bounds[i * 4 + 2] = ymin;
+                bounds[i * 4 + 3] = ymax;
+            }
+
+            dmesh.numMeshes = pmesh.numPolys;
+            dmesh.meshes = new int[dmesh.numMeshes * 4];
+
+            int vcap = nPolyVerts + nPolyVerts / 2;
+            int tcap = vcap * 2;
+
+            dmesh.verts = new float[vcap * 3];
+            dmesh.tris = new int[tcap * 4];
+
+            hp.data = new int[maxhw * maxhh];
+
+            for (int i = 0; i < pmesh.numPolys; ++i)
+            {
+                int pIndex = i * nvp * 2;
+
+                int npoly = 0;
+                for (int j = 0; j < nvp; ++j)
+                {
+                    if (pmesh.polys[pIndex + j] == RecastConfig.RC_MESH_NULL_IDX)
+                    {
+                        break;
+                    }
+
+                    int vIndex = pmesh.polys[pIndex] * 3;
+                    poly[j * 3 + 0] = pmesh.verts[vIndex] * cs;
+                    poly[j * 3 + 1] = pmesh.verts[vIndex + 1] * ch;
+                    poly[j * 3 + 2] = pmesh.verts[vIndex + 2] * cs;
+                    npoly++;
+                }
+
+                hp.xmin = bounds[i * 4 + 0];
+                hp.ymin = bounds[i * 4 + 2];
+                hp.width = bounds[i * 4 + 1] - bounds[i * 4 + 0];
+                hp.height = bounds[i * 4 + 3] - bounds[i * 4 + 2];
+                //getHeightData(ctx, chf, p, npoly, mesh.verts, borderSize, hp, arr, mesh.regs[i]);
+
+                //// Build detail mesh.
+                //int nverts = 0;
+                //if (!buildPolyDetail(ctx, poly, npoly,
+                //                     sampleDist, sampleMaxError,
+                //                     heightSearchRadius, chf, hp,
+                //                     verts, nverts, tris,
+                //                     edges, samples))
+                //{
+                //    return false;
+                //}
+
+                //// Move detail verts to world space.
+                //for (int j = 0; j < nverts; ++j)
+                //{
+                //    verts[j * 3 + 0] += orig[0];
+                //    verts[j * 3 + 1] += orig[1] + chf.ch; // Is this offset necessary?
+                //    verts[j * 3 + 2] += orig[2];
+                //}
+                //// Offset poly too, will be used to flag checking.
+                //for (int j = 0; j < npoly; ++j)
+                //{
+                //    poly[j * 3 + 0] += orig[0];
+                //    poly[j * 3 + 1] += orig[1];
+                //    poly[j * 3 + 2] += orig[2];
+                //}
+
+                //    // Store detail submesh.
+                //    const int ntris = tris.size() / 4;
+
+                //    dmesh.meshes[i * 4 + 0] = (unsigned int)dmesh.nverts;
+                //dmesh.meshes[i * 4 + 1] = (unsigned int)nverts;
+                //dmesh.meshes[i * 4 + 2] = (unsigned int)dmesh.ntris;
+                //dmesh.meshes[i * 4 + 3] = (unsigned int)ntris;
+
+                //// Store vertices, allocate more memory if necessary.
+                //if (dmesh.nverts + nverts > vcap)
+                //{
+                //    while (dmesh.nverts + nverts > vcap)
+                //        vcap += 256;
+
+                //    float* newv = (float*)rcAlloc(sizeof(float) * vcap * 3, RC_ALLOC_PERM);
+                //    if (!newv)
+                //    {
+                //        ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'newv' (%d).", vcap * 3);
+                //        return false;
+                //    }
+                //    if (dmesh.nverts)
+                //        memcpy(newv, dmesh.verts, sizeof(float) * 3 * dmesh.nverts);
+                //    rcFree(dmesh.verts);
+                //    dmesh.verts = newv;
+                //}
+                //for (int j = 0; j < nverts; ++j)
+                //{
+                //    dmesh.verts[dmesh.nverts * 3 + 0] = verts[j * 3 + 0];
+                //    dmesh.verts[dmesh.nverts * 3 + 1] = verts[j * 3 + 1];
+                //    dmesh.verts[dmesh.nverts * 3 + 2] = verts[j * 3 + 2];
+                //    dmesh.nverts++;
+                //}
+
+                //// Store triangles, allocate more memory if necessary.
+                //if (dmesh.ntris + ntris > tcap)
+                //{
+                //    while (dmesh.ntris + ntris > tcap)
+                //        tcap += 256;
+                //    unsigned char* newt = (unsigned char*)rcAlloc(sizeof(unsigned char) * tcap * 4, RC_ALLOC_PERM);
+                //    if (!newt)
+                //    {
+                //        ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'newt' (%d).", tcap * 4);
+                //        return false;
+                //    }
+                //    if (dmesh.ntris)
+                //        memcpy(newt, dmesh.tris, sizeof(unsigned char) * 4 * dmesh.ntris);
+                //    rcFree(dmesh.tris);
+                //    dmesh.tris = newt;
+                //}
+                //for (int j = 0; j < ntris; ++j)
+                //{
+                //    const int* t = &tris[j * 4];
+                //    dmesh.tris[dmesh.ntris * 4 + 0] = (unsigned char)t[0];
+                //dmesh.tris[dmesh.ntris * 4 + 1] = (unsigned char)t[1];
+                //dmesh.tris[dmesh.ntris * 4 + 2] = (unsigned char)t[2];
+                //dmesh.tris[dmesh.ntris * 4 + 3] = getTriFlags(&verts[t[0] * 3], &verts[t[1] * 3], &verts[t[2] * 3], poly, npoly);
+                //dmesh.ntris++;
+            }
+        }
+
+
+
 
         private static int GetPolyMergeValue(int pa, int pb, int[] verts, int[] polys, out int ea, out int eb)
         {
@@ -321,7 +509,7 @@ namespace GameEditor.RecastEditor
         private static bool BuildMeshAdjacency(int[] polys, int npolys, int nverts)
         {
 
-            int maxEdgeCount = npolys *  RecastConfig.MaxVertsPerPoly;
+            int maxEdgeCount = npolys * RecastConfig.MaxVertsPerPoly;
 
             int[] firstEdge = new int[nverts];
             int[] nextEdge = new int[maxEdgeCount];
@@ -643,6 +831,11 @@ namespace GameEditor.RecastEditor
                 if (polys[p + i] == RecastConfig.RC_MESH_NULL_IDX)
                     return i;
             return RecastConfig.MaxVertsPerPoly;
+        }
+
+        private static void getHeightData(RcCompactHeightfield chf, int[] poly, int numPloys, int[] verts, RcHeightPatch hp)
+        {
+
         }
     }
 }

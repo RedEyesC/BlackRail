@@ -7,7 +7,7 @@ namespace GameEditor.RecastEditor
 {
     internal class RecastContour
     {
-        public static void RcBuildRegions(CompactHeightfield chf)
+        public static void RcBuildRegions(RcCompactHeightfield chf)
         {
 
             const int expandIters = 8;
@@ -87,7 +87,7 @@ namespace GameEditor.RecastEditor
         }
 
         //loglevelsPerStack 决定距离多少为一个level
-        private static void SortCellsByLevel(int startLevel, CompactHeightfield chf, int[] srcReg, int nbStacks, Stack<LevelStackEntry>[] stacks, int loglevelsPerStack)
+        private static void SortCellsByLevel(int startLevel, RcCompactHeightfield chf, int[] srcReg, int nbStacks, Stack<LevelStackEntry>[] stacks, int loglevelsPerStack)
         {
             int w = chf.width;
             int h = chf.height;
@@ -133,7 +133,7 @@ namespace GameEditor.RecastEditor
             }
         }
 
-        private static void ExpandRegions(int maxIter, int level, CompactHeightfield chf, int[] srcReg, int[] srcDist, Stack<LevelStackEntry> stack, bool fillStack)
+        private static void ExpandRegions(int maxIter, int level, RcCompactHeightfield chf, int[] srcReg, int[] srcDist, Stack<LevelStackEntry> stack, bool fillStack)
         {
             int w = chf.width;
             int h = chf.height;
@@ -251,7 +251,7 @@ namespace GameEditor.RecastEditor
 
         }
 
-        private static bool FloodRegion(int x, int y, int i, int level, int r, CompactHeightfield chf, int[] srcReg, int[] srcDist, Stack<LevelStackEntry> stack)
+        private static bool FloodRegion(int x, int y, int i, int level, int r, RcCompactHeightfield chf, int[] srcReg, int[] srcDist, Stack<LevelStackEntry> stack)
         {
             int w = chf.width;
             AREATYPE area = chf.areas[i];
@@ -362,7 +362,7 @@ namespace GameEditor.RecastEditor
             return count > 0;
         }
 
-        private static void MergeAndFilterRegions(CompactHeightfield chf, int[] srcReg)
+        private static void MergeAndFilterRegions(RcCompactHeightfield chf, int[] srcReg)
         {
             int w = chf.width;
             int h = chf.height;
@@ -673,7 +673,7 @@ namespace GameEditor.RecastEditor
             reg.floors.Add(n);
         }
 
-        private static void WalkContour(CompactHeightfield chf, int[] srcReg, int x, int y, int i, int dir, List<int> cont)
+        private static void WalkContour(RcCompactHeightfield chf, int[] srcReg, int x, int y, int i, int dir, List<int> cont)
         {
             int startDir = dir;
             int starti = i;
@@ -788,7 +788,7 @@ namespace GameEditor.RecastEditor
         }
 
 
-        private static bool IsSolidEdge(CompactHeightfield chf, int[] srcReg, int x, int y, int i, int dir)
+        private static bool IsSolidEdge(RcCompactHeightfield chf, int[] srcReg, int x, int y, int i, int dir)
         {
             //相邻的span与自身是不同区域的，则视为边缘
             CompactSpan s = chf.spans[i];
@@ -823,7 +823,7 @@ namespace GameEditor.RecastEditor
             }
         }
 
-        public static void RcBuildContours(CompactHeightfield chf, RcContourSet rcContourSet)
+        public static void RcBuildContours(RcCompactHeightfield chf, RcContourSet rcContourSet)
         {
             int w = chf.width;
             int h = chf.height;
@@ -1222,7 +1222,7 @@ namespace GameEditor.RecastEditor
             return false;
         }
 
-        private static void WalkContourPoint(int x, int y, int i, CompactHeightfield chf, int[] flags, List<int> points)
+        private static void WalkContourPoint(int x, int y, int i, RcCompactHeightfield chf, int[] flags, List<int> points)
         {
             int dir = 0;
             //找第一个边界
@@ -1551,7 +1551,7 @@ namespace GameEditor.RecastEditor
             }
 
         }
-        private static int GetCornerHeight(int x, int y, int i, int dir, CompactHeightfield chf)
+        private static int GetCornerHeight(int x, int y, int i, int dir, RcCompactHeightfield chf)
         {
 
             CompactSpan s = chf.spans[i];

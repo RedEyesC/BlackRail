@@ -142,14 +142,14 @@ namespace GameEditor.RecastEditor
             return offset[direction & 0x03];
         }
 
-        public static int RcGetHeightFieldSpanCount(Heightfield heightfield)
+        public static int RcGetHeightFieldSpanCount(RcHeightfield heightfield)
         {
 
             int numCols = heightfield.width * heightfield.height;
             int spanCount = 0;
             for (int columnIndex = 0; columnIndex < numCols; ++columnIndex)
             {
-                for (Span span = heightfield.spans[columnIndex]; span != null; span = span.next)
+                for (RcSpan span = heightfield.spans[columnIndex]; span != null; span = span.next)
                 {
                     if (span.areaID != AREATYPE.None)
                     {

@@ -5,7 +5,7 @@ namespace GameEditor.RecastEditor
 {
     internal class RecastHeightField
     {
-        public static void RcRasterizeTriangles(Vector3[] verts, int[] tris, AREATYPE[] areas, Heightfield hf)
+        public static void RcRasterizeTriangles(Vector3[] verts, int[] tris, AREATYPE[] areas, RcHeightfield hf)
         {
 
             int numTris = tris.Length / 3;
@@ -24,7 +24,7 @@ namespace GameEditor.RecastEditor
 
         }
 
-        private static bool RasterizeTri(Vector3 v0, Vector3 v1, Vector3 v2, AREATYPE areaType, Heightfield hf)
+        private static bool RasterizeTri(Vector3 v0, Vector3 v1, Vector3 v2, AREATYPE areaType, RcHeightfield hf)
         {
             Vector3 triBBMin = v0;
             triBBMin = Vector3.Min(triBBMin, v1);
@@ -192,16 +192,16 @@ namespace GameEditor.RecastEditor
         }
 
 
-        private static bool AddSpan(Heightfield hf, int x, int z, int min, int max, AREATYPE areaType)
+        private static bool AddSpan(RcHeightfield hf, int x, int z, int min, int max, AREATYPE areaType)
         {
-            Span newSpan = new Span(min, max, areaType);
+            RcSpan newSpan = new RcSpan(min, max, areaType);
 
             int columnIndex = x + z * hf.width;
 
             //缓存比newSpan小的体素的列表
-            Span previousSpan = null;
+            RcSpan previousSpan = null;
             //进行比较的体素
-            Span currentSpan = hf.spans[columnIndex];
+            RcSpan currentSpan = hf.spans[columnIndex];
 
             while (currentSpan != null)
             {
@@ -236,7 +236,7 @@ namespace GameEditor.RecastEditor
                     }
 
                     //从链表中释放currentSpan
-                    Span next = currentSpan.next;
+                    RcSpan next = currentSpan.next;
                     if (previousSpan != null)
                     {
                         previousSpan.next = next;
@@ -268,7 +268,7 @@ namespace GameEditor.RecastEditor
         }
 
 
-        public static void RcFilterLowHangingWalkableObstacles(Heightfield hf)
+        public static void RcFilterLowHangingWalkableObstacles(RcHeightfield hf)
         {
             int xSize = hf.width;
             int zSize = hf.height;
@@ -277,12 +277,12 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = 0; x < xSize; ++x)
                 {
-                    Span previousSpan = null;
+                    RcSpan previousSpan = null;
                     bool previousWasWalkable = false;
                     AREATYPE previousArea = 0;
 
                     //上下两个span，下span可走，上span不可走，并且上下span的上表面相差不超过walkClimb，则把上span也改为可走
-                    for (Span span = hf.spans[x + z * xSize]; span != null; previousSpan = span, span = span.next)
+                    for (RcSpan span = hf.spans[x + z * xSize]; span != null; previousSpan = span, span = span.next)
                     {
                         bool walkable = span.areaID == AREATYPE.Walke;
 
@@ -302,7 +302,7 @@ namespace GameEditor.RecastEditor
             }
         }
 
-        public static void RcFilterLedgeSpans(Heightfield hf)
+        public static void RcFilterLedgeSpans(RcHeightfield hf)
         {
             int xSize = hf.width;
             int zSize = hf.height;
@@ -313,7 +313,7 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = 0; x < xSize; ++x)
                 {
-                    for (Span span = hf.spans[x + z * xSize]; span != null; span = span.next)
+                    for (RcSpan span = hf.spans[x + z * xSize]; span != null; span = span.next)
                     {
                         //跳过不可行走区域
                         if (span.areaID == AREATYPE.None)
@@ -345,7 +345,7 @@ namespace GameEditor.RecastEditor
                             }
 
 
-                            Span neighborSpan = hf.spans[dx + dy * xSize];
+                            RcSpan neighborSpan = hf.spans[dx + dy * xSize];
                             int neighborBot = -hf.walkableClimb;
                             int neighborTop = neighborSpan != null ? neighborSpan.min : RecastConfig.MAX_HEIGHT;
 
@@ -393,7 +393,7 @@ namespace GameEditor.RecastEditor
         }
 
 
-        public static void RcFilterWalkableLowHeightSpans(Heightfield hf)
+        public static void RcFilterWalkableLowHeightSpans(RcHeightfield hf)
         {
             int xSize = hf.width;
             int zSize = hf.height;
@@ -403,7 +403,7 @@ namespace GameEditor.RecastEditor
             {
                 for (int x = 0; x < xSize; ++x)
                 {
-                    for (Span span = hf.spans[x + z * xSize]; span != null; span = span.next)
+                    for (RcSpan span = hf.spans[x + z * xSize]; span != null; span = span.next)
                     {
                         int bot = span.max;
                         int top = span.next != null ? span.next.min : RecastConfig.MAX_HEIGHT;
@@ -416,14 +416,14 @@ namespace GameEditor.RecastEditor
             }
         }
 
-        public static void RcBuildCompactHeightfield(Heightfield hf, CompactHeightfield chf)
+        public static void RcBuildCompactHeightfield(RcHeightfield hf, RcCompactHeightfield chf)
         {
             int currentCellIndex = 0;
             int numColumns = hf.width * hf.height;
 
             for (int columnIndex = 0; columnIndex < numColumns; ++columnIndex)
             {
-                Span span = hf.spans[columnIndex];
+                RcSpan span = hf.spans[columnIndex];
 
                 CompactCell cell = new CompactCell(0, 0);
 
@@ -516,7 +516,7 @@ namespace GameEditor.RecastEditor
         }
 
 
-        public static void RcErodeWalkableArea(CompactHeightfield chf)
+        public static void RcErodeWalkableArea(RcCompactHeightfield chf)
         {
             int xSize = chf.width;
             int zSize = chf.height;
@@ -730,7 +730,7 @@ namespace GameEditor.RecastEditor
         }
 
 
-        public static void RcMarkConvexPolyArea(CompactHeightfield chf, Vector3[] vertices, AREATYPE areaId)
+        public static void RcMarkConvexPolyArea(RcCompactHeightfield chf, Vector3[] vertices, AREATYPE areaId)
         {
             int xSize = chf.width;
             int zSize = chf.height;
@@ -828,7 +828,7 @@ namespace GameEditor.RecastEditor
             return inPoly;
         }
 
-        public static void RcBuildDistanceField(CompactHeightfield chf)
+        public static void RcBuildDistanceField(RcCompactHeightfield chf)
         {
             //计算距离场
             CalculateDistanceField(chf);
@@ -839,7 +839,7 @@ namespace GameEditor.RecastEditor
         }
 
 
-        private static void CalculateDistanceField(CompactHeightfield chf)
+        private static void CalculateDistanceField(RcCompactHeightfield chf)
         {
             int xSize = chf.width;
             int zSize = chf.height;
@@ -1045,7 +1045,7 @@ namespace GameEditor.RecastEditor
         }
 
 
-        private static void BoxBlur(CompactHeightfield chf, int thr)
+        private static void BoxBlur(RcCompactHeightfield chf, int thr)
         {
             int xSize = chf.width;
             int zSize = chf.height;

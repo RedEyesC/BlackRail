@@ -64,7 +64,7 @@ namespace GameEditor.RecastEditor
 
             Mesh mesh = CombineMesh(navRoot);
 
-            Heightfield hf = new Heightfield(mesh, RecastConfig.AgentMaxSlope, RecastConfig.AgentMaxClimb, RecastConfig.AgentHeight, RecastConfig.AgentRadius, RecastConfig.CellSize, RecastConfig.CellHeight);
+            RcHeightfield hf = new RcHeightfield(mesh, RecastConfig.AgentMaxSlope, RecastConfig.AgentMaxClimb, RecastConfig.AgentHeight, RecastConfig.AgentRadius, RecastConfig.CellSize, RecastConfig.CellHeight);
 
             //判断三角形是否可行走
             AREATYPE[] areas = RcMarkWalkableTriangles(hf.walkableSlopeAngle, mesh.vertices, mesh.triangles);
@@ -94,7 +94,7 @@ namespace GameEditor.RecastEditor
             //DrawHeightfield(hf,true);
 
             //构建空心高度场
-            CompactHeightfield chf = new CompactHeightfield(hf);
+            RcCompactHeightfield chf = new RcCompactHeightfield(hf);
 
             RecastHeightField.RcBuildCompactHeightfield(hf, chf);
 
@@ -119,12 +119,16 @@ namespace GameEditor.RecastEditor
 
             //DrawFieldContour(cset);
 
-            RcPolyMesh ployMesh = new RcPolyMesh(cset);
+            RcPolyMesh pmesh = new RcPolyMesh(cset);
 
             //构建PolyMesh
-            RecastMesh.RcBuildPolyMesh(cset, ployMesh);
+            RecastMesh.RcBuildPolyMesh(cset, pmesh);
 
-            DrawFieldMesh(ployMesh);
+            //DrawFieldMesh(pmesh);
+
+            RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
+
+            //RecastMesh.RcBuildPolyMeshDetail(pmesh,chf,dmesh);
         }
 
         private static Mesh CombineMesh(Transform navRoot)
@@ -180,7 +184,7 @@ namespace GameEditor.RecastEditor
 
 
         //用于绘制计算出来的高度场,并标记可行走区域
-        public static void DrawHeightfield(Heightfield hf, bool showWalk = false)
+        public static void DrawHeightfield(RcHeightfield hf, bool showWalk = false)
         {
 
             int total = 0;
@@ -197,7 +201,7 @@ namespace GameEditor.RecastEditor
                 int x = i % hf.width;
                 int z = i / hf.width;
 
-                Span currentSpan = hf.spans[i];
+                RcSpan currentSpan = hf.spans[i];
                 List<float> spanCube = new List<float>();
                 while (currentSpan != null)
                 {
@@ -248,7 +252,7 @@ namespace GameEditor.RecastEditor
 
 
         //用于绘制计算出来的空心高度场，绘制距离场参数,并标记区域 ,type 1 距离场,type 2 可行走区域,type 3 划分区域
-        public static void DrawCompactHeightField(CompactHeightfield chf, int type = 1)
+        public static void DrawCompactHeightField(RcCompactHeightfield chf, int type = 1)
         {
 
 
@@ -377,16 +381,16 @@ namespace GameEditor.RecastEditor
 
 
         //用于绘制计算出来的分割的多边形
-        public static void DrawFieldMesh(RcPolyMesh ployMesh)
+        public static void DrawFieldMesh(RcPolyMesh pmesh)
         {
             Scene activeScene = SceneManager.GetActiveScene();
             string activeSceneName = activeScene.name;
 
             GameObject root = GameObject.Find("/" + activeSceneName);
 
-            Vector3 hfBBMin = ployMesh.minBounds;
-            float cellSize = ployMesh.cellSize;
-            float cellHeight = ployMesh.cellHeight;
+            Vector3 hfBBMin = pmesh.minBounds;
+            float cellSize = pmesh.cellSize;
+            float cellHeight = pmesh.cellHeight;
 
             if (root.GetComponent<RecastComponent>() == null)
             {
@@ -394,9 +398,9 @@ namespace GameEditor.RecastEditor
             }
 
  
-            float[][] polyList = new float[ployMesh.numPolys][];
+            float[][] polyList = new float[pmesh.numPolys][];
 
-            for (int i = 0; i < ployMesh.numPolys; ++i)
+            for (int i = 0; i < pmesh.numPolys; ++i)
             {
 
                 List<float> ployVert = new List<float>();
@@ -404,16 +408,16 @@ namespace GameEditor.RecastEditor
                 for (int j = 0; j < RecastConfig.MaxVertsPerPoly; j++)
                 {
 
-                    int vertIndex = ployMesh.polys[i * RecastConfig.MaxVertsPerPoly * 2 + j];
+                    int vertIndex = pmesh.polys[i * RecastConfig.MaxVertsPerPoly * 2 + j];
 
                     if(vertIndex == RecastConfig.RC_MESH_NULL_IDX)
                     {
                         continue;
                     }
 
-                    float cellX = hfBBMin[0] + ployMesh.verts[vertIndex * 3] * cellSize;
-                    float cellZ = hfBBMin[2] + ployMesh.verts[vertIndex * 3 + 2] * cellSize;
-                    float cellY = hfBBMin[1] + ployMesh.verts[vertIndex * 3 + 1] * cellHeight;
+                    float cellX = hfBBMin[0] + pmesh.verts[vertIndex * 3] * cellSize;
+                    float cellZ = hfBBMin[2] + pmesh.verts[vertIndex * 3 + 2] * cellSize;
+                    float cellY = hfBBMin[1] + pmesh.verts[vertIndex * 3 + 1] * cellHeight;
 
                     ployVert.Add(cellX);
                     ployVert.Add(cellY);

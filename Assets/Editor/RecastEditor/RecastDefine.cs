@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace GameEditor.RecastEditor
 {
-    public class Heightfield
+    public class RcHeightfield
     {
         //可行走角度
         public float walkableSlopeAngle = 0;
@@ -23,9 +23,9 @@ namespace GameEditor.RecastEditor
         public Vector3 minBounds = new Vector3();
         public Vector3 maxBounds = new Vector3();
 
-        public Span[] spans;
+        public RcSpan[] spans;
 
-        public Heightfield(Mesh mesh, float agentMaxSlope, float agentMaxClimb, float agentHeight, float agentRadius, float cellSize, float cellHeight)
+        public RcHeightfield(Mesh mesh, float agentMaxSlope, float agentMaxClimb, float agentHeight, float agentRadius, float cellSize, float cellHeight)
         {
 
             this.cellSize = cellSize;
@@ -36,7 +36,7 @@ namespace GameEditor.RecastEditor
 
             RecastUtility.CalcGridSize(minBounds, maxBounds, cellSize, out width, out height);
 
-            spans = new Span[height * width];
+            spans = new RcSpan[height * width];
 
             walkableClimb = (int)(agentMaxClimb / cellHeight);
             walkableHeight = (int)(agentHeight / cellHeight);
@@ -45,14 +45,14 @@ namespace GameEditor.RecastEditor
     }
 
 
-    public class Span
+    public class RcSpan
     {
         public int min;
         public int max;
         public AREATYPE areaID;
-        public Span next = null;
+        public RcSpan next = null;
 
-        public Span(int min, int max, AREATYPE areaID)
+        public RcSpan(int min, int max, AREATYPE areaID)
         {
             this.min = min;
             this.max = max;
@@ -60,7 +60,7 @@ namespace GameEditor.RecastEditor
         }
     }
 
-    public class CompactHeightfield
+    public class RcCompactHeightfield
     {
         //可行走角度
         public float walkableSlopeAngle = 0;
@@ -94,7 +94,7 @@ namespace GameEditor.RecastEditor
 
         //最大区域id
         public int maxRegions = 0;
-        public CompactHeightfield(Heightfield hf)
+        public RcCompactHeightfield(RcHeightfield hf)
         {
 
             width = hf.width;
@@ -213,7 +213,7 @@ namespace GameEditor.RecastEditor
         public Vector3 minBounds = new Vector3();
         public Vector3 maxBounds = new Vector3();
 
-        public RcContourSet(CompactHeightfield chf)
+        public RcContourSet(RcCompactHeightfield chf)
         {
 
             width = chf.width;
@@ -278,7 +278,7 @@ namespace GameEditor.RecastEditor
         public int[] verts;
         //每个多边形占据 RecastConfig.MaxVertsPerPoly * 2，
         //前RecastConfig.MaxVertsPerPoly存放多边形顶点，后RecastConfig.MaxVertsPerPoly这个点存放邻接多边形信息
-        public int[] polys; 
+        public int[] polys;
         public int[] regs;
         public int[] flags;
         public AREATYPE[] areas;
@@ -312,10 +312,36 @@ namespace GameEditor.RecastEditor
             vert[1] = vert1;
             poly[0] = poly0;
             poly[1] = poly1;
-            polyEdge[0] = polyEdge0;    
-            polyEdge[1] = polyEdge1;                
+            polyEdge[0] = polyEdge0;
+            polyEdge[1] = polyEdge1;
 
         }
 
     }
+
+    public class RcPolyMeshDetail
+    {
+
+        public int numMeshes = 0;
+        public int numVerts = 0;
+        public int numTris = 0;
+
+        public int[] meshes;
+        public float[] verts;
+        public int[] tris;
+
+    }
+
+    public class RcHeightPatch
+    {
+        public int xmin = 0;
+        public int ymin = 0;
+        public int width = 0;
+        public int height = 0;
+
+        public int[] data;
+    }
+
+
+
 }
