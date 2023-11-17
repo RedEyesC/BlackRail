@@ -297,5 +297,23 @@ namespace GameEditor.RecastEditor
 
     }
 
+    public class RcEdge
+    {
+        public int[] vert = new int[2];
+        public int[] polyEdge = new int[2];
+        public int[] poly = new int[2];
 
+        public RcEdge(int vert0, int vert1, int poly0, int poly1, int polyEdge0, int polyEdge1)
+        {
+
+            vert[0] = vert0;
+            vert[1] = vert1;
+            poly[0] = poly0;
+            poly[1] = poly1;
+            polyEdge[0] = polyEdge0;    
+            polyEdge[1] = polyEdge1;                
+
+        }
+
+    }
 }

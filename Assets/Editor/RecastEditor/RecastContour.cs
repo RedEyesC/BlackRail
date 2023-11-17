@@ -1523,7 +1523,7 @@ namespace GameEditor.RecastEditor
                 //相邻区域边缘顶点标志取自下一个原始点。
                 int ai = (simplified[i * 4 + 3] + 1) % pn;
                 int bi = simplified[i * 4 + 3];
-                simplified[i * 4 + 3] = (points[ai * 4 + 3] & (RecastConfig.RC_CONTOUR_REG_MASK | RecastConfig.RC_AREA_BORDER)) | (points[bi * 4 + 3] & RecastConfig.RC_BORDER_VERTEX);
+                simplified[i * 4 + 3] = (points[ai * 4 + 3] & (RecastConfig.RC_CONTOUR_REG_MASK | RecastConfig.RC_AREA_BORDER));
             }
 
             //去除重复的点

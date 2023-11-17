@@ -22,11 +22,11 @@ namespace GameEditor.RecastEditor
                 maxVertsPerCont = Mathf.Max(maxVertsPerCont, cset.conts[i].numVerts);
             }
 
-            ployMesh.verts = new int[maxVertsPerCont * 3];
+            ployMesh.verts = new int[maxVertices * 3];
             Array.Fill(ployMesh.verts, 0);
 
             ployMesh.polys = new int[maxTris * RecastConfig.MaxVertsPerPoly * 2];
-            Array.Fill(ployMesh.polys, 0xff);
+            Array.Fill(ployMesh.polys, RecastConfig.RC_MESH_NULL_IDX);
 
             ployMesh.regs = new int[maxTris];
             Array.Fill(ployMesh.regs, 0);
@@ -39,16 +39,20 @@ namespace GameEditor.RecastEditor
             int[] indices = new int[maxVertsPerCont];
             int[] tris = new int[maxVertsPerCont * 3];
 
-            int[] firstVert = new int[maxVertsPerCont];
+            int[] firstVert = new int[RecastConfig.VERTEX_BUCKET_COUNT];
             Array.Fill(firstVert, -1);
 
-            int[] nextVert = new int[maxVertsPerCont];
+            int[] nextVert = new int[maxVertices];
             Array.Fill(nextVert, 0);
 
             int[] vflags = new int[maxVertsPerCont];
             Array.Fill(vflags, 0);
 
-            int[] polys = new int[(maxVertsPerCont + 1) * RecastConfig.MaxVertsPerPoly];
+
+            int[] pregs = new int[RecastConfig.MaxVertsPerPoly];
+            int[] pareas = new int[RecastConfig.MaxVertsPerPoly];
+            int[] polys = new int[maxVertsPerCont * RecastConfig.MaxVertsPerPoly];
+            int[] tmpPoly = new int[RecastConfig.MaxVertsPerPoly];
 
             for (int i = 0; i < cset.numConts; ++i)
             {
@@ -68,7 +72,7 @@ namespace GameEditor.RecastEditor
                 if (ntris <= 0)
                 {
 
-                    Debug.LogErrorFormat("rcBuildPolyMesh: Bad triangulation Contour %d.", i);
+                    Debug.LogWarningFormat("rcBuildPolyMesh: Bad triangulation Contour {0}", i);
                     ntris = -ntris;
                 }
 
@@ -80,16 +84,10 @@ namespace GameEditor.RecastEditor
 
                     //返回polyMesh.verts中的索引
                     indices[j] = AddVertex(cont.verts[vIndex], cont.verts[vIndex + 1], cont.verts[vIndex + 2], firstVert, nextVert, ployMesh);
-
-                    //假如该顶点是边缘，则加入移除列表
-                    if ((cont.verts[vIndex + 3] & RecastConfig.RC_BORDER_VERTEX) != 0)
-                    {
-                        vflags[indices[j]] = 1;
-                    }
                 }
 
                 int npolys = 0;
-                Array.Fill(polys, 0xff);
+                Array.Fill(polys, RecastConfig.RC_MESH_NULL_IDX);
                 for (int j = 0; j < ntris; ++j)
                 {
                     int ti = j * 3;
@@ -113,6 +111,7 @@ namespace GameEditor.RecastEditor
                     for (; ; )
                     {
                         // 找到最适合合并的多边形.
+                        //只要保证两个凸多边形共边的两点仍然是凸点，那么组合后仍然是凸多边形
                         int bestMergeVal = 0;
                         int bestPa = 0, bestPb = 0, bestEa = 0, bestEb = 0;
 
@@ -122,10 +121,10 @@ namespace GameEditor.RecastEditor
 
                             for (int k = j + 1; k < npolys; ++k)
                             {
-                                int pk = polys[k * RecastConfig.MaxVertsPerPoly];
-                                int ea = 0;
-                                int eb = 0;
-                                int v = GetPolyMergeValue(pj, pk, ployMesh.verts, ea, eb); ;
+                                int pk = k * RecastConfig.MaxVertsPerPoly;
+                                int ea = -1;
+                                int eb = -1;
+                                int v = GetPolyMergeValue(pj, pk, ployMesh.verts, polys, out ea, out eb); ;
                                 if (v > bestMergeVal)
                                 {
                                     bestMergeVal = v;
@@ -137,16 +136,271 @@ namespace GameEditor.RecastEditor
                             }
                         }
 
+                        if (bestMergeVal > 0)
+                        {
+                            int pa = bestPa * RecastConfig.MaxVertsPerPoly;
+                            int pb = bestPb * RecastConfig.MaxVertsPerPoly;
+
+
+                            MergePolyVerts(pa, pb, bestEa, bestEb, tmpPoly, polys);
+                            if (pregs[bestPa] != pregs[bestPb])
+                            {
+                                pregs[bestPa] = RecastConfig.RC_MULTIPLE_REGS;
+                            }
+
+                            int last = (npolys - 1) * RecastConfig.MaxVertsPerPoly;
+
+                            if (pb != last)
+                            {
+                                for (int k = 0; k < RecastConfig.MaxVertsPerPoly; ++k)
+                                {
+                                    polys[pb + k] = polys[last + k];
+                                }
+                            }
+
+                            pregs[bestPb] = pregs[npolys - 1];
+                            pareas[bestPb] = pareas[npolys - 1];
+                            npolys--;
+                        }
+                        else
+                        {
+                            break;
+                        }
+
+                    }
+                }
+
+                for (int j = 0; j < npolys; ++j)
+                {
+                    if (ployMesh.numPolys >= maxTris)
+                    {
+                        break;
+                    }
+
+                    int offset = ployMesh.numPolys * RecastConfig.MaxVertsPerPoly * 2;
+
+                    for (int k = 0; k < RecastConfig.MaxVertsPerPoly; ++k)
+                    {
+                        ployMesh.polys[offset + k] = polys[j * RecastConfig.MaxVertsPerPoly + k];
+                    }
+
+                    ployMesh.regs[ployMesh.numPolys] = cont.reg;
+                    ployMesh.areas[ployMesh.numPolys] = cont.area;
+                    ployMesh.numPolys++;
+
+                    if (ployMesh.numPolys > maxTris)
+                    {
+                        Debug.LogErrorFormat("removeVertex: Too many polygons {0} (max:{1}).", ployMesh.numPolys, maxTris);
+                    }
+                }
+
+            }
+
+            if (!BuildMeshAdjacency(ployMesh.polys, ployMesh.numPolys, ployMesh.numVerts, RecastConfig.MaxVertsPerPoly))
+            {
+                Debug.LogError("rcBuildPolyMesh: Adjacency failed.");
+            }
+
+        }
+
+        private static int GetPolyMergeValue(int pa, int pb, int[] verts, int[] polys, out int ea, out int eb)
+        {
+            ea = -1;
+            eb = -1;
+
+            int na = CountPolyVerts(pa, polys);
+            int nb = CountPolyVerts(pb, polys);
+
+            //假如顶点数超过标准，就不再合并了
+            if (na + nb - 2 > RecastConfig.MaxVertsPerPoly)
+                return -1;
+
+
+            for (int i = 0; i < na; ++i)
+            {
+                int va0 = polys[pa + i];
+                int va1 = polys[pa + (i + 1) % na];
+                if (va0 > va1)
+                {
+                    RecastUtility.RcSwap(va0, va1);
+                }
+
+                for (int j = 0; j < nb; ++j)
+                {
+                    int vb0 = polys[pb + j];
+                    int vb1 = polys[pb + (j + 1) % nb];
+                    if (vb0 > vb1)
+                    {
+                        RecastUtility.RcSwap(vb0, vb1);
+                    }
+
+                    if (va0 == vb0 && va1 == vb1)
+                    {
+                        ea = i;
+                        eb = j;
+                        break;
                     }
                 }
             }
+
+            //未发现可合并边
+            if (ea == -1 || eb == -1)
+                return -1;
+
+
+            //检查合并后的图形是否满足凸多边形的要求
+            int va, vb, vc;
+            int[] verta, vertb, vertc;
+
+            va = polys[pa + (ea + na - 1) % na];
+            vb = polys[pa + ea];
+            vc = polys[pb + (eb + 2) % nb];
+
+            verta = new int[] { verts[va * 3], verts[va * 3 + 1], verts[va * 3 + 2] };
+            vertb = new int[] { verts[vb * 3], verts[vb * 3 + 1], verts[vb * 3 + 2] };
+            vertc = new int[] { verts[vc * 3], verts[vc * 3 + 1], verts[vc * 3 + 2] };
+
+            if (!RecastUtility.Left(verta, vertb, vertc))
+            {
+                return -1;
+            }
+
+
+            va = polys[pb + (eb + nb - 1) % nb];
+            vb = polys[pb + eb];
+            vc = polys[pa + (ea + 2) % na];
+
+            verta = new int[] { verts[va * 3], verts[va * 3 + 1], verts[va * 3 + 2] };
+            vertb = new int[] { verts[vb * 3], verts[vb * 3 + 1], verts[vb * 3 + 2] };
+            vertc = new int[] { verts[vc * 3], verts[vc * 3 + 1], verts[vc * 3 + 2] };
+
+
+            if (!RecastUtility.Left(verta, vertb, vertc))
+            {
+                return -1;
+            }
+
+            va = polys[pa + ea];
+            vb = polys[pa + (ea + 1) % na];
+
+            int dx = (int)verts[va * 3 + 0] - (int)verts[vb * 3 + 0];
+            int dy = (int)verts[va * 3 + 2] - (int)verts[vb * 3 + 2];
+
+            return dx * dx + dy * dy;
+
         }
 
-        private static int GetPolyMergeValue(int pa, int pb, int[] verts, int ea, int eb)
+
+        private static void MergePolyVerts(int pa, int pb, int ea, int eb, int[] tmp, int[] polys)
         {
-            return 1;
+
+            int na = CountPolyVerts(pa, polys);
+            int nb = CountPolyVerts(pb, polys);
+
+
+            Array.Fill(tmp, 0xff);
+            int n = 0;
+
+            for (int i = 0; i < na - 1; ++i)
+            {
+                tmp[n++] = polys[pa + (ea + 1 + i) % na];
+            }
+
+            for (int i = 0; i < nb - 1; ++i)
+            {
+                tmp[n++] = polys[pb + (eb + 1 + i) % nb];
+            }
+
+            for (int i = 0; i < RecastConfig.MaxVertsPerPoly; ++i)
+            {
+                polys[pa + i] = tmp[i];
+            }
         }
 
+
+        private static bool BuildMeshAdjacency(int[] polys, int npolys, int nverts, int vertsPerPoly)
+        {
+
+            int maxEdgeCount = npolys * vertsPerPoly;
+
+            int[] firstEdge = new int[nverts];
+            int[] nextEdge = new int[maxEdgeCount];
+
+            int edgeCount = 0;
+            RcEdge[] edges = new RcEdge[maxEdgeCount];
+
+            for (int i = 0; i < nverts; i++)
+            {
+                firstEdge[i] = RecastConfig.RC_MESH_NULL_IDX;
+            }
+
+            for (int i = 0; i < npolys; ++i)
+            {
+                int t = i * vertsPerPoly * 2;
+                for (int j = 0; j < vertsPerPoly; ++j)
+                {
+                    if (polys[t + j] == RecastConfig.RC_MESH_NULL_IDX)
+                    {
+                        break;
+                    }
+                    int v0 = polys[t + j];
+                    int v1 = (j + 1 >= vertsPerPoly || polys[t + j + 1] == RecastConfig.RC_MESH_NULL_IDX) ? polys[t] : polys[t + j + 1];
+                    if (v0 > v1)
+                    {
+
+                        edges[edgeCount] = new RcEdge(v0, v1, i, i, j, 0);
+
+                        nextEdge[edgeCount] = firstEdge[v0];
+                        firstEdge[v0] = edgeCount;
+                        edgeCount++;
+                    }
+
+                }
+            }
+
+            for (int i = 0; i < npolys; ++i)
+            {
+                int t = i * vertsPerPoly * 2;
+                for (int j = 0; j < vertsPerPoly; ++j)
+                {
+                    if (polys[t + j] == RecastConfig.RC_MESH_NULL_IDX)
+                    {
+                        break;
+                    }
+                    int v0 = polys[t + j];
+                    int v1 = (j + 1 >= vertsPerPoly || polys[t + j + 1] == RecastConfig.RC_MESH_NULL_IDX) ? polys[t] : polys[t + j + 1];
+
+                    if (v0 > v1)
+                    {
+                        for (int e = firstEdge[v1]; e != RecastConfig.RC_MESH_NULL_IDX; e = nextEdge[e])
+                        {
+                            RcEdge edge = edges[e];
+                            if (edge.vert[1] == v0 && edge.poly[0] == edge.poly[1])
+                            {
+                                edge.poly[1] = i;
+                                edge.polyEdge[1] = j;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (int i = 0; i < edgeCount; ++i)
+            {
+                RcEdge e = edges[i];
+                if (e.poly[0] != e.poly[1])
+                {
+                    int p0Index = e.poly[0] * vertsPerPoly * 2;
+                    int p1Index = e.poly[1] * vertsPerPoly * 2;
+                    polys[p0Index + vertsPerPoly + e.polyEdge[0]] = e.poly[1];
+                    polys[p1Index + vertsPerPoly + e.polyEdge[1]] = e.poly[0];
+                }
+            }
+
+
+            return true;
+        }
 
         private static int AddVertex(int x, int y, int z, int[] firstVert, int[] nextVert, RcPolyMesh polyMesh)
         {
@@ -213,10 +467,10 @@ namespace GameEditor.RecastEditor
                     if ((indices[i1] & RecastConfig.RC_INDICE) != 0)
                     {
 
-                        int p0Index = indices[i] & RecastConfig.RC_INDICE_MASK;
+                        int p0Index = (indices[i] & RecastConfig.RC_INDICE_MASK) * 4;
                         int[] p0 = { verts[p0Index], verts[p0Index + 1], verts[p0Index + 2] };
 
-                        int p2Index = indices[RecastUtility.Next(i1, n)] & RecastConfig.RC_INDICE_MASK;
+                        int p2Index = (indices[RecastUtility.Next(i1, n)] & RecastConfig.RC_INDICE_MASK) * 4;
                         int[] p2 = { verts[p2Index], verts[p2Index + 1], verts[p2Index + 2] };
 
                         int dx = p2[0] - p0[0];
@@ -243,10 +497,10 @@ namespace GameEditor.RecastEditor
 
                         if (Diagonal(i, i2, n, verts, indices, true))
                         {
-                            int p0Index = indices[i] & RecastConfig.RC_INDICE_MASK;
+                            int p0Index = (indices[i] & RecastConfig.RC_INDICE_MASK) * 4;
                             int[] p0 = { verts[p0Index], verts[p0Index + 1], verts[p0Index + 2] };
 
-                            int p2Index = indices[RecastUtility.Next(i1, n)] & RecastConfig.RC_INDICE_MASK;
+                            int p2Index = (indices[RecastUtility.Next(i1, n)] & RecastConfig.RC_INDICE_MASK) * 4;
                             int[] p2 = { verts[p2Index], verts[p2Index + 1], verts[p2Index + 2] };
 
                             int dx = p2[0] - p0[0];
@@ -259,12 +513,12 @@ namespace GameEditor.RecastEditor
                                 mini = i;
                             }
                         }
+                    }
 
-                        if (mini == -1)
-                        {
-                            //简化太严重，无法分割三角形
-                            return -ntris;
-                        }
+                    if (mini == -1)
+                    {
+                        //简化太严重，无法分割三角形
+                        return -ntris;
                     }
 
                 }
@@ -321,16 +575,16 @@ namespace GameEditor.RecastEditor
         private static bool Diagonal(int i, int j, int n, int[] verts, int[] indices, bool loose = false)
         {
 
-            int pjIndex = indices[j] & RecastConfig.RC_INDICE_MASK;
+            int pjIndex = (indices[j] & RecastConfig.RC_INDICE_MASK) * 4;
             int[] pj = { verts[pjIndex], verts[pjIndex + 1], verts[pjIndex + 2] };
 
-            int piIndex = indices[i] & RecastConfig.RC_INDICE_MASK;
+            int piIndex = (indices[i] & RecastConfig.RC_INDICE_MASK) * 4;
             int[] pi = { verts[piIndex], verts[piIndex + 1], verts[piIndex + 2] };
 
-            int pi1Index = indices[RecastUtility.Next(i, n)] & RecastConfig.RC_INDICE_MASK;
+            int pi1Index = (indices[RecastUtility.Next(i, n)] & RecastConfig.RC_INDICE_MASK) * 4;
             int[] pi1 = { verts[pi1Index], verts[pi1Index + 1], verts[pi1Index + 2] };
 
-            int pin1Index = indices[RecastUtility.Prev(i, n)] & RecastConfig.RC_INDICE_MASK;
+            int pin1Index = (indices[RecastUtility.Prev(i, n)] & RecastConfig.RC_INDICE_MASK) * 4;
             int[] pin1 = { verts[pin1Index], verts[pin1Index + 1], verts[pin1Index + 2] };
 
             return RecastUtility.InCone(pi, pi1, pin1, pj, loose) && Diagonalie(i, j, n, verts, indices, loose);
@@ -375,6 +629,15 @@ namespace GameEditor.RecastEditor
             uint h3 = 0xcb1ab31f;
             uint n = (uint)(h1 * x + h2 * y + h3 * z);
             return (int)(n & (RecastConfig.VERTEX_BUCKET_COUNT - 1));
+        }
+
+        //获取索引为p的多边形的顶点数
+        private static int CountPolyVerts(int p, int[] polys)
+        {
+            for (int i = 0; i < RecastConfig.MaxVertsPerPoly; ++i)
+                if (polys[p + i] == RecastConfig.RC_MESH_NULL_IDX)
+                    return i;
+            return RecastConfig.MaxVertsPerPoly;
         }
     }
 }

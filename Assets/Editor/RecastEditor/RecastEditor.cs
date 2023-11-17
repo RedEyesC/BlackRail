@@ -96,7 +96,7 @@ namespace GameEditor.RecastEditor
             //构建空心高度场
             CompactHeightfield chf = new CompactHeightfield(hf);
 
-            RecastHeightField.RcBuildCompactHeightfield(hf,chf);
+            RecastHeightField.RcBuildCompactHeightfield(hf, chf);
 
             //设置边缘不可行走
             RecastHeightField.RcErodeWalkableArea(chf);
@@ -120,10 +120,11 @@ namespace GameEditor.RecastEditor
             //DrawFieldContour(cset);
 
             RcPolyMesh ployMesh = new RcPolyMesh(cset);
-            
+
             //构建PolyMesh
             RecastMesh.RcBuildPolyMesh(cset, ployMesh);
 
+            DrawFieldMesh(ployMesh);
         }
 
         private static Mesh CombineMesh(Transform navRoot)
@@ -286,9 +287,9 @@ namespace GameEditor.RecastEditor
                         CompactSpan span = chf.spans[i];
 
                         //为了方便观察，CompactSpan只构建一个cellHeight，实际不止
-                        float cellX = hfBBMin[0] + (float)x * cellSize + cellSize / 2;
-                        float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;
-                        float cellY = hfBBMin[1] + (float)span.y * cellHeight + cellHeight / 2;
+                        float cellX = hfBBMin[0] + x * cellSize + cellSize / 2;
+                        float cellZ = hfBBMin[2] + z * cellSize + cellSize / 2;
+                        float cellY = hfBBMin[1] + span.y * cellHeight + cellHeight / 2;
 
                         int index = i - c.index;
 
@@ -358,9 +359,9 @@ namespace GameEditor.RecastEditor
 
                 for (int j = 0; j < cont.numVerts; j++)
                 {
-                    float cellX = hfBBMin[0] + (float)cont.verts[j * 4] * cellSize;
-                    float cellZ = hfBBMin[2] + (float)cont.verts[j * 4 + 2] * cellSize;
-                    float cellY = hfBBMin[1] + (float)cont.verts[j * 4 + 1] * cellHeight;
+                    float cellX = hfBBMin[0] + cont.verts[j * 4] * cellSize;
+                    float cellZ = hfBBMin[2] + cont.verts[j * 4 + 2] * cellSize;
+                    float cellY = hfBBMin[1] + cont.verts[j * 4 + 1] * cellHeight;
 
                     contVert[j * 4] = cellX;
                     contVert[j * 4 + 1] = cellY;
@@ -372,6 +373,58 @@ namespace GameEditor.RecastEditor
             }
 
             root.GetComponent<RecastComponent>().SetContour(vertList);
+        }
+
+
+        //用于绘制计算出来的分割的多边形
+        public static void DrawFieldMesh(RcPolyMesh ployMesh)
+        {
+            Scene activeScene = SceneManager.GetActiveScene();
+            string activeSceneName = activeScene.name;
+
+            GameObject root = GameObject.Find("/" + activeSceneName);
+
+            Vector3 hfBBMin = ployMesh.minBounds;
+            float cellSize = ployMesh.cellSize;
+            float cellHeight = ployMesh.cellHeight;
+
+            if (root.GetComponent<RecastComponent>() == null)
+            {
+                root.AddComponent<RecastComponent>();
+            }
+
+ 
+            float[][] polyList = new float[ployMesh.numPolys][];
+
+            for (int i = 0; i < ployMesh.numPolys; ++i)
+            {
+
+                List<float> ployVert = new List<float>();
+
+                for (int j = 0; j < RecastConfig.MaxVertsPerPoly; j++)
+                {
+
+                    int vertIndex = ployMesh.polys[i * RecastConfig.MaxVertsPerPoly * 2 + j];
+
+                    if(vertIndex == RecastConfig.RC_MESH_NULL_IDX)
+                    {
+                        continue;
+                    }
+
+                    float cellX = hfBBMin[0] + ployMesh.verts[vertIndex * 3] * cellSize;
+                    float cellZ = hfBBMin[2] + ployMesh.verts[vertIndex * 3 + 2] * cellSize;
+                    float cellY = hfBBMin[1] + ployMesh.verts[vertIndex * 3 + 1] * cellHeight;
+
+                    ployVert.Add(cellX);
+                    ployVert.Add(cellY);
+                    ployVert.Add(cellZ);
+                    ployVert.Add(0);
+
+                }
+                polyList[i] = ployVert.ToArray();
+            }
+
+            root.GetComponent<RecastComponent>().SetContour(polyList);
         }
     }
 
