@@ -124,7 +124,7 @@ namespace GameEditor.RecastEditor
             //构建PolyMesh
             RecastMesh.RcBuildPolyMesh(cset, pmesh);
 
-            //DrawFieldMesh(pmesh);
+            DrawFieldMesh(pmesh);
 
             RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
 

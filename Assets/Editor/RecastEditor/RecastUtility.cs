@@ -176,7 +176,7 @@ namespace GameEditor.RecastEditor
             return (span.con >> shift) & 0x3f;
         }
 
-        public static void RcSwap<T>(T a, T b)
+        public static void RcSwap<T>(ref T a, ref T b)
         {
             T t = a;
             a = b;

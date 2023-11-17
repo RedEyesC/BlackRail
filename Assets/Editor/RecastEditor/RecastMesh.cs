@@ -49,8 +49,6 @@ namespace GameEditor.RecastEditor
             Array.Fill(vflags, 0);
 
 
-            int[] pregs = new int[RecastConfig.MaxVertsPerPoly];
-            int[] pareas = new int[RecastConfig.MaxVertsPerPoly];
             int[] polys = new int[maxVertsPerCont * RecastConfig.MaxVertsPerPoly];
             int[] tmpPoly = new int[RecastConfig.MaxVertsPerPoly];
 
@@ -143,10 +141,6 @@ namespace GameEditor.RecastEditor
 
 
                             MergePolyVerts(pa, pb, bestEa, bestEb, tmpPoly, polys);
-                            if (pregs[bestPa] != pregs[bestPb])
-                            {
-                                pregs[bestPa] = RecastConfig.RC_MULTIPLE_REGS;
-                            }
 
                             int last = (npolys - 1) * RecastConfig.MaxVertsPerPoly;
 
@@ -158,8 +152,6 @@ namespace GameEditor.RecastEditor
                                 }
                             }
 
-                            pregs[bestPb] = pregs[npolys - 1];
-                            pareas[bestPb] = pareas[npolys - 1];
                             npolys--;
                         }
                         else
@@ -209,7 +201,6 @@ namespace GameEditor.RecastEditor
             if (pmesh.numPolys == 0 || pmesh.numVerts == 0)
                 return;
 
-            int nvp = pmesh.numPolys;
             float cs = pmesh.cellSize;
             float ch = pmesh.cellHeight;
             Vector3 orig = pmesh.minBounds;
@@ -217,6 +208,8 @@ namespace GameEditor.RecastEditor
 
 
             RcHeightPatch hp = new RcHeightPatch();
+
+            int[] arr = new int[512];
 
             int[] bounds = new int[pmesh.numPolys * 4];
             float[] poly = new float[pmesh.numPolys * 3];
@@ -228,14 +221,14 @@ namespace GameEditor.RecastEditor
             //获取每个多边形的xy范围
             for (int i = 0; i < pmesh.numPolys; ++i)
             {
-                int pIndex = i * nvp * 2;
+                int pIndex = i * RecastConfig.MaxVertsPerPoly * 2;
 
                 int xmin = chf.width;
                 int xmax = 0;
                 int ymin = chf.height;
                 int ymax = 0;
 
-                for (int j = 0; j < nvp; ++j)
+                for (int j = 0; j < RecastConfig.MaxVertsPerPoly; ++j)
                 {
                     if (pmesh.polys[pIndex] == RecastConfig.RC_MESH_NULL_IDX)
                     {
@@ -279,10 +272,10 @@ namespace GameEditor.RecastEditor
 
             for (int i = 0; i < pmesh.numPolys; ++i)
             {
-                int pIndex = i * nvp * 2;
+                int pIndex = i * RecastConfig.MaxVertsPerPoly * 2;
 
                 int npoly = 0;
-                for (int j = 0; j < nvp; ++j)
+                for (int j = 0; j < RecastConfig.MaxVertsPerPoly; ++j)
                 {
                     if (pmesh.polys[pIndex + j] == RecastConfig.RC_MESH_NULL_IDX)
                     {
@@ -291,8 +284,8 @@ namespace GameEditor.RecastEditor
 
                     int vIndex = pmesh.polys[pIndex] * 3;
                     poly[j * 3 + 0] = pmesh.verts[vIndex] * cs;
-                    poly[j * 3 + 1] = pmesh.verts[vIndex + 1] * ch;
-                    poly[j * 3 + 2] = pmesh.verts[vIndex + 2] * cs;
+                    poly[j * 3+ 1] = pmesh.verts[vIndex + 1] * ch;
+                    poly[j * 3+ 2] = pmesh.verts[vIndex + 2] * cs;
                     npoly++;
                 }
 
@@ -300,7 +293,7 @@ namespace GameEditor.RecastEditor
                 hp.ymin = bounds[i * 4 + 2];
                 hp.width = bounds[i * 4 + 1] - bounds[i * 4 + 0];
                 hp.height = bounds[i * 4 + 3] - bounds[i * 4 + 2];
-                //getHeightData(ctx, chf, p, npoly, mesh.verts, borderSize, hp, arr, mesh.regs[i]);
+                GetHeightData(chf, pIndex, pmesh.polys, npoly, pmesh.verts, hp, arr, pmesh.regs[i]);
 
                 //// Build detail mesh.
                 //int nverts = 0;
@@ -410,7 +403,7 @@ namespace GameEditor.RecastEditor
                 int va1 = polys[pa + (i + 1) % na];
                 if (va0 > va1)
                 {
-                    RecastUtility.RcSwap(va0, va1);
+                    RecastUtility.RcSwap(ref va0,ref va1);
                 }
 
                 for (int j = 0; j < nb; ++j)
@@ -419,7 +412,7 @@ namespace GameEditor.RecastEditor
                     int vb1 = polys[pb + (j + 1) % nb];
                     if (vb0 > vb1)
                     {
-                        RecastUtility.RcSwap(vb0, vb1);
+                        RecastUtility.RcSwap(ref vb0,ref vb1);
                     }
 
                     if (va0 == vb0 && va1 == vb1)
@@ -486,7 +479,7 @@ namespace GameEditor.RecastEditor
             int nb = CountPolyVerts(pb, polys);
 
 
-            Array.Fill(tmp, 0xff);
+            Array.Fill(tmp, RecastConfig.RC_MESH_NULL_IDX);
             int n = 0;
 
             for (int i = 0; i < na - 1; ++i)
@@ -833,7 +826,7 @@ namespace GameEditor.RecastEditor
             return RecastConfig.MaxVertsPerPoly;
         }
 
-        private static void getHeightData(RcCompactHeightfield chf, int[] poly, int numPloys, int[] verts, RcHeightPatch hp)
+        private static void GetHeightData(RcCompactHeightfield chf,int ploy,int[] polys, int numPloys, int[] verts, RcHeightPatch hp,int[] arr,int regid)
         {
 
         }

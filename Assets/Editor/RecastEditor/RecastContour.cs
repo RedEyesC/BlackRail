@@ -1418,8 +1418,8 @@ namespace GameEditor.RecastEditor
                     cinc = pn - 1;
                     ci = (bi + cinc) % pn;
                     endi = ai;
-                    RecastUtility.RcSwap(ax, bx);
-                    RecastUtility.RcSwap(az, bz);
+                    RecastUtility.RcSwap(ref ax, ref bx);
+                    RecastUtility.RcSwap(ref az, ref bz);
                 }
 
                 // 不可行走边界或者region边界

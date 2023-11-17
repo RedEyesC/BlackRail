@@ -21,7 +21,7 @@ namespace GameEditor.RecastEditor
 
         public static readonly int RC_MESH_NULL_IDX = 0xffff; //空节点标志位
         public static readonly int VERTEX_BUCKET_COUNT = (1 << 12);
-        public static readonly int RC_MULTIPLE_REGS = 0;
+        public static readonly int RC_MULTIPLE_REGS = 0; 
 
         public static readonly float AgentMaxSlope = 45;
         public static readonly float AgentMaxClimb = 1f;
