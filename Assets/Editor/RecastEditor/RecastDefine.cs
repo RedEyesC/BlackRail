@@ -276,7 +276,9 @@ namespace GameEditor.RecastEditor
         public int maxPolys = 0;
 
         public int[] verts;
-        public int[] polys;
+        //每个多边形占据 RecastConfig.MaxVertsPerPoly * 2，
+        //前RecastConfig.MaxVertsPerPoly存放多边形顶点，后RecastConfig.MaxVertsPerPoly这个点存放邻接多边形信息
+        public int[] polys; 
         public int[] regs;
         public int[] flags;
         public AREATYPE[] areas;
@@ -299,9 +301,9 @@ namespace GameEditor.RecastEditor
 
     public class RcEdge
     {
-        public int[] vert = new int[2];
-        public int[] polyEdge = new int[2];
-        public int[] poly = new int[2];
+        public int[] vert = new int[2];  //边的两个点
+        public int[] polyEdge = new int[2]; //邻接的两个多边形的边的索引
+        public int[] poly = new int[2]; //邻接的两个多边形的索引
 
         public RcEdge(int vert0, int vert1, int poly0, int poly1, int polyEdge0, int polyEdge1)
         {

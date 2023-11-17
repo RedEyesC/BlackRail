@@ -196,7 +196,7 @@ namespace GameEditor.RecastEditor
 
             }
 
-            if (!BuildMeshAdjacency(ployMesh.polys, ployMesh.numPolys, ployMesh.numVerts, RecastConfig.MaxVertsPerPoly))
+            if (!BuildMeshAdjacency(ployMesh.polys, ployMesh.numPolys, ployMesh.numVerts))
             {
                 Debug.LogError("rcBuildPolyMesh: Adjacency failed.");
             }
@@ -317,11 +317,11 @@ namespace GameEditor.RecastEditor
             }
         }
 
-
-        private static bool BuildMeshAdjacency(int[] polys, int npolys, int nverts, int vertsPerPoly)
+        /// 构建边信息，每个边与哪个poly相邻
+        private static bool BuildMeshAdjacency(int[] polys, int npolys, int nverts)
         {
 
-            int maxEdgeCount = npolys * vertsPerPoly;
+            int maxEdgeCount = npolys *  RecastConfig.MaxVertsPerPoly;
 
             int[] firstEdge = new int[nverts];
             int[] nextEdge = new int[maxEdgeCount];
@@ -336,20 +336,22 @@ namespace GameEditor.RecastEditor
 
             for (int i = 0; i < npolys; ++i)
             {
-                int t = i * vertsPerPoly * 2;
-                for (int j = 0; j < vertsPerPoly; ++j)
+                int t = i * RecastConfig.MaxVertsPerPoly * 2;
+                for (int j = 0; j < RecastConfig.MaxVertsPerPoly; ++j)
                 {
                     if (polys[t + j] == RecastConfig.RC_MESH_NULL_IDX)
                     {
                         break;
                     }
                     int v0 = polys[t + j];
-                    int v1 = (j + 1 >= vertsPerPoly || polys[t + j + 1] == RecastConfig.RC_MESH_NULL_IDX) ? polys[t] : polys[t + j + 1];
-                    if (v0 > v1)
+                    int v1 = (j + 1 >= RecastConfig.MaxVertsPerPoly || polys[t + j + 1] == RecastConfig.RC_MESH_NULL_IDX) ? polys[t] : polys[t + j + 1];
+                    // 统一按照v0v1向量生成边
+                    if (v0 < v1)
                     {
 
                         edges[edgeCount] = new RcEdge(v0, v1, i, i, j, 0);
 
+                        //以v0位出发点的边可能有两条，所以先把之前的边的索引放入nextEdge，然后把新的放入firstEdge
                         nextEdge[edgeCount] = firstEdge[v0];
                         firstEdge[v0] = edgeCount;
                         edgeCount++;
@@ -360,16 +362,17 @@ namespace GameEditor.RecastEditor
 
             for (int i = 0; i < npolys; ++i)
             {
-                int t = i * vertsPerPoly * 2;
-                for (int j = 0; j < vertsPerPoly; ++j)
+                int t = i * RecastConfig.MaxVertsPerPoly * 2;
+                for (int j = 0; j < RecastConfig.MaxVertsPerPoly; ++j)
                 {
                     if (polys[t + j] == RecastConfig.RC_MESH_NULL_IDX)
                     {
                         break;
                     }
                     int v0 = polys[t + j];
-                    int v1 = (j + 1 >= vertsPerPoly || polys[t + j + 1] == RecastConfig.RC_MESH_NULL_IDX) ? polys[t] : polys[t + j + 1];
+                    int v1 = (j + 1 >= RecastConfig.MaxVertsPerPoly || polys[t + j + 1] == RecastConfig.RC_MESH_NULL_IDX) ? polys[t] : polys[t + j + 1];
 
+                    // 如果是v1v0向量的边，那一定是另个poly也有v0v1组成的边，那么这个索引i代表的poly就是上面遍历（生成edge）中i代表的poly的邻居
                     if (v0 > v1)
                     {
                         for (int e = firstEdge[v1]; e != RecastConfig.RC_MESH_NULL_IDX; e = nextEdge[e])
@@ -391,10 +394,12 @@ namespace GameEditor.RecastEditor
                 RcEdge e = edges[i];
                 if (e.poly[0] != e.poly[1])
                 {
-                    int p0Index = e.poly[0] * vertsPerPoly * 2;
-                    int p1Index = e.poly[1] * vertsPerPoly * 2;
-                    polys[p0Index + vertsPerPoly + e.polyEdge[0]] = e.poly[1];
-                    polys[p1Index + vertsPerPoly + e.polyEdge[1]] = e.poly[0];
+                    // 记录每个vertex连接哪个poly
+                    // 应该是边连接poly，为什么用vertex，因为vertex代表了该vertex和和下一个vertex之间的边
+                    int p0Index = e.poly[0] * RecastConfig.MaxVertsPerPoly * 2;
+                    int p1Index = e.poly[1] * RecastConfig.MaxVertsPerPoly * 2;
+                    polys[p0Index + RecastConfig.MaxVertsPerPoly + e.polyEdge[0]] = e.poly[1];
+                    polys[p1Index + RecastConfig.MaxVertsPerPoly + e.polyEdge[1]] = e.poly[0];
                 }
             }
 
