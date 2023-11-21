@@ -1,6 +1,6 @@
 ﻿
 using System;
-using UnityEngine;
+using System.Collections.Generic;
 
 namespace GameEditor.RecastEditor
 {
@@ -19,7 +19,7 @@ namespace GameEditor.RecastEditor
                 }
                 maxVertices += cset.conts[i].numVerts;
                 maxTris += cset.conts[i].numVerts - 2;
-                maxVertsPerCont = Mathf.Max(maxVertsPerCont, cset.conts[i].numVerts);
+                maxVertsPerCont = Math.Max(maxVertsPerCont, cset.conts[i].numVerts);
             }
 
             pmesh.verts = new int[maxVertices * 3];
@@ -70,7 +70,7 @@ namespace GameEditor.RecastEditor
                 if (ntris <= 0)
                 {
 
-                    Debug.LogWarningFormat("rcBuildPolyMesh: Bad triangulation Contour {0}", i);
+                    RecastUtility.LogWarningFormat("rcBuildPolyMesh: Bad triangulation Contour {0}", i);
                     ntris = -ntris;
                 }
 
@@ -182,7 +182,7 @@ namespace GameEditor.RecastEditor
 
                     if (pmesh.numPolys > maxTris)
                     {
-                        Debug.LogErrorFormat("removeVertex: Too many polygons {0} (max:{1}).", pmesh.numPolys, maxTris);
+                        RecastUtility.LogErrorFormat("removeVertex: Too many polygons {0} (max:{1}).", pmesh.numPolys, maxTris);
                     }
                 }
 
@@ -190,7 +190,7 @@ namespace GameEditor.RecastEditor
 
             if (!BuildMeshAdjacency(pmesh.polys, pmesh.numPolys, pmesh.numVerts))
             {
-                Debug.LogError("rcBuildPolyMesh: Adjacency failed.");
+                RecastUtility.LogError("rcBuildPolyMesh: Adjacency failed.");
             }
 
         }
@@ -203,13 +203,13 @@ namespace GameEditor.RecastEditor
 
             float cs = pmesh.cellSize;
             float ch = pmesh.cellHeight;
-            Vector3 orig = pmesh.minBounds;
-            float heightSearchRadius = Mathf.Max(1, Mathf.Ceil(RecastConfig.MaxSimplificationError));
+            float[] orig = pmesh.minBounds;
+            float heightSearchRadius = (float)Math.Max(1, Math.Ceiling(RecastConfig.MaxSimplificationError));
 
 
             RcHeightPatch hp = new RcHeightPatch();
 
-            int[] arr = new int[512];
+            Stack<int> arr = new Stack<int>();
 
             int[] bounds = new int[pmesh.numPolys * 4];
             float[] poly = new float[pmesh.numPolys * 3];
@@ -236,22 +236,22 @@ namespace GameEditor.RecastEditor
                     }
 
                     int vIndex = pmesh.polys[pIndex] * 3;
-                    xmin = Mathf.Min(xmin, pmesh.verts[vIndex]);
-                    xmax = Mathf.Max(xmax, pmesh.verts[vIndex]);
-                    ymin = Mathf.Min(ymin, pmesh.verts[vIndex + 2]);
-                    ymax = Mathf.Max(ymax, pmesh.verts[vIndex + 2]);
+                    xmin = Math.Min(xmin, pmesh.verts[vIndex]);
+                    xmax = Math.Max(xmax, pmesh.verts[vIndex]);
+                    ymin = Math.Min(ymin, pmesh.verts[vIndex + 2]);
+                    ymax = Math.Max(ymax, pmesh.verts[vIndex + 2]);
                     nPolyVerts++;
                 }
-                xmin = Mathf.Max(0, xmin - 1);
-                xmax = Mathf.Min(chf.width, xmax + 1);
-                ymin = Mathf.Max(0, ymin - 1);
-                ymax = Mathf.Min(chf.height, ymax + 1);
+                xmin = Math.Max(0, xmin - 1);
+                xmax = Math.Min(chf.width, xmax + 1);
+                ymin = Math.Max(0, ymin - 1);
+                ymax = Math.Min(chf.height, ymax + 1);
                 if (xmin >= xmax || ymin >= ymax)
                 {
                     continue;
                 }
-                maxhw = Mathf.Max(maxhw, xmax - xmin);
-                maxhh = Mathf.Max(maxhh, ymax - ymin);
+                maxhw = Math.Max(maxhw, xmax - xmin);
+                maxhh = Math.Max(maxhh, ymax - ymin);
 
                 bounds[i * 4 + 0] = xmin;
                 bounds[i * 4 + 1] = xmax;
@@ -284,8 +284,8 @@ namespace GameEditor.RecastEditor
 
                     int vIndex = pmesh.polys[pIndex] * 3;
                     poly[j * 3 + 0] = pmesh.verts[vIndex] * cs;
-                    poly[j * 3+ 1] = pmesh.verts[vIndex + 1] * ch;
-                    poly[j * 3+ 2] = pmesh.verts[vIndex + 2] * cs;
+                    poly[j * 3 + 1] = pmesh.verts[vIndex + 1] * ch;
+                    poly[j * 3 + 2] = pmesh.verts[vIndex + 2] * cs;
                     npoly++;
                 }
 
@@ -403,7 +403,7 @@ namespace GameEditor.RecastEditor
                 int va1 = polys[pa + (i + 1) % na];
                 if (va0 > va1)
                 {
-                    RecastUtility.RcSwap(ref va0,ref va1);
+                    RecastUtility.RcSwap(ref va0, ref va1);
                 }
 
                 for (int j = 0; j < nb; ++j)
@@ -412,7 +412,7 @@ namespace GameEditor.RecastEditor
                     int vb1 = polys[pb + (j + 1) % nb];
                     if (vb0 > vb1)
                     {
-                        RecastUtility.RcSwap(ref vb0,ref vb1);
+                        RecastUtility.RcSwap(ref vb0, ref vb1);
                     }
 
                     if (va0 == vb0 && va1 == vb1)
@@ -826,9 +826,202 @@ namespace GameEditor.RecastEditor
             return RecastConfig.MaxVertsPerPoly;
         }
 
-        private static void GetHeightData(RcCompactHeightfield chf,int ploy,int[] polys, int numPloys, int[] verts, RcHeightPatch hp,int[] arr,int regid)
+        static void push3(Stack<int> queue, int v1, int v2, int v3)
+        {
+            queue.Push(v1);
+            queue.Push(v2);
+            queue.Push(v3);
+        }
+
+        private static void GetHeightData(RcCompactHeightfield chf, int pIndex, int[] polys, int numPloys, int[] verts, RcHeightPatch hp, Stack<int> queue, int region)
         {
 
+            queue.Clear();
+
+            Array.Fill(hp.data, 0xff);
+
+            bool empty = true;
+
+            if (region != RecastConfig.RC_MULTIPLE_REGS)
+            {
+
+                //获取当前位置的y轴高度
+                for (int hy = 0; hy < hp.height; hy++)
+                {
+                    int y = hp.ymin + hy;
+                    for (int hx = 0; hx < hp.width; hx++)
+                    {
+                        int x = hp.xmin + hx;
+
+                        CompactCell c = chf.cells[x + y * chf.width];
+                        for (int i = c.index, ni = c.index + c.count; i < ni; ++i)
+                        {
+                            CompactSpan s = chf.spans[i];
+                            if (s.reg == region)
+                            {
+
+                                hp.data[hx + hy * hp.width] = s.y;
+                                empty = false;
+
+                                //存在邻居不在同一区域，存放进queue
+                                bool border = false;
+                                for (int dir = 0; dir < 4; ++dir)
+                                {
+                                    if (RecastUtility.RcGetCon(s, dir) != RecastConfig.RC_NOT_CONNECTED)
+                                    {
+                                        int ax = x + RecastUtility.RcGetDirOffsetX(dir);
+                                        int ay = y + RecastUtility.RcGetDirOffsetY(dir);
+                                        int ai = chf.cells[ax + ay * chf.width].index + RecastUtility.RcGetCon(s, dir);
+
+                                        CompactSpan a2 = chf.spans[ai];
+                                        if (a2.reg != region)
+                                        {
+                                            border = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (border)
+                                    push3(queue, x, y, i);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (empty)
+                SeedArrayWithPolyCenter(chf, pIndex, polys, numPloys, verts, hp, queue);
+        }
+
+        private static void SeedArrayWithPolyCenter(RcCompactHeightfield chf, int pIndex, int[] polys, int npoly, int[] verts, RcHeightPatch hp, Stack<int> array)
+        {
+            // Note: Reads to the compact heightfield are offset by border size (bs)
+            // since border size offset is already removed from the polymesh vertices.
+
+            int[] offset = { 0, 0, -1, -1, 0, -1, 1, -1, 1, 0, 1, 1, 0, 1, -1, 1, -1, 0, };
+
+            int startCellX = 0, startCellY = 0, startSpanIndex = -1;
+            int dmin = RecastConfig.RC_UNSET_HEIGHT;
+            for (int j = 0; j < npoly && dmin > 0; ++j)
+            {
+                for (int k = 0; k < 9 && dmin > 0; ++k)
+                {
+                    int vIndex = polys[pIndex] * 3;
+                    int ax = verts[vIndex + 0] + offset[k * 2 + 0];
+                    int ay = verts[vIndex + 1];
+                    int az = verts[vIndex + 2] + offset[k * 2 + 1];
+
+                    if (ax < hp.xmin || ax >= hp.xmin + hp.width ||
+
+                        az < hp.ymin || az >= hp.ymin + hp.height)
+                        continue;
+
+                    CompactCell c = chf.cells[ax + az * chf.width];
+                    for (int i = c.index, ni = c.index + c.count; i < ni && dmin > 0; ++i)
+                    {
+                        CompactSpan s = chf.spans[i];
+                        int d = Math.Abs(ay - (int)s.y);
+                        if (d < dmin)
+                        {
+                            startCellX = ax;
+                            startCellY = az;
+                            startSpanIndex = i;
+                            dmin = d;
+                        }
+                    }
+                }
+            }
+
+            if (startSpanIndex == -1)
+            {
+                return;
+            }
+
+            // Find center of the polygon
+            int pcx = 0, pcy = 0;
+            for (int j = 0; j < npoly; ++j)
+            {
+                int vIndex = polys[pIndex] * 3;
+                pcx += verts[vIndex + 0];
+                pcy += verts[vIndex + 2];
+            }
+            pcx /= npoly;
+            pcy /= npoly;
+
+            // Use seeds array as a stack for DFS
+            array.Clear();
+            array.Push(startCellX);
+            array.Push(startCellY);
+            array.Push(startSpanIndex);
+
+            int[] dirs = { 0, 1, 2, 3 };
+
+            Array.Fill(hp.data, 0);
+
+            int cx = -1, cy = -1, ci = -1;
+            while (true)
+            {
+                if (array.Count < 3)
+                {
+                    RecastUtility.LogWarning("Walk towards polygon center failed to reach center");
+                    break;
+                }
+
+                ci = array.Pop();
+                cy = array.Pop();
+                cx = array.Pop();
+
+                if (cx == pcx && cy == pcy)
+                {
+                    break;
+                }
+
+                int directDir;
+                if (cx == pcx)
+                    directDir = RecastUtility.RcGetDirForOffset(0, pcy > cy ? 1 : -1);
+                else
+                    directDir = RecastUtility.RcGetDirForOffset(pcx > cx ? 1 : -1, 0);
+
+                // Push the direct dir last so we start with this on next iteration
+                RecastUtility.RcSwap(ref dirs[directDir], ref dirs[3]);
+
+                CompactSpan cs = chf.spans[ci];
+                for (int i = 0; i < 4; i++)
+                {
+                    int dir = dirs[i];
+                    if (RecastUtility.RcGetCon(cs, dir) == RecastConfig.RC_NOT_CONNECTED)
+                        continue;
+
+                    int newX = cx + RecastUtility.RcGetDirOffsetX(dir);
+                    int newY = cy + RecastUtility.RcGetDirOffsetY(dir);
+
+                    int hpx = newX - hp.xmin;
+                    int hpy = newY - hp.ymin;
+                    if (hpx < 0 || hpx >= hp.width || hpy < 0 || hpy >= hp.height)
+                        continue;
+
+                    if (hp.data[hpx + hpy * hp.width] != 0)
+                        continue;
+
+                    hp.data[hpx + hpy * hp.width] = 1;
+                    array.Push(newX);
+                    array.Push(newY);
+                    array.Push(chf.cells[newX + newY * chf.width].index + RecastUtility.RcGetCon(cs, dir));
+                }
+
+                RecastUtility.RcSwap(ref dirs[directDir], ref dirs[3]);
+            }
+
+            array.Clear();
+            // getHeightData seeds are given in coordinates with borders
+            array.Push(cx);
+            array.Push(cy);
+            array.Push(ci);
+
+            Array.Fill(hp.data, 0xff);
+            CompactSpan cs2 = chf.spans[ci];
+            hp.data[cx - hp.xmin + (cy - hp.ymin) * hp.width] = cs2.y;
         }
     }
 }

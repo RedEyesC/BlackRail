@@ -1,7 +1,6 @@
 ﻿
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace GameEditor.RecastEditor
 {
@@ -63,7 +62,7 @@ namespace GameEditor.RecastEditor
                         {
                             if (regionId == 0xFFFF)
                             {
-                                Debug.LogError("rcBuildRegions: Region ID overflow");
+                                RecastUtility.LogError("rcBuildRegions: Region ID overflow");
                             }
 
                             regionId++;
@@ -950,7 +949,7 @@ namespace GameEditor.RecastEditor
                         if (winding[i] > 0)
                         {
                             if (regions[cont.reg] != null)
-                                Debug.LogErrorFormat("rcBuildContours: Multiple outlines for region %d.", cont.reg);
+                                RecastUtility.LogErrorFormat("rcBuildContours: Multiple outlines for region %d.", cont.reg);
 
                             regions[cont.reg] = new RcContourRegion();
                             regions[cont.reg].outline = cont;
@@ -998,7 +997,7 @@ namespace GameEditor.RecastEditor
                         }
                         else
                         {
-                            Debug.LogErrorFormat("rcBuildContours: Bad outline for region %d, contour simplification is likely too aggressive.", i);
+                            RecastUtility.LogErrorFormat("rcBuildContours: Bad outline for region %d, contour simplification is likely too aggressive.", i);
                         }
                     }
                 }
@@ -1090,12 +1089,12 @@ namespace GameEditor.RecastEditor
 
                 if (index == -1)
                 {
-                    Debug.LogError("mergeHoles: Failed to find merge points");
+                    RecastUtility.LogError("mergeHoles: Failed to find merge points");
                     continue;
                 }
                 if (!MergeContours(region.outline, hole, index, bestVertex))
                 {
-                    Debug.LogError("mergeHoles: Failed to merge contours %p and %p.");
+                    RecastUtility.LogError("mergeHoles: Failed to merge contours %p and %p.");
                     continue;
                 }
 
@@ -1570,7 +1569,7 @@ namespace GameEditor.RecastEditor
                 int ay = y + RecastUtility.RcGetDirOffsetY(dir);
                 int ai = chf.cells[ax + ay * chf.width].index + RecastUtility.RcGetCon(s, dir);
                 CompactSpan as1 = chf.spans[ai];
-                ch = Mathf.Max(ch, as1.y);
+                ch = Math.Max(ch, as1.y);
                 regs[1] = chf.spans[ai].reg | ((int)chf.areas[ai] << 16);
 
                 if (RecastUtility.RcGetCon(as1, dirp) != RecastConfig.RC_NOT_CONNECTED)
@@ -1579,7 +1578,7 @@ namespace GameEditor.RecastEditor
                     int ay2 = ay + RecastUtility.RcGetDirOffsetY(dirp);
                     int ai2 = (int)chf.cells[ax2 + ay2 * chf.width].index + RecastUtility.RcGetCon(as1, dirp);
                     CompactSpan as2 = chf.spans[ai2];
-                    ch = Mathf.Max(ch, as2.y);
+                    ch = Math.Max(ch, as2.y);
                     regs[2] = chf.spans[ai2].reg | ((int)chf.areas[ai2] << 16);
                 }
             }
@@ -1590,7 +1589,7 @@ namespace GameEditor.RecastEditor
                 int ay = y + RecastUtility.RcGetDirOffsetY(dirp);
                 int ai = chf.cells[ax + ay * chf.width].index + RecastUtility.RcGetCon(s, dirp);
                 CompactSpan as1 = chf.spans[ai];
-                ch = Mathf.Max(ch, as1.y);
+                ch = Math.Max(ch, as1.y);
                 regs[3] = chf.spans[ai].reg | ((int)chf.areas[ai] << 16);
 
                 if (RecastUtility.RcGetCon(as1, dir) != RecastConfig.RC_NOT_CONNECTED)
@@ -1599,7 +1598,7 @@ namespace GameEditor.RecastEditor
                     int ay2 = ay + RecastUtility.RcGetDirOffsetY(dir);
                     int ai2 = (int)chf.cells[ax2 + ay2 * chf.width].index + RecastUtility.RcGetCon(as1, dir);
                     CompactSpan as2 = chf.spans[ai2];
-                    ch = Mathf.Max(ch, as2.y);
+                    ch = Math.Max(ch, as2.y);
                     regs[2] = chf.spans[ai2].reg | ((int)chf.areas[ai2] << 16);
                 }
             }

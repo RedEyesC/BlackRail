@@ -1,4 +1,7 @@
-﻿using UnityEngine;
+﻿
+
+using System;
+using UnityEngine;
 
 namespace GameEditor.RecastEditor
 {
@@ -35,25 +38,42 @@ namespace GameEditor.RecastEditor
             return Vector3.Normalize(Vector3.Cross(tempVec1, tempVec2));
         }
 
-        public static void CalcBounds(Vector3[] verts, out Vector3 minBounds, out Vector3 maxBounds)
+        public static void CalcBounds(Vector3[] verts, out float[] minBounds, out float[] maxBounds)
         {
-            minBounds = verts[0];
-            maxBounds = verts[0];
+            minBounds = new float[3] { verts[0][0], verts[0][1], verts[0][2] };
+            maxBounds = new float[3] { verts[0][0], verts[0][1], verts[0][2] };
+
             for (int i = 1; i < verts.Length; i++)
             {
-                minBounds = Vector3.Min(minBounds, verts[i]);
-                maxBounds = Vector3.Max(maxBounds, verts[i]);
+                RcVmin(minBounds, verts[i]);
+                RcVmax(maxBounds, verts[i]);
             }
         }
+         
+        public static void RcVmin(float[] mn, Vector3 v)
+        {
 
-        public static void CalcGridSize(Vector3 minBounds, Vector3 maxBounds, float cellSize, out int sizeX, out int sizeZ)
+            mn[0] = Math.Min(mn[0], v[0]);
+            mn[1] = Math.Min(mn[1], v[1]);
+            mn[2] = Math.Min(mn[2], v[2]);
+        }
+
+        public static void RcVmax(float[] mn, Vector3 v)
+        {
+
+            mn[0] = Math.Max(mn[0], v[0]);
+            mn[1] = Math.Max(mn[1], v[1]);
+            mn[2] = Math.Max(mn[2], v[2]);
+        }
+
+        public static void CalcGridSize(float[] minBounds, float[] maxBounds, float cellSize, out int sizeX, out int sizeZ)
         {
             sizeX = (int)((maxBounds[0] - minBounds[0]) / cellSize + 0.5f);
             sizeZ = (int)((maxBounds[2] - minBounds[2]) / cellSize + 0.5f);
         }
 
         //a的包围盒包含于b的包围盒 或者 a的包围盒与b的包围盒相交
-        public static bool OverlapBounds(Vector3 aMin, Vector3 aMax, Vector3 bMin, Vector3 bMax)
+        public static bool OverlapBounds(Vector3 aMin, Vector3 aMax, float[] bMin, float[] bMax)
         {
             return aMin[0] <= bMax[0] && aMax[0] >= bMin[0] &&
                 aMin[1] <= bMax[1] && aMax[1] >= bMin[1] &&
@@ -280,6 +300,37 @@ namespace GameEditor.RecastEditor
             }
 
             return !(LeftOn(pi, pj, pi1) && LeftOn(pj, pi, pin1));
+        }
+
+        public static int RcGetDirForOffset(int offsetX, int offsetZ)
+        {
+            int[] dirs = { 3, 0, -1, 2, 1 };
+            return dirs[((offsetZ + 1) << 1) + offsetX];
+        }
+
+        public static void LogError(string s)
+        {
+            Debug.LogError(s);
+        }
+
+        public static void LogErrorFormat(string format, params object[] args)
+        {
+            Debug.LogErrorFormat(format, args);
+        }
+
+        public static void LogWarning(string s)
+        {
+            Debug.LogWarning(s);
+        }
+
+        public static void LogWarningFormat(string format, params object[] args)
+        {
+            Debug.LogWarningFormat(format, args);
+        }
+
+        public static void Log(string s)
+        {
+            Debug.Log(s);
         }
 
     }

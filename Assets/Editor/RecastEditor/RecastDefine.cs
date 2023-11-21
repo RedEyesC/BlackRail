@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using UnityEngine;
 
 namespace GameEditor.RecastEditor
 {
@@ -20,21 +19,23 @@ namespace GameEditor.RecastEditor
         public int width = 0;
         public int height = 0;
 
-        public Vector3 minBounds = new Vector3();
-        public Vector3 maxBounds = new Vector3();
+        public float[] minBounds = new float[3];
+        public float[] maxBounds = new float[3];
 
         public RcSpan[] spans;
 
-        public RcHeightfield(Mesh mesh, float agentMaxSlope, float agentMaxClimb, float agentHeight, float agentRadius, float cellSize, float cellHeight)
+        public RcHeightfield(float[] MeshMinBounds, float[] MeshMaxBounds, int meshWidth,int meshHeight,
+            float agentMaxSlope, float agentMaxClimb, float agentHeight, float agentRadius, float cellSize, float cellHeight)
         {
 
             this.cellSize = cellSize;
             this.cellHeight = cellHeight;
             walkableSlopeAngle = agentMaxSlope;
 
-            RecastUtility.CalcBounds(mesh.vertices, out minBounds, out maxBounds);
-
-            RecastUtility.CalcGridSize(minBounds, maxBounds, cellSize, out width, out height);
+            minBounds = MeshMinBounds;
+            maxBounds = MeshMaxBounds;
+            width = meshWidth;
+            height = meshHeight;
 
             spans = new RcSpan[height * width];
 
@@ -83,8 +84,8 @@ namespace GameEditor.RecastEditor
         public CompactSpan[] spans;
         public AREATYPE[] areas;
 
-        public Vector3 minBounds = new Vector3();
-        public Vector3 maxBounds = new Vector3();
+        public float[] minBounds = new float[3];
+        public float[] maxBounds = new float[3];
 
         //距离场
         public int[] distanceToBoundary;
@@ -210,8 +211,8 @@ namespace GameEditor.RecastEditor
 
         public List<RcContour> conts = new List<RcContour>();
 
-        public Vector3 minBounds = new Vector3();
-        public Vector3 maxBounds = new Vector3();
+        public float[] minBounds = new float[3];
+        public float[] maxBounds = new float[3];
 
         public RcContourSet(RcCompactHeightfield chf)
         {
@@ -283,8 +284,8 @@ namespace GameEditor.RecastEditor
         public int[] flags;
         public AREATYPE[] areas;
 
-        public Vector3 minBounds = new Vector3();
-        public Vector3 maxBounds = new Vector3();
+        public float[] minBounds = new float[3];
+        public float[] maxBounds = new float[3];
 
         public RcPolyMesh(RcContourSet cset)
         {

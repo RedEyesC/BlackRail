@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using System.IO;
+using System;
 
 namespace GameEditor.RecastEditor
 
@@ -63,8 +64,12 @@ namespace GameEditor.RecastEditor
             Transform navRoot = root.transform.Find(RecastConfig.MapElement);
 
             Mesh mesh = CombineMesh(navRoot);
+ 
+            RecastUtility.CalcBounds(mesh.vertices, out float[] meshMinBounds, out float[] meshMaxBounds);
 
-            RcHeightfield hf = new RcHeightfield(mesh, RecastConfig.AgentMaxSlope, RecastConfig.AgentMaxClimb, RecastConfig.AgentHeight, RecastConfig.AgentRadius, RecastConfig.CellSize, RecastConfig.CellHeight);
+            RecastUtility.CalcGridSize(meshMinBounds, meshMaxBounds, RecastConfig.CellSize, out int meshWidth, out int meshHeight);
+
+            RcHeightfield hf = new RcHeightfield(meshMinBounds, meshMaxBounds,meshWidth,meshHeight, RecastConfig.AgentMaxSlope, RecastConfig.AgentMaxClimb, RecastConfig.AgentHeight, RecastConfig.AgentRadius, RecastConfig.CellSize, RecastConfig.CellHeight);
 
             //判断三角形是否可行走
             AREATYPE[] areas = RcMarkWalkableTriangles(hf.walkableSlopeAngle, mesh.vertices, mesh.triangles);
@@ -128,7 +133,7 @@ namespace GameEditor.RecastEditor
 
             RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
 
-            //RecastMesh.RcBuildPolyMeshDetail(pmesh,chf,dmesh);
+            RecastMesh.RcBuildPolyMeshDetail(pmesh,chf,dmesh);
         }
 
         private static Mesh CombineMesh(Transform navRoot)
@@ -154,7 +159,7 @@ namespace GameEditor.RecastEditor
         private static AREATYPE[] RcMarkWalkableTriangles(float walkableSlopeAngle, Vector3[] verts, int[] tris)
         {
 
-            float walkableThr = Mathf.Cos(walkableSlopeAngle / 180.0f * RecastConfig.PI);
+            float walkableThr = (float)Math.Cos(walkableSlopeAngle / 180.0f * RecastConfig.PI);
 
             int numTris = tris.Length / 3;
             AREATYPE[] areas = new AREATYPE[numTris];
@@ -190,7 +195,7 @@ namespace GameEditor.RecastEditor
             int total = 0;
             int walkable = 0;
 
-            Vector3 hfBBMin = hf.minBounds;
+            float[] hfBBMin = hf.minBounds;
             float cellSize = hf.cellSize;
             float cellHeight = hf.cellHeight;
 
@@ -256,7 +261,7 @@ namespace GameEditor.RecastEditor
         {
 
 
-            Vector3 hfBBMin = chf.minBounds;
+            float[] hfBBMin = chf.minBounds;
             float cellSize = chf.cellSize;
             float cellHeight = chf.cellHeight;
 
@@ -270,7 +275,7 @@ namespace GameEditor.RecastEditor
             {
                 foreach (int i in chf.distanceToBoundary)
                 {
-                    maxDistance = Mathf.Max(maxDistance, i);
+                    maxDistance = Math.Max(maxDistance, i);
                 }
             }
 
@@ -344,7 +349,7 @@ namespace GameEditor.RecastEditor
 
             GameObject root = GameObject.Find("/" + activeSceneName);
 
-            Vector3 hfBBMin = rcContourSet.minBounds;
+            float[] hfBBMin = rcContourSet.minBounds;
             float cellSize = rcContourSet.cellSize;
             float cellHeight = rcContourSet.cellHeight;
 
@@ -388,7 +393,7 @@ namespace GameEditor.RecastEditor
 
             GameObject root = GameObject.Find("/" + activeSceneName);
 
-            Vector3 hfBBMin = pmesh.minBounds;
+            float[] hfBBMin = pmesh.minBounds;
             float cellSize = pmesh.cellSize;
             float cellHeight = pmesh.cellHeight;
 
