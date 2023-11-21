@@ -120,9 +120,8 @@ namespace GameEditor.RecastEditor
                             for (int k = j + 1; k < npolys; ++k)
                             {
                                 int pk = k * RecastConfig.MaxVertsPerPoly;
-                                int ea = -1;
-                                int eb = -1;
-                                int v = GetPolyMergeValue(pj, pk, pmesh.verts, polys, out ea, out eb); ;
+
+                                int v = GetPolyMergeValue(pj, pk, pmesh.verts, polys, out int ea, out int eb); ;
                                 if (v > bestMergeVal)
                                 {
                                     bestMergeVal = v;
@@ -826,7 +825,7 @@ namespace GameEditor.RecastEditor
             return RecastConfig.MaxVertsPerPoly;
         }
 
-        static void push3(Stack<int> queue, int v1, int v2, int v3)
+        static void Push3(Stack<int> queue, int v1, int v2, int v3)
         {
             queue.Push(v1);
             queue.Push(v2);
@@ -882,7 +881,10 @@ namespace GameEditor.RecastEditor
                                     }
                                 }
                                 if (border)
-                                    push3(queue, x, y, i);
+                                {
+                                    Push3(queue, x, y, i);
+                                }
+                         
                                 break;
                             }
                         }

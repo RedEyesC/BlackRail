@@ -951,8 +951,10 @@ namespace GameEditor.RecastEditor
                             if (regions[cont.reg] != null)
                                 RecastUtility.LogErrorFormat("rcBuildContours: Multiple outlines for region %d.", cont.reg);
 
-                            regions[cont.reg] = new RcContourRegion();
-                            regions[cont.reg].outline = cont;
+                            regions[cont.reg] = new RcContourRegion
+                            {
+                                outline = cont
+                            };
                         }
                         else
                         {
@@ -978,8 +980,10 @@ namespace GameEditor.RecastEditor
 
                         if (winding[i] < 0)
                         {
-                            reg.holes[reg.numHoles] = new RcContourHole();
-                            reg.holes[reg.numHoles].contour = cont;
+                            reg.holes[reg.numHoles] = new RcContourHole
+                            {
+                                contour = cont
+                            };
                             reg.numHoles++;
                         }
 

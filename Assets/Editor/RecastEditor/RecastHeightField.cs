@@ -63,14 +63,12 @@ namespace GameEditor.RecastEditor
 
             //三角形被正方形切割最多切割出7边形，存放四组多边形的数据
             Vector3[] nvInList = new Vector3[7];
-            Vector3[] nvRowList;
-            Vector3[] p1InList;
-
+      
             nvInList[0] = v0;
             nvInList[1] = v1;
             nvInList[2] = v2;
 
-            int nvRow;
+
             int nvIn = 3;
             //按z轴开始切割
             for (int z = z0; z <= z1; ++z)
@@ -78,7 +76,7 @@ namespace GameEditor.RecastEditor
 
                 float cellZ = hfBBMin[2] + (float)z * cellSize;
                 //切割三角形，nvRowList 为切割线下半部分的顶点 ,输出的nvInList 为切割线上半部分顶点
-                RecastUtility.DividePoly(nvInList, nvIn, cellZ + cellSize, RcAxis.AXIS_Z, out nvRow, out nvIn, out nvRowList, out nvInList);
+                RecastUtility.DividePoly(nvInList, nvIn, cellZ + cellSize, RcAxis.AXIS_Z, out int nvRow, out nvIn, out Vector3[] nvRowList, out nvInList);
 
                 //没切割到东西，顶点小于3构不成多边形
                 if (nvRow < 3)
@@ -118,13 +116,12 @@ namespace GameEditor.RecastEditor
                 x1 = Math.Clamp(x1, 0, hf.width - 1);
 
 
-                int nvRow2;
                 int nvIn2 = nvRow;
 
                 for (int x = x0; x <= x1; ++x)
                 {
                     float cellX = hfBBMin[0] + (float)x * cellSize;
-                    RecastUtility.DividePoly(nvRowList, nvIn2, cellX + cellSize, RcAxis.AXIS_X, out nvRow2, out nvIn2, out p1InList, out nvRowList);
+                    RecastUtility.DividePoly(nvRowList, nvIn2, cellX + cellSize, RcAxis.AXIS_X, out int nvRow2, out nvIn2, out Vector3[] p1InList, out nvRowList);
 
                     if (nvRow2 < 3)
                     {
