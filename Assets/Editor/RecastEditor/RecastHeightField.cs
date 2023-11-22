@@ -75,6 +75,7 @@ namespace GameEditor.RecastEditor
             {
 
                 float cellZ = hfBBMin[2] + (float)z * cellSize;
+
                 //切割三角形，nvRowList 为切割线下半部分的顶点 ,输出的nvInList 为切割线上半部分顶点
                 RecastUtility.DividePoly(nvInList, nvIn, cellZ + cellSize, RcAxis.AXIS_Z, out int nvRow, out nvIn, out Vector3[] nvRowList, out nvInList);
 

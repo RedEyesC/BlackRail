@@ -203,12 +203,17 @@ namespace GameEditor.RecastEditor
             float cs = pmesh.cellSize;
             float ch = pmesh.cellHeight;
             float[] orig = pmesh.minBounds;
-            float heightSearchRadius = (float)Math.Max(1, Math.Ceiling(RecastConfig.MaxSimplificationError));
+            int heightSearchRadius = Math.Max(1, (int)Math.Ceiling(RecastConfig.MaxSimplificationError));
 
 
             RcHeightPatch hp = new RcHeightPatch();
 
             Stack<int> arr = new Stack<int>();
+            List<float> tris = new List<float>();
+            List<float> samples = new List<float>();
+
+            float[] verts = new float[256 * 3];
+            float[] edges = new float[64];
 
             int[] bounds = new int[pmesh.numPolys * 4];
             float[] poly = new float[pmesh.numPolys * 3];
@@ -294,16 +299,11 @@ namespace GameEditor.RecastEditor
                 hp.height = bounds[i * 4 + 3] - bounds[i * 4 + 2];
                 GetHeightData(chf, pIndex, pmesh.polys, npoly, pmesh.verts, hp, arr, pmesh.regs[i]);
 
-                //// Build detail mesh.
-                //int nverts = 0;
-                //if (!buildPolyDetail(ctx, poly, npoly,
-                //                     sampleDist, sampleMaxError,
-                //                     heightSearchRadius, chf, hp,
-                //                     verts, nverts, tris,
-                //                     edges, samples))
-                //{
-                //    return false;
-                //}
+                int nverts = 0;
+                if (!BuildPolyDetail(poly, npoly, heightSearchRadius, chf, hp, verts, nverts, tris, edges, samples))
+                {
+
+                }
 
                 //// Move detail verts to world space.
                 //for (int j = 0; j < nverts; ++j)
@@ -832,7 +832,8 @@ namespace GameEditor.RecastEditor
             queue.Push(v3);
         }
 
-        private static void GetHeightData(RcCompactHeightfield chf, int pIndex, int[] polys, int numPloys, int[] verts, RcHeightPatch hp, Stack<int> queue, int region)
+        private static void GetHeightData(RcCompactHeightfield chf, int pIndex, int[] polys, int numPloys, int[] verts,
+            RcHeightPatch hp, Stack<int> queue, int region)
         {
 
             queue.Clear();
@@ -844,7 +845,7 @@ namespace GameEditor.RecastEditor
             if (region != RecastConfig.RC_MULTIPLE_REGS)
             {
 
-                //获取当前位置的y轴高度
+                // 遍历poly包围盒内所有的点，如果同region则设置高度，并把region边界保存到queue
                 for (int hy = 0; hy < hp.height; hy++)
                 {
                     int y = hp.ymin + hy;
@@ -862,7 +863,7 @@ namespace GameEditor.RecastEditor
                                 hp.data[hx + hy * hp.width] = s.y;
                                 empty = false;
 
-                                //存在邻居不在同一区域，存放进queue
+
                                 bool border = false;
                                 for (int dir = 0; dir < 4; ++dir)
                                 {
@@ -880,11 +881,12 @@ namespace GameEditor.RecastEditor
                                         }
                                     }
                                 }
+                                //把region边界保存到queue
                                 if (border)
                                 {
                                     Push3(queue, x, y, i);
                                 }
-                         
+
                                 break;
                             }
                         }
@@ -892,36 +894,82 @@ namespace GameEditor.RecastEditor
                 }
             }
 
+            //如果为空，多边形可能是在一个区域的重叠多边形，
             if (empty)
+            {
                 SeedArrayWithPolyCenter(chf, pIndex, polys, numPloys, verts, hp, queue);
+            }
+
+
+            //存在多层span ，region border上的span是为了确定在哪一层，以这一层的span再进行泛洪
+            while (3 < queue.Count)
+            {
+                int cx = queue.Pop();
+                int cy = queue.Pop();
+                int ci = queue.Pop();
+
+                CompactSpan cs = chf.spans[ci];
+                for (int dir = 0; dir < 4; ++dir)
+                {
+                    if (RecastUtility.RcGetCon(cs, dir) == RecastConfig.RC_NOT_CONNECTED)
+                    {
+                        continue;
+                    }
+
+                    int ax = cx + RecastUtility.RcGetDirOffsetX(dir);
+                    int ay = cy + RecastUtility.RcGetDirOffsetY(dir);
+                    int hx = ax - hp.xmin;
+                    int hy = ay - hp.ymin;
+
+
+                    if (hx >= hp.width || hy >= hp.height)
+                    {
+                        continue;
+                    }
+
+
+                    if (hp.data[hx + hy * hp.width] != RecastConfig.RC_UNSET_HEIGHT)
+                    {
+                        continue;
+                    }
+
+                    int ai = chf.cells[ax + ay * chf.width].index + RecastUtility.RcGetCon(cs, dir);
+                    CompactSpan cs2 = chf.spans[ai];
+                    hp.data[hx + hy * hp.width] = cs2.y;
+                    Push3(queue, ax, ay, ai);
+                }
+            }
         }
 
-        private static void SeedArrayWithPolyCenter(RcCompactHeightfield chf, int pIndex, int[] polys, int npoly, int[] verts, RcHeightPatch hp, Stack<int> array)
+        private static void SeedArrayWithPolyCenter(RcCompactHeightfield chf, int pIndex, int[] polys, int npoly, int[] verts,
+            RcHeightPatch hp, Stack<int> queue)
         {
-            // Note: Reads to the compact heightfield are offset by border size (bs)
-            // since border size offset is already removed from the polymesh vertices.
 
             int[] offset = { 0, 0, -1, -1, 0, -1, 1, -1, 1, 0, 1, 1, 0, 1, -1, 1, -1, 0, };
 
             int startCellX = 0, startCellY = 0, startSpanIndex = -1;
             int dmin = RecastConfig.RC_UNSET_HEIGHT;
+
+            //遍历所有多边形，偏移多边形顶点坐标
             for (int j = 0; j < npoly && dmin > 0; ++j)
             {
                 for (int k = 0; k < 9 && dmin > 0; ++k)
                 {
-                    int vIndex = polys[pIndex] * 3;
+                    int vIndex = polys[j * RecastConfig.MaxVertsPerPoly * 2] * 3;
                     int ax = verts[vIndex + 0] + offset[k * 2 + 0];
                     int ay = verts[vIndex + 1];
                     int az = verts[vIndex + 2] + offset[k * 2 + 1];
 
-                    if (ax < hp.xmin || ax >= hp.xmin + hp.width ||
-
-                        az < hp.ymin || az >= hp.ymin + hp.height)
+                    //判断偏移后多边形是否符合hp范围
+                    if (ax < hp.xmin || ax >= hp.xmin + hp.width || az < hp.ymin || az >= hp.ymin + hp.height)
+                    {
                         continue;
+                    }
 
                     CompactCell c = chf.cells[ax + az * chf.width];
                     for (int i = c.index, ni = c.index + c.count; i < ni && dmin > 0; ++i)
                     {
+                        //找到和当前多边形y轴距离最近的
                         CompactSpan s = chf.spans[i];
                         int d = Math.Abs(ay - (int)s.y);
                         if (d < dmin)
@@ -937,10 +985,12 @@ namespace GameEditor.RecastEditor
 
             if (startSpanIndex == -1)
             {
+                RecastUtility.LogError("Cant find CompactSpan");
                 return;
             }
 
-            // Find center of the polygon
+
+            //找到多边形所有多边形的平均的x,z
             int pcx = 0, pcy = 0;
             for (int j = 0; j < npoly; ++j)
             {
@@ -951,41 +1001,44 @@ namespace GameEditor.RecastEditor
             pcx /= npoly;
             pcy /= npoly;
 
-            // Use seeds array as a stack for DFS
-            array.Clear();
-            array.Push(startCellX);
-            array.Push(startCellY);
-            array.Push(startSpanIndex);
+
+            queue.Clear();
+            queue.Push(startCellX);
+            queue.Push(startCellY);
+            queue.Push(startSpanIndex);
 
             int[] dirs = { 0, 1, 2, 3 };
 
             Array.Fill(hp.data, 0);
 
             int cx = -1, cy = -1, ci = -1;
+
+            //将array中的点向pcx，pcy移动
             while (true)
             {
-                if (array.Count < 3)
+                if (queue.Count < 3)
                 {
                     RecastUtility.LogWarning("Walk towards polygon center failed to reach center");
                     break;
                 }
 
-                ci = array.Pop();
-                cy = array.Pop();
-                cx = array.Pop();
+                ci = queue.Pop();
+                cy = queue.Pop();
+                cx = queue.Pop();
 
                 if (cx == pcx && cy == pcy)
                 {
                     break;
                 }
 
+                //判断一下更偏向哪个方向
                 int directDir;
                 if (cx == pcx)
                     directDir = RecastUtility.RcGetDirForOffset(0, pcy > cy ? 1 : -1);
                 else
                     directDir = RecastUtility.RcGetDirForOffset(pcx > cx ? 1 : -1, 0);
 
-                // Push the direct dir last so we start with this on next iteration
+                //方向放在最后
                 RecastUtility.RcSwap(ref dirs[directDir], ref dirs[3]);
 
                 CompactSpan cs = chf.spans[ci];
@@ -1007,24 +1060,453 @@ namespace GameEditor.RecastEditor
                         continue;
 
                     hp.data[hpx + hpy * hp.width] = 1;
-                    array.Push(newX);
-                    array.Push(newY);
-                    array.Push(chf.cells[newX + newY * chf.width].index + RecastUtility.RcGetCon(cs, dir));
+                    queue.Push(newX);
+                    queue.Push(newY);
+                    queue.Push(chf.cells[newX + newY * chf.width].index + RecastUtility.RcGetCon(cs, dir));
                 }
 
                 RecastUtility.RcSwap(ref dirs[directDir], ref dirs[3]);
             }
 
-            array.Clear();
-            // getHeightData seeds are given in coordinates with borders
-            array.Push(cx);
-            array.Push(cy);
-            array.Push(ci);
+            queue.Clear();
 
-            Array.Fill(hp.data, 0xff);
+            queue.Push(cx);
+            queue.Push(cy);
+            queue.Push(ci);
+
+            Array.Fill(hp.data, 0xff, 0, hp.width * hp.height);
             CompactSpan cs2 = chf.spans[ci];
             hp.data[cx - hp.xmin + (cy - hp.ymin) * hp.width] = cs2.y;
         }
+
+        private static bool BuildPolyDetail(float[] poly, int npoly, int heightSearchRadius, RcCompactHeightfield chf,
+                            RcHeightPatch hp, float[] verts, int nverts,
+                            List<float> tris, float[] edges, List<float> samples)
+        {
+
+            float sampleDist = RecastConfig.DetailSampleDist < 0.9f ? 0 : RecastConfig.CellSize * RecastConfig.DetailSampleDist;
+            float sampleMaxError = RecastConfig.CellHeight * RecastConfig.DetailSampleMaxError;
+
+
+            float[] edge = new float[(RecastConfig.Detail_MAX_VERTS_PER_EDGE + 1) * 3];
+            int[] hull = new int[RecastConfig.Detail_MAX_VERTS]; //存放新增加的顶点
+            int nhull = 0;
+
+            nverts = npoly;
+
+            for (int i = 0; i < npoly; ++i)
+            {
+                verts[i * 3] = poly[i * 3];
+                verts[i * 3 + 1] = poly[i * 3 + 1];
+                verts[i * 3 + 2] = poly[i * 3 + 2];
+            }
+
+
+            Array.Fill(edge, 0);
+
+            tris.Clear();
+
+            float cs = chf.cellSize;
+            float ics = 1.0f / cs;
+
+
+            float minExtent = PolyMinExtent(verts, nverts);
+
+            if (sampleDist > 0)
+            {
+                for (int i = 0, j = npoly - 1; i < npoly; j = i++)
+                {
+                    int vj = j * 3;
+                    int vi = i * 3;
+
+                    bool swapped = false;
+
+                    // x,z数值比较大的作为vi
+                    if (Math.Abs(poly[vj] - poly[vi]) < 1e-6f)
+                    {
+                        if (poly[vj + 2] > poly[vi + 2])
+                        {
+                            RecastUtility.RcSwap(ref vj, ref vi);
+                            swapped = true;
+                        }
+                    }
+                    else
+                    {
+                        if (poly[vj] > poly[vi])
+                        {
+                            RecastUtility.RcSwap(ref vj, ref vi);
+                            swapped = true;
+                        }
+                    }
+
+                    float dx = poly[vi] - poly[vj];
+                    float dy = poly[vi + 1] - poly[vj + 1];
+                    float dz = poly[vi + 2] - poly[vj + 2];
+                    float d = (float)Math.Sqrt(dx * dx + dz * dz);
+                    int nn = 1 + (int)Math.Floor(d / sampleDist);
+
+                    if (nn >= RecastConfig.Detail_MAX_VERTS_PER_EDGE)
+                    {
+                        nn = RecastConfig.Detail_MAX_VERTS_PER_EDGE - 1;
+                    }
+                    if (nverts + nn >= RecastConfig.Detail_MAX_VERTS)
+                    {
+                        nn = RecastConfig.Detail_MAX_VERTS - 1 - nverts;
+                    }
+
+                    //分割边缘
+                    for (int k = 0; k <= nn; ++k)
+                    {
+                        float u = k / nn;
+                        int pos = k * 3;
+                        edge[pos] = poly[vj] + dx * u;
+                        edge[pos + 1] = poly[vj + 1] + dy * u;
+                        edge[pos + 2] = poly[vj + 2] + dz * u;
+                        edge[pos + 1] = GetHeight(edge[pos], edge[pos + 1], edge[pos + 2], ics, chf.cellHeight, heightSearchRadius, hp) * chf.cellHeight;
+                    }
+
+                    int[] idx = new int[RecastConfig.Detail_MAX_VERTS_PER_EDGE];
+                    idx[0] = 0;
+                    idx[1] = nn;
+
+                    int nidx = 2;
+                    for (int k = 0; k < nidx - 1;)
+                    {
+                        int a = idx[k];
+                        int b = idx[k + 1];
+
+                        float vax = edge[a * 3];
+                        float vay = edge[a * 3 + 1];
+                        float vaz = edge[a * 3 + 2];
+
+                        float vbx = edge[b * 3];
+                        float vby = edge[b * 3 + 1];
+                        float vbz = edge[b * 3 + 2];
+
+
+                        float maxd = 0;
+                        int maxi = -1;
+                        for (int m = a + 1; m < b; ++m)
+                        {
+                            float dev = RecastUtility.DistancePtSeg(edge[m * 3], edge[m * 3 + 1], edge[m * 3 + 2], vax, vay, vaz, vbx, vby, vbz);
+                            if (dev > maxd)
+                            {
+                                maxd = dev;
+                                maxi = m;
+                            }
+                        }
+                        //选择距离最远的点并且大于sampleMaxError的点作为简化点，并插入idx
+                        if (maxi != -1 && maxd > Math.Sqrt(sampleMaxError))
+                        {
+                            for (int m = nidx; m > k; --m)
+                            {
+                                idx[m] = idx[m - 1];
+                            }
+
+                            idx[k + 1] = maxi;
+                            nidx++;
+                        }
+                        else
+                        {
+                            ++k;
+                        }
+                    }
+
+                    hull[nhull++] = j;
+
+                    if (swapped)
+                    {
+                        for (int k = nidx - 2; k > 0; --k)
+                        {
+                            verts[nverts * 3] = edge[idx[k] * 3];
+                            verts[nverts * 3 + 1] = edge[idx[k] * 3 + 1];
+                            verts[nverts * 3 + 2] = edge[idx[k] * 3 + 2];
+                            hull[nhull++] = nverts;
+                            nverts++;
+                        }
+                    }
+                    else
+                    {
+                        for (int k = 1; k < nidx - 1; ++k)
+                        {
+                            verts[nverts * 3] = edge[idx[k] * 3];
+                            verts[nverts * 3 + 1] = edge[idx[k] * 3 + 1];
+                            verts[nverts * 3 + 2] = edge[idx[k] * 3 + 2];
+
+                            hull[nhull++] = nverts;
+                            nverts++;
+                        }
+                    }
+                }
+            }
+
+
+            TriangulateHull(verts, nhull, hull, npoly, tris);
+
+            //多边形过于狭窄不再添加内部点
+            if (minExtent < sampleDist * 2)
+            {
+                return true;
+            }
+
+            if (tris.Count == 0)
+            {
+                RecastUtility.LogWarningFormat("buildPolyDetail: Could not triangulate polygon (%{0} verts).", nverts);
+                return true;
+            }
+
+
+            if (sampleDist > 0)
+            {
+
+                float[] bmin = new float[3] { poly[0], poly[1], poly[2] };
+                float[] bmax = new float[3] { poly[0], poly[1], poly[2] };
+
+                for (int i = 1; i < npoly; i++)
+                {
+                    bmin[0] = Math.Min(bmin[0], poly[npoly * 3]);
+                    bmax[0] = Math.Max(bmax[0], poly[npoly * 3]);
+
+
+                    bmin[1] = Math.Min(bmin[1], poly[npoly * 3 + 1]);
+                    bmax[1] = Math.Max(bmax[1], poly[npoly * 3 + 1]);
+
+                    bmin[2] = Math.Min(bmin[2], poly[npoly * 3 + 2]);
+                    bmax[2] = Math.Max(bmax[2], poly[npoly * 3 + 2]);
+                }
+
+                int x0 = (int)Math.Floor(bmin[0] / sampleDist);
+                int x1 = (int)Math.Ceiling(bmax[0] / sampleDist);
+                int z0 = (int)Math.Floor(bmin[2] / sampleDist);
+                int z1 = (int)Math.Ceiling(bmax[2] / sampleDist);
+
+                samples.Clear();
+
+                //在多边形内部添加点
+                for (int z = z0; z < z1; ++z)
+                {
+                    for (int x = x0; x < x1; ++x)
+                    {
+                        float[] pt = new float[3];
+                        pt[0] = x * sampleDist;
+                        pt[1] = (bmax[1] + bmin[1]) * 0.5f;
+                        pt[2] = z * sampleDist;
+
+                        //保证新增的内部的点不会太过于靠近边缘
+                        if (DistToPoly(npoly, poly, pt) > -sampleDist / 2)
+                        {
+                            continue;
+                        }
+
+                        samples.Add(x);
+                        samples.Add(GetHeight(pt[0], pt[1], pt[2], ics, chf.cellHeight, heightSearchRadius, hp));
+                        samples.Add(z);
+                        samples.Add(0);
+                    }
+                }
+
+
+            }
+
+            return true;
+        }
+
+        /// verts中每两个点组成边，其他vert到这个边的最远距离maxEdgeDist
+        /// maxEdgeDist中的最小距离为poly的最小延展minExtent
+        private static float PolyMinExtent(float[] verts, int nverts)
+        {
+
+            float minDist = float.MaxValue;
+            for (int i = 0; i < nverts; i++)
+            {
+                int ni = (i + 1) % nverts;
+                float p1x = verts[i * 3];
+                float p1z = verts[i * 3 + 2];
+
+                float p2x = verts[ni * 3];
+                float p2z = verts[ni * 3 + 2];
+
+                float maxEdgeDist = 0;
+                for (int j = 0; j < nverts; j++)
+                {
+                    if (j == i || j == ni)
+                    {
+                        continue;
+                    }
+                    float d = RecastUtility.DistancePtSeg2D(verts[j * 3], verts[j * 3 + 2], p1x, p1z, p2x, p2z);
+                    maxEdgeDist = Math.Max(maxEdgeDist, d);
+                }
+
+                minDist = Math.Min(minDist, maxEdgeDist);
+            }
+            return (float)Math.Sqrt(minDist);
+        }
+
+        private static int GetHeight(float fx, float fy, float fz, float ics, float ch, int radius, RcHeightPatch hp)
+        {
+            int ix = (int)Math.Floor(fx * ics + 0.01f);
+            int iz = (int)Math.Floor(fz * ics + 0.01f);
+            ix = Math.Clamp(ix - hp.xmin, 0, hp.width - 1);
+            iz = Math.Clamp(iz - hp.ymin, 0, hp.height - 1);
+            int h = hp.data[ix + iz * hp.width];
+            if (h == RecastConfig.RC_UNSET_HEIGHT)
+            {
+
+                //如果没找到数据，就去相邻的位置去获取数据
+                int x = 1, z = 0, dx = 1, dz = 0;
+                int maxSize = radius * 2 + 1;
+                int maxIter = maxSize * maxSize - 1;
+
+                int nextRingIterStart = 8;
+                int nextRingIters = 16;
+
+                float dmin = float.MaxValue;
+                for (int i = 0; i < maxIter; i++)
+                {
+                    int nx = ix + x;
+                    int nz = iz + z;
+
+                    if (nx >= 0 && nz >= 0 && nx < hp.width && nz < hp.height)
+                    {
+                        int nh = hp.data[nx + nz * hp.width];
+                        if (nh != RecastConfig.RC_UNSET_HEIGHT)
+                        {
+                            float d = Math.Abs(nh * ch - fy);
+                            if (d < dmin)
+                            {
+                                h = nh;
+                                dmin = d;
+                            }
+                        }
+                    }
+
+                    //限制了搜索范围，当在nextRingIterStart找到高度就不再继续寻找了，没有就向外再扩张寻找范围
+                    if (i + 1 == nextRingIterStart)
+                    {
+                        if (h != RecastConfig.RC_UNSET_HEIGHT)
+                            break;
+
+                        nextRingIterStart += nextRingIters;
+                        nextRingIters += 8;
+                    }
+
+                    if ((x == z) || ((x < 0) && (x == -z)) || ((x > 0) && (x == 1 - z)))
+                    {
+                        int tmp = dx;
+                        dx = -dz;
+                        dz = tmp;
+                    }
+                    x += dx;
+                    z += dz;
+                }
+            }
+            return h;
+        }
+
+        private static void TriangulateHull(float[] verts, int nhull, int[] hull, int nin, List<float> tris)
+        {
+
+            int start = 0, left = 1, right = nhull - 1;
+
+            //选择三角形中周长最短的作为要裁切的三角形
+            //把三角形顶点放入tris中，然后去掉耳尖顶点，留下两个耳根顶点，以这两个耳根定点为耳尖的两个三角形进行比较，周长较短的作为要裁切的三角形，重复2
+            float dmin = float.MaxValue;
+            for (int i = 0; i < nhull; i++)
+            {
+                if (hull[i] >= nin)
+                {
+                    continue;
+                }
+                int pi = RecastUtility.Prev(i, nhull);
+                int ni = RecastUtility.Next(i, nhull);
+
+                float pvx = verts[hull[pi] * 3];
+                float pvz = verts[hull[pi] * 3 + 2];
+
+                float cvx = verts[hull[i] * 3];
+                float cvz = verts[hull[i] * 3 + 2];
+
+                float nvx = verts[hull[ni] * 3];
+                float nvz = verts[hull[ni] * 3 + 2];
+
+                float d = RecastUtility.Vdist2(pvx, pvz, cvx, cvz) + RecastUtility.Vdist2(cvx, cvz, nvx, nvz) + RecastUtility.Vdist2(nvx, nvz, pvx, pvz);
+                if (d < dmin)
+                {
+                    start = i;
+                    left = ni;
+                    right = pi;
+                    dmin = d;
+                }
+            }
+
+
+            tris.Add(hull[start]);
+            tris.Add(hull[left]);
+            tris.Add(hull[right]);
+            tris.Add(0);
+
+            while (RecastUtility.Next(left, nhull) != right)
+            {
+                int nleft = RecastUtility.Next(left, nhull);
+                int nright = RecastUtility.Prev(right, nhull);
+
+                float cvleftx = verts[hull[left] * 3];
+                float cvleftz = verts[hull[left] * 3 + 2];
+
+                float nvleftx = verts[hull[nleft] * 3];
+                float nvleftz = verts[hull[nleft] * 3 + 2];
+
+                float cvrightx = verts[hull[right] * 3];
+                float cvrightz = verts[hull[right] * 3 + 2];
+
+                float nvrightx = verts[hull[nright] * 3];
+                float nvrightz = verts[hull[nright] * 3 + 2];
+
+                float dleft = RecastUtility.Vdist2(cvleftx, cvleftz, nvleftx, nvleftz) + RecastUtility.Vdist2(nvleftx, nvleftz, cvrightx, cvrightz);
+                float dright = RecastUtility.Vdist2(cvrightx, cvrightz, nvrightx, nvrightz) + RecastUtility.Vdist2(cvleftx, cvleftz, nvrightx, nvrightz);
+
+                if (dleft < dright)
+                {
+                    tris.Add(hull[left]);
+                    tris.Add(hull[nleft]);
+                    tris.Add(hull[right]);
+                    tris.Add(0);
+
+                    left = nleft;
+                }
+                else
+                {
+                    tris.Add(hull[left]);
+                    tris.Add(hull[nright]);
+                    tris.Add(hull[right]);
+                    tris.Add(0);
+
+                    right = nright;
+                }
+            }
+        }
+
+        private static float DistToPoly(int nvert, float[] verts, float[] p)
+        {
+
+            float dmin = float.MaxValue;
+            int i, j;
+            bool c = false;
+            for (i = 0, j = nvert - 1; i < nvert; j = i++)
+            {
+                int vi = i * 3;
+                int vj = j * 3;
+                if (((verts[vi + 2] > p[2]) != (verts[vj + 2] > p[2])) &&
+                    (p[0] < (verts[vj] - verts[vi]) * (p[2] - verts[vi + 2]) / (verts[vj + 2] - verts[vi + 2]) + verts[vi]))
+                {
+                    c = !c;
+                }
+
+                dmin = Math.Min(dmin, RecastUtility.DistancePtSeg2D(p[0], p[2], verts[vj], verts[vj + 2], verts[vi], verts[vi + 2]));
+            }
+            return c ? -dmin : dmin;
+        }
+
     }
 }
 

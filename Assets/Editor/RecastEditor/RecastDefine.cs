@@ -340,7 +340,7 @@ namespace GameEditor.RecastEditor
         public int width = 0;
         public int height = 0;
 
-        public int[] data;
+        public int[] data;//存放多边形覆盖的span的高度数据
     }
 
 

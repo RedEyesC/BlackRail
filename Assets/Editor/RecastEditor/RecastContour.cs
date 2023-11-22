@@ -1431,7 +1431,7 @@ namespace GameEditor.RecastEditor
                 {
                     while (ci != endi)
                     {
-                        float d = DistancePtSeg(points[ci * 4 + 0], points[ci * 4 + 2], ax, az, bx, bz);
+                        float d = RecastUtility.DistancePtSeg2D(points[ci * 4 + 0], points[ci * 4 + 2], ax, az, bx, bz);
                         if (d > maxd)
                         {
                             maxd = d;
@@ -1609,31 +1609,6 @@ namespace GameEditor.RecastEditor
 
             return ch;
         }
-
-        private static float DistancePtSeg(int x, int z, int px, int pz, int qx, int qz)
-        {
-
-            float pqx = (float)(qx - px);
-            float pqz = (float)(qz - pz);
-            float dx = (float)(x - px);
-            float dz = (float)(z - pz);
-            float d = pqx * pqx + pqz * pqz;
-            float t = pqx * dx + pqz * dz;
-            if (d > 0)
-                t /= d;
-            if (t < 0)
-
-                t = 0;
-            else if (t > 1)
-                t = 1;
-
-            dx = px + t * pqx - x;
-            dz = pz + t * pqz - z;
-
-            return dx * dx + dz * dz;
-        }
-
-
 
         public static int CalcAreaOfPolygon2D(int[] verts, int numVerts)
         {

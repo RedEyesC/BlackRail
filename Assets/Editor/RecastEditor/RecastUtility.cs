@@ -49,7 +49,7 @@ namespace GameEditor.RecastEditor
                 RcVmax(maxBounds, verts[i]);
             }
         }
-         
+
         public static void RcVmin(float[] mn, Vector3 v)
         {
 
@@ -333,5 +333,66 @@ namespace GameEditor.RecastEditor
             Debug.Log(s);
         }
 
+        //点到线段的距离
+        public static float DistancePtSeg2D(float x, float z, float px, float pz, float qx, float qz)
+        {
+
+            float pqx = qx - px;
+            float pqz = qz - pz;
+            float dx = x - px;
+            float dz = z - pz;
+            float d = pqx * pqx + pqz * pqz;
+            float t = pqx * dx + pqz * dz;
+            if (d > 0)
+                t /= d;
+            if (t < 0)
+
+                t = 0;
+            else if (t > 1)
+                t = 1;
+
+            dx = px + t * pqx - x;
+            dz = pz + t * pqz - z;
+
+            return dx * dx + dz * dz;
+        }
+
+        public static float DistancePtSeg(float ptx, float pty, float ptz, float px, float py, float pz, float qx, float qy, float qz)
+        {
+
+            float pqx = qx - px;
+            float pqy = qy - py;
+            float pqz = qz - pz;
+            float dx = ptx - px;
+            float dy = pty - py;
+            float dz = ptz - pz;
+            float d = pqx * pqx + pqy * pqy + pqz * pqz;
+            float t = pqx * dx + pqy * dy + pqz * dz;
+            if (d > 0)
+                t /= d;
+            if (t < 0)
+
+                t = 0;
+            else if (t > 1)
+                t = 1;
+
+            dx = px + t * pqx - ptx;
+            dy = py + t * pqy - pty;
+            dz = pz + t * pqz - ptz;
+
+            return dx * dx + dy * dy + dz * dz;
+        }
+
+        public static float VdistSq2(float px, float pz, float qx, float qz)
+        {
+            float dx = qx - px;
+            float dy = qz - pz;
+            return dx * dx + dy * dy;
+        }
+
+        public static float Vdist2(float px, float pz, float qx, float qz)
+        {
+            return (float)Math.Sqrt(VdistSq2(px, pz, qx, qz));
+        }
     }
 }
