@@ -1,7 +1,6 @@
 using UnityEngine;
-using System.Collections.Generic;
-using System;
 using UnityEngine.SceneManagement;
+using UnityEditor.SceneManagement;
 
 namespace GameFramework.Runtime
 {
@@ -134,7 +133,16 @@ namespace GameFramework.Runtime
             if (_assetRequest == null || state == Assetstate.Unload)
             {
                 state = Assetstate.Loading;
-                _assetRequest = SceneManager.LoadSceneAsync(assetName, LoadSceneMode.Additive);
+                if (Application.isEditor)
+                {
+                    LoadSceneParameters parameters = new LoadSceneParameters(LoadSceneMode.Additive);
+                    _assetRequest = EditorSceneManager.LoadSceneAsyncInPlayMode(assetName, parameters);
+                }
+                else
+                {
+                    _assetRequest = SceneManager.LoadSceneAsync(assetName, LoadSceneMode.Additive);
+                }
+               
             }
 
             return _assetRequest;

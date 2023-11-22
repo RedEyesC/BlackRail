@@ -80,9 +80,8 @@ public static class TransformExtensions
     public static float GetHeightByRaycast(this Transform t, float x, float z, int layerMask)
     {
         tempVec3.Set(x, 1000, z);
-        RaycastHit hit;
         Ray ray = new Ray(tempVec3, Vector3.down);
-        if (Physics.Raycast(ray, out hit, 1500f, layerMask))
+        if (Physics.Raycast(ray, out RaycastHit hit, 1500f, layerMask))
         {
             return hit.point.y;
         }

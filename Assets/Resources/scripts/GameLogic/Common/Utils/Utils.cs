@@ -10,7 +10,7 @@
 
         public static string GetMapPath(int mapId)
         {
-            return string.Format("Resources/map/{0}/{0}", mapId);
+            return string.Format("Assets/Resources/map/{0}/{0}.unity", mapId);
         }
 
         public static string GetRoleModelPath(int id)

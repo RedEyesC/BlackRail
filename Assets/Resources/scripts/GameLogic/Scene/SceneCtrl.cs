@@ -15,7 +15,7 @@ namespace GameFramework.Runtime
 
         public SceneCtrl()
         {
-            _appRoot = UnityEngine.GameObject.Find("_appRoot").transform;
+            _appRoot = UnityEngine.GameObject.Find("_AppRoot").transform;
         }
 
 
