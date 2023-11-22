@@ -118,6 +118,9 @@ namespace GameFramework.Runtime
             cam.useOcclusionCulling = false;
             cam.backgroundColor = new Color(0.0f, 0.0f, 0.0f, 1.0f);
 
+            Camera main =  GlobalCenter.GetModule<CameraManager>().GetMainCamera();
+            main.GetUniversalAdditionalCameraData().cameraStack.Add(cam);
+
             return cam;
         }
 

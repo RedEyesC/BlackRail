@@ -177,5 +177,11 @@ namespace GameFramework.Runtime
             }
         }
 
+
+        public Camera GetMainCamera()
+        {
+            return _camera;
+        }
+
     }
 }

@@ -43,7 +43,7 @@ namespace GameFramework.Runtime
         {
             if (isSuccess)
             {
-                Debug.Log(string.Format("map id {0} is Loaded", _mapId));
+                //Debug.Log(string.Format("map id {0} is Loaded", _mapId));
             }
 
         }

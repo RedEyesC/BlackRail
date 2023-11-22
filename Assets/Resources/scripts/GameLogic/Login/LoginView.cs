@@ -23,7 +23,7 @@ namespace GameFramework.Runtime
 
             GetChild("btn_start").AddClickEventListener((float x, float y) =>
             {
-                Debug.Log(paramList[0]);
+                this.Close();
             });
 
         }

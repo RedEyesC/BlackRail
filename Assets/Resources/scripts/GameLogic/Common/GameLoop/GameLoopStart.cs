@@ -10,7 +10,8 @@
 
         public override void StateEnter(params object[] paramList)
         {
-            //GameCenter.GetModule<ModuleCenter>().GetModule<LoginCtrl>().OpenLoginView();
+            GameCenter.GetModule<ModuleCenter>().GetModule<LoginCtrl>().OpenLoginView();
+
             GameCenter.GetModule<ModuleCenter>().GetModule<SceneCtrl>().LoadScene(1001);
 
             Role mainRole = GameCenter.GetModule<ModuleCenter>().GetModule<SceneCtrl>().CreateMainRole();
