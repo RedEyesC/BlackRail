@@ -383,6 +383,99 @@ namespace GameEditor.RecastEditor
             return dx * dx + dy * dy + dz * dz;
         }
 
+        public static float DistToPoly(int nvert, float[] verts, float[] p)
+        {
+
+            float dmin = float.MaxValue;
+            int i, j;
+            bool c = false;
+            for (i = 0, j = nvert - 1; i < nvert; j = i++)
+            {
+                int vi = i * 3;
+                int vj = j * 3;
+                if (((verts[vi + 2] > p[2]) != (verts[vj + 2] > p[2])) &&
+                    (p[0] < (verts[vj] - verts[vi]) * (p[2] - verts[vi + 2]) / (verts[vj + 2] - verts[vi + 2]) + verts[vi]))
+                {
+                    c = !c;
+                }
+
+                dmin = Math.Min(dmin, DistancePtSeg2D(p[0], p[2], verts[vj], verts[vj + 2], verts[vi], verts[vi + 2]));
+            }
+            return c ? -dmin : dmin;
+        }
+
+        public static float DistPtTri(float[] p, float[] a, float[] b, float[] c)
+        {
+
+            float[] v0 = new float[3];
+            float[] v1 = new float[3];
+            float[] v2 = new float[3];
+
+            RcVsub(v0, c, a);
+            RcVsub(v1, b, a);
+            RcVsub(v2, p, a);
+
+            float dot00 = Vdot2(v0, v0);
+            float dot01 = Vdot2(v0, v1);
+            float dot02 = Vdot2(v0, v2);
+            float dot11 = Vdot2(v1, v1);
+            float dot12 = Vdot2(v1, v2);
+
+
+            float invDenom = 1.0f / (dot00 * dot11 - dot01 * dot01);
+            float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+            float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+            const float EPS = 1e-4f;
+            if (u >= -EPS && v >= -EPS && (u + v) <= 1 + EPS)
+            {
+                float y = a[1] + v0[1] * u + v1[1] * v;
+                return Math.Abs(y - p[1]);
+            }
+            return float.MaxValue;
+        }
+
+
+        public static void RcVsub(float[] dest, float[] v1, float[] v2)
+        {
+
+            dest[0] = v1[0] - v2[0];
+            dest[1] = v1[1] - v2[1];
+            dest[2] = v1[2] - v2[2];
+        }
+
+
+        public static void RcVadd(float[] dest, float[] v1, float[] v2)
+        {
+
+            dest[0] = v1[0] + v2[0];
+            dest[1] = v1[1] + v2[1];
+            dest[2] = v1[2] + v2[2];
+        }
+
+
+        public static void RcVcopy(float[] a, float[] b)
+        {
+            a[0] = b[0];
+            a[1] = b[1];
+            a[2] = b[2];
+        }
+
+        public static float Vdot2(float[] a, float[] b)
+        {
+            return a[0] * b[0] + a[2] * b[2];
+        }
+
+        public static float Vcross2(float[] p1, float[] p2, float[] p3)
+        {
+
+            float u1 = p2[0] - p1[0];
+            float v1 = p2[2] - p1[2];
+            float u2 = p3[0] - p1[0];
+            float v2 = p3[2] - p1[2];
+            return u1 * v2 - v1 * u2;
+        }
+
         public static float VdistSq2(float px, float pz, float qx, float qz)
         {
             float dx = qx - px;
@@ -394,5 +487,6 @@ namespace GameEditor.RecastEditor
         {
             return (float)Math.Sqrt(VdistSq2(px, pz, qx, qz));
         }
+
     }
 }

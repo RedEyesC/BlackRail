@@ -209,11 +209,11 @@ namespace GameEditor.RecastEditor
             RcHeightPatch hp = new RcHeightPatch();
 
             Stack<int> arr = new Stack<int>();
-            List<float> tris = new List<float>();
+            List<int> tris = new List<int>();
             List<float> samples = new List<float>();
+            List<float> edges = new List<float>();
 
-            float[] verts = new float[256 * 3];
-            float[] edges = new float[64];
+            float[] verts = new float[RecastConfig.Detail_MAX_VERTS * 3];
 
             int[] bounds = new int[pmesh.numPolys * 4];
             float[] poly = new float[pmesh.numPolys * 3];
@@ -990,7 +990,7 @@ namespace GameEditor.RecastEditor
             }
 
 
-            //找到多边形所有多边形的平均的x,z
+            //找到多边形所有多边形的中心点 pcx，pcy
             int pcx = 0, pcy = 0;
             for (int j = 0; j < npoly; ++j)
             {
@@ -1013,7 +1013,7 @@ namespace GameEditor.RecastEditor
 
             int cx = -1, cy = -1, ci = -1;
 
-            //将array中的点向pcx，pcy移动
+            //将queue中的点向pcx，pcy移动
             while (true)
             {
                 if (queue.Count < 3)
@@ -1079,9 +1079,21 @@ namespace GameEditor.RecastEditor
             hp.data[cx - hp.xmin + (cy - hp.ymin) * hp.width] = cs2.y;
         }
 
+
+        private static float getJitterX(int i)
+        {
+            return (((i * 0x8da6b343) & 0xffff) / 65535.0f * 2.0f) - 1.0f;
+        }
+
+        private static float getJitterY(int i)
+        {
+            return (((i * 0xd8163841) & 0xffff) / 65535.0f * 2.0f) - 1.0f;
+        }
+
+
         private static bool BuildPolyDetail(float[] poly, int npoly, int heightSearchRadius, RcCompactHeightfield chf,
-                            RcHeightPatch hp, float[] verts, int nverts,
-                            List<float> tris, float[] edges, List<float> samples)
+                                RcHeightPatch hp, float[] verts, int nverts,
+                                List<int> tris, List<float> edges, List<float> samples)
         {
 
             float sampleDist = RecastConfig.DetailSampleDist < 0.9f ? 0 : RecastConfig.CellSize * RecastConfig.DetailSampleDist;
@@ -1240,7 +1252,7 @@ namespace GameEditor.RecastEditor
                 }
             }
 
-
+            //根据新增的点构建三角形
             TriangulateHull(verts, nhull, hull, npoly, tris);
 
             //多边形过于狭窄不再添加内部点
@@ -1293,7 +1305,7 @@ namespace GameEditor.RecastEditor
                         pt[2] = z * sampleDist;
 
                         //保证新增的内部的点不会太过于靠近边缘
-                        if (DistToPoly(npoly, poly, pt) > -sampleDist / 2)
+                        if (RecastUtility.DistToPoly(npoly, poly, pt) > -sampleDist / 2)
                         {
                             continue;
                         }
@@ -1305,7 +1317,71 @@ namespace GameEditor.RecastEditor
                     }
                 }
 
+                int nsamples = samples.Count / 4;
+                for (int iter = 0; iter < nsamples; ++iter)
+                {
+                    if (nverts >= RecastConfig.Detail_MAX_VERTS)
+                    {
+                        break;
+                    }
 
+                    float[] bestpt = { 0, 0, 0 };
+                    float bestd = 0;
+                    int besti = -1;
+                    for (int i = 0; i < nsamples; ++i)
+                    {
+                        int s = i * 4;
+
+                        if (samples[s + 3] != 0)
+                        {
+                            continue;
+                        }
+
+                        float[] pt = new float[3];
+
+                        //对样本位置进行抖动处理，以消除网格结构中对称数据造成的一些不良三角测量。
+                        pt[0] = samples[s] * sampleDist + getJitterX(i) * cs * 0.1f;
+                        pt[1] = samples[s + 1] * chf.cellHeight;
+                        pt[2] = samples[s + 2] * sampleDist + getJitterY(i) * cs * 0.1f;
+
+                        //计算点到三角形的距离，过于近的舍弃
+                        float d = DistToTriMesh(pt, verts, tris, tris.Count / 4);
+                        if (d < 0)
+                        {
+                            continue;
+                        }
+
+                        if (d > bestd)
+                        {
+                            bestd = d;
+                            besti = i;
+
+                            bestpt[0] = pt[0];
+                            bestpt[1] = pt[1];
+                            bestpt[2] = pt[2];
+                        }
+                    }
+
+
+                    if (bestd <= sampleMaxError || besti == -1)
+                    {
+                        break;
+                    }
+
+                    samples[besti * 4 + 3] = 1;
+
+                    verts[nverts * 3] = bestpt[0];
+                    verts[nverts * 3 + 1] = bestpt[1];
+                    verts[nverts * 3 + 2] = bestpt[2];
+
+                    nverts++;
+
+                    //构建三角形.
+                    edges.Clear();
+                    tris.Clear();
+                    DelaunayHull(nverts, verts, nhull, hull, tris, edges);
+
+                }
             }
 
             return true;
@@ -1403,7 +1479,7 @@ namespace GameEditor.RecastEditor
             return h;
         }
 
-        private static void TriangulateHull(float[] verts, int nhull, int[] hull, int nin, List<float> tris)
+        private static void TriangulateHull(float[] verts, int nhull, int[] hull, int nin, List<int> tris)
         {
 
             int start = 0, left = 1, right = nhull - 1;
@@ -1486,26 +1562,296 @@ namespace GameEditor.RecastEditor
             }
         }
 
-        private static float DistToPoly(int nvert, float[] verts, float[] p)
+        public static float DistToTriMesh(float[] p, float[] verts, List<int> tris, int ntris)
         {
 
             float dmin = float.MaxValue;
-            int i, j;
-            bool c = false;
-            for (i = 0, j = nvert - 1; i < nvert; j = i++)
+            for (int i = 0; i < ntris; ++i)
             {
-                int vi = i * 3;
-                int vj = j * 3;
-                if (((verts[vi + 2] > p[2]) != (verts[vj + 2] > p[2])) &&
-                    (p[0] < (verts[vj] - verts[vi]) * (p[2] - verts[vi + 2]) / (verts[vj + 2] - verts[vi + 2]) + verts[vi]))
+                float[] va = new float[3];
+                float[] vb = new float[3];
+                float[] vc = new float[3];
+
+
+                va[0] = verts[tris[i * 4 + 0] * 3];
+                va[1] = verts[tris[i * 4 + 0] * 3 + 1];
+                va[2] = verts[tris[i * 4 + 0] * 3 + 2];
+
+                vb[0] = verts[tris[i * 4 + 1] * 3];
+                vb[1] = verts[tris[i * 4 + 1] * 3 + 1];
+                vb[2] = verts[tris[i * 4 + 1] * 3 + 2];
+
+                vc[0] = verts[tris[i * 4 + 2] * 3];
+                vc[1] = verts[tris[i * 4 + 2] * 3 + 1];
+                vc[2] = verts[tris[i * 4 + 2] * 3 + 2];
+
+
+                float d = RecastUtility.DistPtTri(p, va, vb, vc);
+                if (d < dmin)
                 {
-                    c = !c;
+                    dmin = d;
+                }
+            }
+            if (dmin == float.MaxValue)
+            {
+                return -1;
+            }
+            return dmin;
+        }
+
+
+        private static bool OverlapEdges(float[] pts, int[] edges, int nedges, int s1, int t1)
+        {
+            for (int i = 0; i < nedges; ++i)
+            {
+                int s0 = edges[i * 4 + 0];
+                int t0 = edges[i * 4 + 1];
+                // Same or connected edges do not overlap.
+                if (s0 == s1 || s0 == t1 || t0 == s1 || t0 == t1)
+                    continue;
+                if (overlapSegSeg2d(&pts[s0 * 3], &pts[t0 * 3], &pts[s1 * 3], &pts[t1 * 3]))
+                    return true;
+            }
+            return false;
+        }
+
+        private static int overlapSegSeg2d(int p1, int p2, int p3, int p4, float[] pts)
+        {
+            float[] a = { pts[p1], pts[p1 + 1], pts[p1 + 2] };
+            float[] b = { pts[p2], pts[p2 + 1], pts[p2 + 2] };
+            float[] c = { pts[p3], pts[p3 + 1], pts[p3 + 2] };
+            float[] d = { pts[p4], pts[p4 + 1], pts[p4 + 2] };
+
+            float a1 = RecastUtility.Vcross2(a, b, d);
+            float a2 = RecastUtility.Vcross2(a, b, c);
+            if (a1 * a2 < 0.0f)
+            {
+                float a3 = RecastUtility.Vcross2(c, d, a);
+                float a4 = a3 + a2 - a1;
+                if (a3 * a4 < 0.0f)
+                    return 1;
+            }
+            return 0;
+        }
+
+        private static int FindEdge(List<float> edges, int nedges, int s, int t)
+        {
+            for (int i = 0; i < nedges; i++)
+            {
+                int e = i * 4;
+                if ((edges[e] == s && edges[e + 1] == t) || (edges[e] == t && edges[e + 1] == s))
+                    return i;
+            }
+            return RecastConfig.EV_UNDEF;
+        }
+
+        private static int AddEdge(List<float> edges, int nedges, int maxEdges, int s, int t, int l, int r)
+        {
+            if (nedges >= maxEdges)
+            {
+                RecastUtility.LogErrorFormat("addEdge: Too many edges ({0}/{1}).", nedges, maxEdges);
+                return RecastConfig.EV_UNDEF;
+            }
+
+            int e = FindEdge(edges, nedges, s, t);
+
+            if (e == RecastConfig.EV_UNDEF)
+            {
+                int edge = nedges * 4;
+
+                edges[edge] = s;
+                edges[edge + 1] = t;
+                edges[edge + 2] = l;
+                edges[edge + 3] = r;
+
+                return nedges++;
+            }
+
+            else
+            {
+                return RecastConfig.EV_UNDEF;
+            }
+        }
+
+
+
+        private static float Vcross2(int p1, int p2, int p3, float[] pts)
+        {
+            float u1 = pts[p2] - pts[p1];
+            float v1 = pts[p2 + 2] - pts[p1 + 2];
+            float u2 = pts[p3] - pts[p1];
+            float v2 = pts[p3 + 2] - pts[p1 + 2];
+            return u1 * v2 - v1 * u2;
+        }
+
+
+        private static bool CircumCircle(int pi1, int pi2, int pi3, float[] c, float[] pts, ref float r)
+        {
+            float EPS = 1e-6f;
+            // Calculate the circle relative to p1, to avoid some precision issues.
+            float[] v1 = { 0, 0, 0 };
+            float[] v2 = new float[3];
+            float[] v3 = new float[3];
+
+            float[] p1 = { pts[pi1], pts[pi1 + 1], pts[pi1 + 2] };
+            float[] p2 = { pts[pi2], pts[pi2 + 1], pts[pi2 + 2] };
+            float[] p3 = { pts[pi3], pts[pi3 + 1], pts[pi3 + 2] };
+
+            RecastUtility.RcVsub(v2, p2, p1);
+            RecastUtility.RcVsub(v3, p3, p1);
+
+            float cp = RecastUtility.Vcross2(v1, v2, v3);
+            if (Math.Abs(cp) > EPS)
+            {
+                float v1Sq = RecastUtility.Vdot2(v1, v1);
+                float v2Sq = RecastUtility.Vdot2(v2, v2);
+                float v3Sq = RecastUtility.Vdot2(v3, v3);
+
+                c[0] = (v1Sq * (v2[2] - v3[2]) + v2Sq * (v3[2] - v1[2]) + v3Sq * (v1[2] - v2[2])) / (2 * cp);
+                c[1] = 0;
+                c[2] = (v1Sq * (v3[0] - v2[0]) + v2Sq * (v1[0] - v3[0]) + v3Sq * (v2[0] - v1[0])) / (2 * cp);
+
+                r = RecastUtility.Vdist2(c[0], c[2], v1[0], v1[1]);
+                RecastUtility.RcVadd(c, c, p1);
+                return true;
+            }
+
+            RecastUtility.RcVcopy(c, p1);
+            r = 0;
+            return false;
+        }
+
+
+        private static void CompleteFacet(float[] pts, int npts, int[] edges, int nedges, int maxEdges, int nfaces, int e)
+        {
+
+            float EPS = 1e-5f;
+
+            int index = e * 4;   //&edges[e * 4];
+
+            // Cache s and t.
+            int s, t;
+            if (edges[index + 2] == RecastConfig.EV_UNDEF)
+            {
+                s = edges[index];
+                t = edges[index + 1];
+            }
+            else if (edges[index + 3] == RecastConfig.EV_UNDEF)
+            {
+                s = edges[index + 1];
+                t = edges[index];
+            }
+            else
+            {
+                // Edge already completed.
+                return;
+            }
+
+            // Find best point on left of edge.
+            int pt = npts;
+            float[] c = { 0, 0, 0 };
+            float r = -1;
+            for (int u = 0; u < npts; ++u)
+            {
+                if (u == s || u == t) continue;
+                if (Vcross2(s * 3, t * 3, u * 3, pts) > EPS)
+                {
+                    if (r < 0)
+                    {
+                        // The circle is not updated yet, do it now.
+                        pt = u;
+                        CircumCircle(s * 3, t * 3, u * 3, c, pts, ref r);
+                        continue;
+                    }
+
+                    float d = RecastUtility.Vdist2(c[0], c[2], pts[u * 3], pts[u * 3 + 2]);
+                    float tol = 0.001f;
+                    if (d > r * (1 + tol))
+                    {
+                        // Outside current circumcircle, skip.
+                        continue;
+                    }
+                    else if (d < r * (1 - tol))
+                    {
+                        // Inside safe circumcircle, update circle.
+                        pt = u;
+                        CircumCircle(s * 3, t * 3, u * 3, c, pts, ref r);
+                    }
+                    else
+                    {
+                        // Inside epsilon circum circle, do extra tests to make sure the edge is valid.
+                        // s-u and t-u cannot overlap with s-pt nor t-pt if they exists.
+                        if (OverlapEdges(pts, edges, nedges, s, u))
+                            continue;
+                        if (OverlapEdges(pts, edges, nedges, t, u))
+                            continue;
+                        // Edge is valid.
+                        pt = u;
+                        CircumCircle(s * 3, t * 3, u * 3, c, pts, ref r);
+                    }
+                }
+            }
+
+            // Add new triangle or update edge info if s-t is on hull.
+            if (pt < npts)
+            {
+                // Update face information of edge being completed.
+                updateLeftFace(&edges[e * 4], s, t, nfaces);
+
+                // Add new edge or update face info of old edge.
+                e = findEdge(edges, nedges, pt, s);
+                if (e == EV_UNDEF)
+                    addEdge(ctx, edges, nedges, maxEdges, pt, s, nfaces, EV_UNDEF);
+                else
+                    updateLeftFace(&edges[e * 4], pt, s, nfaces);
+
+                // Add new edge or update face info of old edge.
+                e = findEdge(edges, nedges, t, pt);
+                if (e == EV_UNDEF)
+                    AddEdge(edges, nedges, maxEdges, t, pt, nfaces, EV_UNDEF);
+                else
+                    updateLeftFace(&edges[e * 4], t, pt, nfaces);
+
+                nfaces++;
+            }
+            else
+            {
+                updateLeftFace(&edges[e * 4], s, t, EV_HULL);
+            }
+        }
+
+
+
+        public static void DelaunayHull(int nverts, float[] verts, int nhull, int[] hulls, List<int> tris, List<float> edges)
+        {
+            int nfaces = 0;
+            int nedges = 0;
+            int maxEdges = nverts * 10;
+
+            for (int i = 0, j = nhull - 1; i < nhull; j = i++)
+            {
+                AddEdge(edges, nedges, maxEdges, hulls[j], hulls[i], RecastConfig.EV_HULL, RecastConfig.EV_UNDEF);
+            }
+
+
+            int currentEdge = 0;
+            while (currentEdge < nedges)
+            {
+                if (edges[currentEdge * 4 + 2] == RecastConfig.EV_UNDEF)
+                {
+                    //completeFacet(ctx, pts, npts, &edges[0], nedges, maxEdges, nfaces, currentEdge);
                 }
 
-                dmin = Math.Min(dmin, RecastUtility.DistancePtSeg2D(p[0], p[2], verts[vj], verts[vj + 2], verts[vi], verts[vi + 2]));
+                if (edges[currentEdge * 4 + 3] == RecastConfig.EV_UNDEF)
+                {
+                    //completeFacet(ctx, pts, npts, &edges[0], nedges, maxEdges, nfaces, currentEdge);
+                }
+
+                currentEdge++;
             }
-            return c ? -dmin : dmin;
+
         }
+
 
     }
 }

@@ -13,6 +13,8 @@ namespace GameEditor.RecastEditor
         public static readonly int RC_NOT_CONNECTED = 0x3f;//空心高度场，相邻不可行走标志，
         public static readonly int MAX_LAYERS = RC_NOT_CONNECTED - 1;//RecastConfig.RC_NOT_CONNECTED-1 为最大层级
 
+        public static readonly int EV_UNDEF = -1;//未定义的边缘
+        public static readonly int EV_HULL = -2;
         public static readonly int RC_AREA_BORDER = 0x20000;
         public static readonly int RC_CONTOUR_REG_MASK = 0xffff;
 
