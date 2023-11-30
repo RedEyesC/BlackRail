@@ -131,9 +131,9 @@ namespace GameEditor.RecastEditor
 
             DrawFieldMesh(pmesh);
 
-            RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
+            //RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
 
-            RecastMesh.RcBuildPolyMeshDetail(pmesh,chf,dmesh);
+            //RecastMesh.RcBuildPolyMeshDetail(pmesh,chf,dmesh);
         }
 
         private static Mesh CombineMesh(Transform navRoot)
@@ -364,9 +364,9 @@ namespace GameEditor.RecastEditor
             {
                 RcContour cont = rcContourSet.conts[i];
 
-                float[] contVert = new float[cont.numVerts * 4];
+                float[] contVert = new float[cont.nverts * 4];
 
-                for (int j = 0; j < cont.numVerts; j++)
+                for (int j = 0; j < cont.nverts; j++)
                 {
                     float cellX = hfBBMin[0] + cont.verts[j * 4] * cellSize;
                     float cellZ = hfBBMin[2] + cont.verts[j * 4 + 2] * cellSize;
@@ -403,9 +403,9 @@ namespace GameEditor.RecastEditor
             }
 
  
-            float[][] polyList = new float[pmesh.numPolys][];
+            float[][] polyList = new float[pmesh.npolys][];
 
-            for (int i = 0; i < pmesh.numPolys; ++i)
+            for (int i = 0; i < pmesh.npolys; ++i)
             {
 
                 List<float> ployVert = new List<float>();

@@ -13,13 +13,13 @@ namespace GameEditor.RecastEditor
             int maxVertsPerCont = 0;
             for (int i = 0; i < cset.numConts; ++i)
             {
-                if (cset.conts[i].numVerts < 3)
+                if (cset.conts[i].nverts < 3)
                 {
                     continue;
                 }
-                maxVertices += cset.conts[i].numVerts;
-                maxTris += cset.conts[i].numVerts - 2;
-                maxVertsPerCont = Math.Max(maxVertsPerCont, cset.conts[i].numVerts);
+                maxVertices += cset.conts[i].nverts;
+                maxTris += cset.conts[i].nverts - 2;
+                maxVertsPerCont = Math.Max(maxVertsPerCont, cset.conts[i].nverts);
             }
 
             pmesh.verts = new int[maxVertices * 3];
@@ -56,17 +56,17 @@ namespace GameEditor.RecastEditor
             {
                 RcContour cont = cset.conts[i];
 
-                if (cont.numVerts < 3)
+                if (cont.nverts < 3)
                     continue;
 
 
-                for (int j = 0; j < cont.numVerts; ++j)
+                for (int j = 0; j < cont.nverts; ++j)
                 {
                     indices[j] = j;
                 }
 
                 //拆分多边形为三角形
-                int ntris = Triangulate(cont.numVerts, cont.verts, indices, tris);
+                int ntris = Triangulate(cont.nverts, cont.verts, indices, tris);
                 if (ntris <= 0)
                 {
 
@@ -76,7 +76,7 @@ namespace GameEditor.RecastEditor
 
 
                 //添加cont的vert到 polyMesh.verts，合并相近节点
-                for (int j = 0; j < cont.numVerts; ++j)
+                for (int j = 0; j < cont.nverts; ++j)
                 {
                     int vIndex = j * 4;
 
@@ -163,31 +163,31 @@ namespace GameEditor.RecastEditor
 
                 for (int j = 0; j < npolys; ++j)
                 {
-                    if (pmesh.numPolys >= maxTris)
+                    if (pmesh.npolys >= maxTris)
                     {
                         break;
                     }
 
-                    int offset = pmesh.numPolys * RecastConfig.MaxVertsPerPoly * 2;
+                    int offset = pmesh.npolys * RecastConfig.MaxVertsPerPoly * 2;
 
                     for (int k = 0; k < RecastConfig.MaxVertsPerPoly; ++k)
                     {
                         pmesh.polys[offset + k] = polys[j * RecastConfig.MaxVertsPerPoly + k];
                     }
 
-                    pmesh.regs[pmesh.numPolys] = cont.reg;
-                    pmesh.areas[pmesh.numPolys] = cont.area;
-                    pmesh.numPolys++;
+                    pmesh.regs[pmesh.npolys] = cont.reg;
+                    pmesh.areas[pmesh.npolys] = cont.area;
+                    pmesh.npolys++;
 
-                    if (pmesh.numPolys > maxTris)
+                    if (pmesh.npolys > maxTris)
                     {
-                        RecastUtility.LogErrorFormat("removeVertex: Too many polygons {0} (max:{1}).", pmesh.numPolys, maxTris);
+                        RecastUtility.LogErrorFormat("removeVertex: Too many polygons {0} (max:{1}).", pmesh.npolys, maxTris);
                     }
                 }
 
             }
 
-            if (!BuildMeshAdjacency(pmesh.polys, pmesh.numPolys, pmesh.numVerts))
+            if (!BuildMeshAdjacency(pmesh.polys, pmesh.npolys, pmesh.nverts))
             {
                 RecastUtility.LogError("rcBuildPolyMesh: Adjacency failed.");
             }
@@ -195,9 +195,34 @@ namespace GameEditor.RecastEditor
         }
 
 
+        private static int GetTriFlags(int va, int vb, int vc, float[] verts, float[] vpoly, int npoly)
+        {
+
+            int flags = 0;
+            flags |= GetEdgeFlags(va, vb, verts, vpoly, npoly) << 0;
+            flags |= GetEdgeFlags(vb, vc, verts, vpoly, npoly) << 2;
+            flags |= GetEdgeFlags(vc, va, verts, vpoly, npoly) << 4;
+            return flags;
+        }
+
+        private static int GetEdgeFlags(int va, int vb, float[] verts, float[] vpoly, int npoly)
+        {
+            // The flag returned by this function matches dtDetailTriEdgeFlags in Detour.
+            // Figure out if edge (va,vb) is part of the polygon boundary.
+            float thrSqr = (float)Math.Sqrt(0.001f);
+            for (int i = 0, j = npoly - 1; i < npoly; j = i++)
+            {
+                if (RecastUtility.DistancePtSeg2D(verts[va], verts[va + 3], vpoly[j * 3], vpoly[j * 3 + 3], vpoly[i * 3], vpoly[i + 3 + 3]) < thrSqr &&
+                    RecastUtility.DistancePtSeg2D(verts[vb], verts[vb + 3], vpoly[j * 3], vpoly[j * 3 + 3], vpoly[i * 3], vpoly[i + 3 + 3]) < thrSqr)
+                    return 1;
+            }
+            return 0;
+        }
+
+
         public static void RcBuildPolyMeshDetail(RcPolyMesh pmesh, RcCompactHeightfield chf, RcPolyMeshDetail dmesh)
         {
-            if (pmesh.numPolys == 0 || pmesh.numVerts == 0)
+            if (pmesh.npolys == 0 || pmesh.nverts == 0)
                 return;
 
             float cs = pmesh.cellSize;
@@ -211,19 +236,19 @@ namespace GameEditor.RecastEditor
             Stack<int> arr = new Stack<int>();
             List<int> tris = new List<int>();
             List<float> samples = new List<float>();
-            List<float> edges = new List<float>();
+            List<int> edges = new List<int>();
 
             float[] verts = new float[RecastConfig.Detail_MAX_VERTS * 3];
 
-            int[] bounds = new int[pmesh.numPolys * 4];
-            float[] poly = new float[pmesh.numPolys * 3];
+            int[] bounds = new int[pmesh.npolys * 4];
+            float[] poly = new float[pmesh.npolys * 3];
 
             int nPolyVerts = 0;
             int maxhw = 0;
             int maxhh = 0;
 
             //获取每个多边形的xy范围
-            for (int i = 0; i < pmesh.numPolys; ++i)
+            for (int i = 0; i < pmesh.npolys; ++i)
             {
                 int pIndex = i * RecastConfig.MaxVertsPerPoly * 2;
 
@@ -263,8 +288,8 @@ namespace GameEditor.RecastEditor
                 bounds[i * 4 + 3] = ymax;
             }
 
-            dmesh.numMeshes = pmesh.numPolys;
-            dmesh.meshes = new int[dmesh.numMeshes * 4];
+            dmesh.nmeshes = pmesh.npolys;
+            dmesh.meshes = new int[dmesh.nmeshes * 4];
 
             int vcap = nPolyVerts + nPolyVerts / 2;
             int tcap = vcap * 2;
@@ -274,7 +299,7 @@ namespace GameEditor.RecastEditor
 
             hp.data = new int[maxhw * maxhh];
 
-            for (int i = 0; i < pmesh.numPolys; ++i)
+            for (int i = 0; i < pmesh.npolys; ++i)
             {
                 int pIndex = i * RecastConfig.MaxVertsPerPoly * 2;
 
@@ -305,78 +330,75 @@ namespace GameEditor.RecastEditor
 
                 }
 
-                //// Move detail verts to world space.
-                //for (int j = 0; j < nverts; ++j)
-                //{
-                //    verts[j * 3 + 0] += orig[0];
-                //    verts[j * 3 + 1] += orig[1] + chf.ch; // Is this offset necessary?
-                //    verts[j * 3 + 2] += orig[2];
-                //}
-                //// Offset poly too, will be used to flag checking.
-                //for (int j = 0; j < npoly; ++j)
-                //{
-                //    poly[j * 3 + 0] += orig[0];
-                //    poly[j * 3 + 1] += orig[1];
-                //    poly[j * 3 + 2] += orig[2];
-                //}
+                // Move detail verts to world space.
+                for (int j = 0; j < nverts; ++j)
+                {
+                    verts[j * 3 + 0] += orig[0];
+                    verts[j * 3 + 1] += orig[1] + chf.cellHeight; // Is this offset necessary?
+                    verts[j * 3 + 2] += orig[2];
+                }
+                // Offset poly too, will be used to flag checking.
+                for (int j = 0; j < npoly; ++j)
+                {
+                    poly[j * 3 + 0] += orig[0];
+                    poly[j * 3 + 1] += orig[1];
+                    poly[j * 3 + 2] += orig[2];
+                }
 
-                //    // Store detail submesh.
-                //    const int ntris = tris.size() / 4;
+                // Store detail submesh.
+                int ntris = tris.Count / 4;
 
-                //    dmesh.meshes[i * 4 + 0] = (unsigned int)dmesh.nverts;
-                //dmesh.meshes[i * 4 + 1] = (unsigned int)nverts;
-                //dmesh.meshes[i * 4 + 2] = (unsigned int)dmesh.ntris;
-                //dmesh.meshes[i * 4 + 3] = (unsigned int)ntris;
+                dmesh.meshes[i * 4 + 0] = dmesh.nverts;
+                dmesh.meshes[i * 4 + 1] = nverts;
+                dmesh.meshes[i * 4 + 2] = dmesh.ntris;
+                dmesh.meshes[i * 4 + 3] = ntris;
 
-                //// Store vertices, allocate more memory if necessary.
-                //if (dmesh.nverts + nverts > vcap)
-                //{
-                //    while (dmesh.nverts + nverts > vcap)
-                //        vcap += 256;
+                // Store vertices, allocate more memory if necessary.
+                if (dmesh.nverts + nverts > vcap)
+                {
+                    while (dmesh.nverts + nverts > vcap)
+                        vcap += 256;
 
-                //    float* newv = (float*)rcAlloc(sizeof(float) * vcap * 3, RC_ALLOC_PERM);
-                //    if (!newv)
-                //    {
-                //        ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'newv' (%d).", vcap * 3);
-                //        return false;
-                //    }
-                //    if (dmesh.nverts)
-                //        memcpy(newv, dmesh.verts, sizeof(float) * 3 * dmesh.nverts);
-                //    rcFree(dmesh.verts);
-                //    dmesh.verts = newv;
-                //}
-                //for (int j = 0; j < nverts; ++j)
-                //{
-                //    dmesh.verts[dmesh.nverts * 3 + 0] = verts[j * 3 + 0];
-                //    dmesh.verts[dmesh.nverts * 3 + 1] = verts[j * 3 + 1];
-                //    dmesh.verts[dmesh.nverts * 3 + 2] = verts[j * 3 + 2];
-                //    dmesh.nverts++;
-                //}
+                    float[] newv = new float[vcap * 3];
 
-                //// Store triangles, allocate more memory if necessary.
-                //if (dmesh.ntris + ntris > tcap)
-                //{
-                //    while (dmesh.ntris + ntris > tcap)
-                //        tcap += 256;
-                //    unsigned char* newt = (unsigned char*)rcAlloc(sizeof(unsigned char) * tcap * 4, RC_ALLOC_PERM);
-                //    if (!newt)
-                //    {
-                //        ctx->log(RC_LOG_ERROR, "rcBuildPolyMeshDetail: Out of memory 'newt' (%d).", tcap * 4);
-                //        return false;
-                //    }
-                //    if (dmesh.ntris)
-                //        memcpy(newt, dmesh.tris, sizeof(unsigned char) * 4 * dmesh.ntris);
-                //    rcFree(dmesh.tris);
-                //    dmesh.tris = newt;
-                //}
-                //for (int j = 0; j < ntris; ++j)
-                //{
-                //    const int* t = &tris[j * 4];
-                //    dmesh.tris[dmesh.ntris * 4 + 0] = (unsigned char)t[0];
-                //dmesh.tris[dmesh.ntris * 4 + 1] = (unsigned char)t[1];
-                //dmesh.tris[dmesh.ntris * 4 + 2] = (unsigned char)t[2];
-                //dmesh.tris[dmesh.ntris * 4 + 3] = getTriFlags(&verts[t[0] * 3], &verts[t[1] * 3], &verts[t[2] * 3], poly, npoly);
-                //dmesh.ntris++;
+                    if (dmesh.nverts != 0)
+                        Array.Copy(newv, dmesh.verts, 3 * dmesh.nverts);
+
+                    dmesh.verts = newv;
+                }
+
+
+                for (int j = 0; j < nverts; ++j)
+                {
+                    dmesh.verts[dmesh.nverts * 3 + 0] = verts[j * 3 + 0];
+                    dmesh.verts[dmesh.nverts * 3 + 1] = verts[j * 3 + 1];
+                    dmesh.verts[dmesh.nverts * 3 + 2] = verts[j * 3 + 2];
+                    dmesh.nverts++;
+                }
+
+                // Store triangles, allocate more memory if necessary.
+                if (dmesh.ntris + ntris > tcap)
+                {
+                    while (dmesh.ntris + ntris > tcap)
+                        tcap += 256;
+
+                    int[] newt = new int[tcap * 4];
+
+                    if (dmesh.ntris != 0)
+                        Array.Copy(newt, dmesh.tris, 4 * dmesh.ntris);
+
+                    dmesh.tris = newt;
+                }
+
+                for (int j = 0; j < ntris; ++j)
+                {
+                    int k = j * 4;
+                    dmesh.tris[dmesh.ntris * 4 + 0] = tris[k];
+                    dmesh.tris[dmesh.ntris * 4 + 1] = tris[k + 1];
+                    dmesh.tris[dmesh.ntris * 4 + 2] = tris[k + 2];
+                    dmesh.tris[dmesh.ntris * 4 + 3] = GetTriFlags(tris[k] * 3, tris[k + 1] * 3, tris[k + 2] * 3, verts, poly, npoly);
+                    dmesh.ntris++;
+                }
             }
         }
 
@@ -606,8 +628,8 @@ namespace GameEditor.RecastEditor
                 i = nextVert[i];
             }
 
-            i = polyMesh.numVerts;
-            polyMesh.numVerts++;
+            i = polyMesh.nverts;
+            polyMesh.nverts++;
 
             int vj = i * 3;
             verts[vj] = x;
@@ -1093,7 +1115,7 @@ namespace GameEditor.RecastEditor
 
         private static bool BuildPolyDetail(float[] poly, int npoly, int heightSearchRadius, RcCompactHeightfield chf,
                                 RcHeightPatch hp, float[] verts, int nverts,
-                                List<int> tris, List<float> edges, List<float> samples)
+                                List<int> tris, List<int> edges, List<float> samples)
         {
 
             float sampleDist = RecastConfig.DetailSampleDist < 0.9f ? 0 : RecastConfig.CellSize * RecastConfig.DetailSampleDist;
@@ -1599,8 +1621,7 @@ namespace GameEditor.RecastEditor
             return dmin;
         }
 
-
-        private static bool OverlapEdges(float[] pts, int[] edges, int nedges, int s1, int t1)
+        private static bool OverlapEdges(float[] pts, List<int> edges, int nedges, int s1, int t1)
         {
             for (int i = 0; i < nedges; ++i)
             {
@@ -1609,13 +1630,13 @@ namespace GameEditor.RecastEditor
                 // Same or connected edges do not overlap.
                 if (s0 == s1 || s0 == t1 || t0 == s1 || t0 == t1)
                     continue;
-                if (overlapSegSeg2d(&pts[s0 * 3], &pts[t0 * 3], &pts[s1 * 3], &pts[t1 * 3]))
+                if (OverlapSegSeg2d(s0 * 3, t0 * 3, s1 * 3, t1 * 3, pts))
                     return true;
             }
             return false;
         }
 
-        private static int overlapSegSeg2d(int p1, int p2, int p3, int p4, float[] pts)
+        private static bool OverlapSegSeg2d(int p1, int p2, int p3, int p4, float[] pts)
         {
             float[] a = { pts[p1], pts[p1 + 1], pts[p1 + 2] };
             float[] b = { pts[p2], pts[p2 + 1], pts[p2 + 2] };
@@ -1629,12 +1650,12 @@ namespace GameEditor.RecastEditor
                 float a3 = RecastUtility.Vcross2(c, d, a);
                 float a4 = a3 + a2 - a1;
                 if (a3 * a4 < 0.0f)
-                    return 1;
+                    return true;
             }
-            return 0;
+            return false;
         }
 
-        private static int FindEdge(List<float> edges, int nedges, int s, int t)
+        private static int FindEdge(List<int> edges, int nedges, int s, int t)
         {
             for (int i = 0; i < nedges; i++)
             {
@@ -1645,7 +1666,7 @@ namespace GameEditor.RecastEditor
             return RecastConfig.EV_UNDEF;
         }
 
-        private static int AddEdge(List<float> edges, int nedges, int maxEdges, int s, int t, int l, int r)
+        private static int AddEdge(List<int> edges, int nedges, int maxEdges, int s, int t, int l, int r)
         {
             if (nedges >= maxEdges)
             {
@@ -1721,8 +1742,20 @@ namespace GameEditor.RecastEditor
             return false;
         }
 
+        private static void UpdateLeftFace(List<int> e, int i, int s, int t, int f)
+        {
+            if (e[i] == s && e[i + 1] == t && e[i + 2] == RecastConfig.EV_UNDEF)
+            {
+                e[i + 2] = f;
+            }
+            else if (e[i + 1] == s && e[i] == t && e[i + 3] == RecastConfig.EV_UNDEF)
+            {
+                e[3] = f;
+            }
 
-        private static void CompleteFacet(float[] pts, int npts, int[] edges, int nedges, int maxEdges, int nfaces, int e)
+        }
+
+        private static void CompleteFacet(float[] pts, int npts, List<int> edges, ref int nedges, int maxEdges, ref int nfaces, int e)
         {
 
             float EPS = 1e-5f;
@@ -1796,33 +1829,33 @@ namespace GameEditor.RecastEditor
             if (pt < npts)
             {
                 // Update face information of edge being completed.
-                updateLeftFace(&edges[e * 4], s, t, nfaces);
+                UpdateLeftFace(edges, e * 4, s, t, nfaces);
 
                 // Add new edge or update face info of old edge.
-                e = findEdge(edges, nedges, pt, s);
-                if (e == EV_UNDEF)
-                    addEdge(ctx, edges, nedges, maxEdges, pt, s, nfaces, EV_UNDEF);
+                e = FindEdge(edges, nedges, pt, s);
+                if (e == RecastConfig.EV_UNDEF)
+                    AddEdge(edges, nedges, maxEdges, pt, s, nfaces, RecastConfig.EV_UNDEF);
                 else
-                    updateLeftFace(&edges[e * 4], pt, s, nfaces);
+                    UpdateLeftFace(edges, e * 4, pt, s, nfaces);
 
                 // Add new edge or update face info of old edge.
-                e = findEdge(edges, nedges, t, pt);
-                if (e == EV_UNDEF)
-                    AddEdge(edges, nedges, maxEdges, t, pt, nfaces, EV_UNDEF);
+                e = FindEdge(edges, nedges, t, pt);
+                if (e == RecastConfig.EV_UNDEF)
+                    AddEdge(edges, nedges, maxEdges, t, pt, nfaces, RecastConfig.EV_UNDEF);
                 else
-                    updateLeftFace(&edges[e * 4], t, pt, nfaces);
+                    UpdateLeftFace(edges, e * 4, t, pt, nfaces);
 
                 nfaces++;
             }
             else
             {
-                updateLeftFace(&edges[e * 4], s, t, EV_HULL);
+                UpdateLeftFace(edges, e * 4, s, t, RecastConfig.EV_UNDEF);
             }
         }
 
 
 
-        public static void DelaunayHull(int nverts, float[] verts, int nhull, int[] hulls, List<int> tris, List<float> edges)
+        public static void DelaunayHull(int nverts, float[] verts, int nhull, int[] hulls, List<int> tris, List<int> edges)
         {
             int nfaces = 0;
             int nedges = 0;
@@ -1839,15 +1872,65 @@ namespace GameEditor.RecastEditor
             {
                 if (edges[currentEdge * 4 + 2] == RecastConfig.EV_UNDEF)
                 {
-                    //completeFacet(ctx, pts, npts, &edges[0], nedges, maxEdges, nfaces, currentEdge);
+                    CompleteFacet(verts, nverts, edges, ref nedges, maxEdges, ref nfaces, currentEdge);
                 }
 
                 if (edges[currentEdge * 4 + 3] == RecastConfig.EV_UNDEF)
                 {
-                    //completeFacet(ctx, pts, npts, &edges[0], nedges, maxEdges, nfaces, currentEdge);
+                    CompleteFacet(verts, nverts, edges, ref nedges, maxEdges, ref nfaces, currentEdge);
                 }
 
                 currentEdge++;
+            }
+
+            // Create tris
+
+            for (int i = 0; i < nfaces * 4; ++i)
+                tris[i] = -1;
+
+            for (int i = 0; i < nedges; ++i)
+            {
+                int j = i * 4;
+                if (edges[j + 3] >= 0)
+                {
+                    // Left face
+                    int k = edges[j + 3] * 4;
+                    if (tris[k] == -1)
+                    {
+                        tris[k] = edges[j];
+                        tris[k + 1] = edges[j + 1];
+                    }
+                    else if (tris[k] == edges[j + 1])
+                        tris[k + 2] = edges[j];
+                    else if (tris[k + 1] == edges[j])
+                        tris[k + 2] = edges[j + 1];
+                }
+
+
+                if (edges[j + 2] >= 0)
+                {
+                    // Right
+                    int k = edges[j + 3] * 4;
+                    if (tris[k] == -1)
+                    {
+                        tris[k] = edges[j + 1];
+                        tris[k + 1] = edges[j];
+                    }
+                    else if (tris[k] == edges[j + 1])
+                        tris[k + 2] = edges[j + 1];
+                    else if (tris[k + 1] == edges[j])
+                        tris[k + 2] = edges[j];
+                }
+            }
+
+            for (int i = 0; i < tris.Count / 4; ++i)
+            {
+                int j = i * 4;
+                if (tris[j] == -1 || tris[j + 1] == -1 || tris[j + 2] == -1)
+                {
+                    tris.RemoveRange(j, 4);
+                    --i;
+                }
             }
 
         }

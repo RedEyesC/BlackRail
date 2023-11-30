@@ -233,7 +233,7 @@ namespace GameEditor.RecastEditor
     public class RcContour
     {
         public int[] verts;
-        public int numVerts;
+        public int nverts;
         public int reg;
         public AREATYPE area;
     };
@@ -270,10 +270,11 @@ namespace GameEditor.RecastEditor
         public float cellSize = 0;
         public float cellHeight = 0;
 
-        public int numConts = 0;
+        public int nconts = 0;
 
-        public int numVerts = 0;
-        public int numPolys = 0;
+        public int nverts = 0;
+        public int npolys = 0;
+
         public int maxPolys = 0;
 
         public int[] verts;
@@ -323,9 +324,9 @@ namespace GameEditor.RecastEditor
     public class RcPolyMeshDetail
     {
 
-        public int numMeshes = 0;
-        public int numVerts = 0;
-        public int numTris = 0;
+        public int nmeshes = 0;
+        public int nverts = 0;
+        public int ntris = 0;
 
         public int[] meshes;
         public float[] verts;

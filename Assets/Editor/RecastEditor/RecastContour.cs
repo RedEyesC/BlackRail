@@ -906,7 +906,7 @@ namespace GameEditor.RecastEditor
 
                             RcContour cont = new RcContour
                             {
-                                numVerts = simplified.Count / 4,
+                                nverts = simplified.Count / 4,
                                 verts = simplified.ToArray(),
                                 reg = reg,
                                 area = area
@@ -931,7 +931,7 @@ namespace GameEditor.RecastEditor
                     RcContour cont = rcContourSet.conts[i];
 
                     //只要根据叉乘算出每个轮廓多边形的有向面积，如果结果为小于0，则为轮廓点的顺序为逆时针，这个轮廓就是一个空洞。
-                    winding[i] = CalcAreaOfPolygon2D(cont.verts, cont.numVerts) < 0 ? -1 : 1;
+                    winding[i] = CalcAreaOfPolygon2D(cont.verts, cont.nverts) < 0 ? -1 : 1;
                     if (winding[i] < 0)
                         nholes++;
                 }
@@ -1019,11 +1019,11 @@ namespace GameEditor.RecastEditor
 
             System.Array.Sort(region.holes, CompareHoles);
 
-            int maxVerts = region.outline.numVerts;
+            int maxVerts = region.outline.nverts;
 
             for (int i = 0; i < region.numHoles; i++)
             {
-                maxVerts += region.holes[i].contour.numVerts;
+                maxVerts += region.holes[i].contour.nverts;
             }
 
             RcContour outline = region.outline;
@@ -1037,21 +1037,21 @@ namespace GameEditor.RecastEditor
 
                 int index = -1;
                 int bestVertex = region.holes[i].leftMost;
-                for (int iter = 0; iter < hole.numVerts; iter++)
+                for (int iter = 0; iter < hole.nverts; iter++)
                 {
                     //找到空洞的bestVertex（bestVetex为最左边的点，如果有多个最左点，取其中最下的点），并把N个空洞按照bestVertex排序，按照排序好的空洞顺序遍历。
                     int ndiags = 0;
                     int[] corner = { hole.verts[bestVertex * 4], hole.verts[bestVertex * 4 + 1], hole.verts[bestVertex * 4 + 2], hole.verts[bestVertex * 4 + 3] };
                     
-                    for (int j = 0; j < outline.numVerts; j++)
+                    for (int j = 0; j < outline.nverts; j++)
                     {
                         int piIndex = j * 4;
                         int[] pi = { outline.verts[piIndex], outline.verts[piIndex + 1], outline.verts[piIndex + 2] };
 
-                        int pi1Index =RecastUtility.Next(j, outline.numVerts);
+                        int pi1Index =RecastUtility.Next(j, outline.nverts);
                         int[] pi1 = { outline.verts[pi1Index], outline.verts[pi1Index + 1], outline.verts[pi1Index + 2] };
 
-                        int pin1Index = RecastUtility.Prev(j, outline.numVerts);
+                        int pin1Index = RecastUtility.Prev(j, outline.nverts);
                         int[] pin1 = { outline.verts[pin1Index], outline.verts[pin1Index + 1], outline.verts[pin1Index + 2] };
 
                         if (RecastUtility.InCone(pi, pi1, pin1, corner))
@@ -1070,11 +1070,11 @@ namespace GameEditor.RecastEditor
                     {
                         int pt = diags[j].vert * 4;
                         //是否和与外轮廓相交
-                        bool intersect = IntersectSegContour(pt, corner, diags[i].vert, outline.numVerts, outline.verts);
+                        bool intersect = IntersectSegContour(pt, corner, diags[i].vert, outline.nverts, outline.verts);
 
                         //是否和其他空洞相交
                         for (int k = i; k < region.numHoles && !intersect; k++)
-                            intersect |= IntersectSegContour(pt, corner, -1, region.holes[k].contour.numVerts, region.holes[k].contour.verts);
+                            intersect |= IntersectSegContour(pt, corner, -1, region.holes[k].contour.nverts, region.holes[k].contour.verts);
                         if (!intersect)
                         {
                             index = diags[j].vert;
@@ -1088,7 +1088,7 @@ namespace GameEditor.RecastEditor
                         break;
 
                     // 尝试下一个点
-                    bestVertex = (bestVertex + 1) % hole.numVerts;
+                    bestVertex = (bestVertex + 1) % hole.nverts;
                 }
 
                 if (index == -1)
@@ -1107,15 +1107,15 @@ namespace GameEditor.RecastEditor
 
         private static bool MergeContours(RcContour ca, RcContour cb, int ia, int ib)
         {
-            int maxVerts = ca.numVerts + cb.numVerts + 2;
+            int maxVerts = ca.nverts + cb.nverts + 2;
             int[] verts = new int[maxVerts * 4];
 
             int nv = 0;
 
-            for (int i = 0; i <= ca.numVerts; ++i)
+            for (int i = 0; i <= ca.nverts; ++i)
             {
                 int dstIndex = nv * 4;
-                int srcIndex = ((ia + i) % ca.numVerts) * 4;
+                int srcIndex = ((ia + i) % ca.nverts) * 4;
                 verts[dstIndex] = ca.verts[srcIndex];
                 verts[dstIndex + 1] = ca.verts[srcIndex + 1];
                 verts[dstIndex + 2] = ca.verts[srcIndex + 2];
@@ -1123,10 +1123,10 @@ namespace GameEditor.RecastEditor
                 nv++;
             }
 
-            for (int i = 0; i <= cb.numVerts; ++i)
+            for (int i = 0; i <= cb.nverts; ++i)
             {
                 int dstIndex = nv * 4;
-                int srcIndex = ((ib + i) % cb.numVerts) * 4;
+                int srcIndex = ((ib + i) % cb.nverts) * 4;
                 verts[dstIndex] = cb.verts[srcIndex];
                 verts[dstIndex + 1] = cb.verts[srcIndex + 1];
                 verts[dstIndex + 2] = cb.verts[srcIndex + 2];
@@ -1135,10 +1135,10 @@ namespace GameEditor.RecastEditor
             }
 
             ca.verts = verts;
-            ca.numVerts = nv;
+            ca.nverts = nv;
 
             cb.verts = new int[0];
-            cb.numVerts = 0;
+            cb.nverts = 0;
 
             return true;
         }
@@ -1149,7 +1149,7 @@ namespace GameEditor.RecastEditor
             minx = contour.verts[0];
             minz = contour.verts[2];
             leftmost = 0;
-            for (int i = 1; i < contour.numVerts; i++)
+            for (int i = 1; i < contour.nverts; i++)
             {
                 int x = contour.verts[i * 4 + 0];
                 int z = contour.verts[i * 4 + 2];
