@@ -131,9 +131,9 @@ namespace GameEditor.RecastEditor
 
             DrawFieldMesh(pmesh);
 
-            //RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
+            RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
 
-            //RecastMesh.RcBuildPolyMeshDetail(pmesh,chf,dmesh);
+            RecastMeshDetail.RcBuildPolyMeshDetail(pmesh,chf,dmesh);
         }
 
         private static Mesh CombineMesh(Transform navRoot)

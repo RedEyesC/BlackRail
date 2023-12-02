@@ -32,6 +32,7 @@ namespace GameEditor.RecastEditor
         public static readonly int Detail_MAX_TRIS = 255;    // Max tris for delaunay is 2n-2-k (n=num verts, k=num hull verts).
         public static readonly int Detail_MAX_VERTS_PER_EDGE = 32; //构建多边形高度细节时每个边缘的的最大顶点数
 
+
         public static readonly float AgentMaxSlope = 45;
         public static readonly float AgentMaxClimb = 1f;
         public static readonly float AgentHeight = 2.0f;
@@ -48,17 +49,14 @@ namespace GameEditor.RecastEditor
         public static readonly float MaxEdgeLen = 12; //最大边缘长度
 
 
-        public static readonly float DetailSampleDist = 6f;
-        public static readonly float DetailSampleMaxError = 1f;
-
         public static readonly bool FilterLowHangingObstacles = false;//过滤悬空可走的span
         public static readonly bool FilterLedgeSpans = true;//过滤高度差过大的span
         public static readonly bool FilterWalkableLowHeightSpans = false;//过滤不可通过的高度的span
 
         public static readonly int MaxVertsPerPoly = 6; //单个多边形最大顶点数
 
-
-
+        public static readonly float DetailSampleDist = 6f; //构建多边形高度细节时最大边缘长度
+        public static readonly float DetailSampleMaxError = 1f; //构建多边形高度细节时最大误差
 
     }
 }
