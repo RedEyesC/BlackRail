@@ -64,12 +64,12 @@ namespace GameEditor.RecastEditor
             Transform navRoot = root.transform.Find(RecastConfig.MapElement);
 
             Mesh mesh = CombineMesh(navRoot);
- 
+
             RecastUtility.CalcBounds(mesh.vertices, out float[] meshMinBounds, out float[] meshMaxBounds);
 
             RecastUtility.CalcGridSize(meshMinBounds, meshMaxBounds, RecastConfig.CellSize, out int meshWidth, out int meshHeight);
 
-            RcHeightfield hf = new RcHeightfield(meshMinBounds, meshMaxBounds,meshWidth,meshHeight, RecastConfig.AgentMaxSlope, RecastConfig.AgentMaxClimb, RecastConfig.AgentHeight, RecastConfig.AgentRadius, RecastConfig.CellSize, RecastConfig.CellHeight);
+            RcHeightfield hf = new RcHeightfield(meshMinBounds, meshMaxBounds, meshWidth, meshHeight, RecastConfig.AgentMaxSlope, RecastConfig.AgentMaxClimb, RecastConfig.AgentHeight, RecastConfig.AgentRadius, RecastConfig.CellSize, RecastConfig.CellHeight);
 
             //判断三角形是否可行走
             AREATYPE[] areas = RcMarkWalkableTriangles(hf.walkableSlopeAngle, mesh.vertices, mesh.triangles);
@@ -133,7 +133,9 @@ namespace GameEditor.RecastEditor
 
             RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
 
-            RecastMeshDetail.RcBuildPolyMeshDetail(pmesh,chf,dmesh);
+            RecastMeshDetail.RcBuildPolyMeshDetail(pmesh, chf, dmesh);
+
+            DrawFieldMeshDetail(dmesh);
         }
 
         private static Mesh CombineMesh(Transform navRoot)
@@ -402,7 +404,8 @@ namespace GameEditor.RecastEditor
                 root.AddComponent<RecastComponent>();
             }
 
- 
+            pmesh.npolys = 1;
+
             float[][] polyList = new float[pmesh.npolys][];
 
             for (int i = 0; i < pmesh.npolys; ++i)
@@ -415,7 +418,7 @@ namespace GameEditor.RecastEditor
 
                     int vertIndex = pmesh.polys[i * RecastConfig.MaxVertsPerPoly * 2 + j];
 
-                    if(vertIndex == RecastConfig.RC_MESH_NULL_IDX)
+                    if (vertIndex == RecastConfig.RC_MESH_NULL_IDX)
                     {
                         continue;
                     }
@@ -430,6 +433,48 @@ namespace GameEditor.RecastEditor
                     ployVert.Add(0);
 
                 }
+                polyList[i] = ployVert.ToArray();
+
+            }
+
+            root.GetComponent<RecastComponent>().SetContour(polyList);
+        }
+
+        public static void DrawFieldMeshDetail(RcPolyMeshDetail dmesh)
+        {
+            Scene activeScene = SceneManager.GetActiveScene();
+            string activeSceneName = activeScene.name;
+
+            GameObject root = GameObject.Find("/" + activeSceneName);
+
+            if (root.GetComponent<RecastComponent>() == null)
+            {
+                root.AddComponent<RecastComponent>();
+            }
+
+
+            float[][] polyList = new float[dmesh.ntris][];
+
+            for (int i = 0; i < dmesh.ntris; ++i)
+            {
+
+                List<float> ployVert = new List<float>();
+                for (int j = 0; j < 3; j++)
+                {
+
+                    int vertIndex = dmesh.tris[i * 4 + j];
+
+                    float cellX = dmesh.verts[vertIndex * 3];
+                    float cellZ = dmesh.verts[vertIndex * 3 + 2];
+                    float cellY = dmesh.verts[vertIndex * 3 + 1];
+
+                    ployVert.Add(cellX);
+                    ployVert.Add(cellY);
+                    ployVert.Add(cellZ);
+                    ployVert.Add(0);
+
+                }
+
                 polyList[i] = ployVert.ToArray();
             }
 

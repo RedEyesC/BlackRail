@@ -370,8 +370,8 @@ namespace GameEditor.RecastEditor
             float t = pqx * dx + pqy * dy + pqz * dz;
             if (d > 0)
                 t /= d;
-            if (t < 0)
 
+            if (t < 0)
                 t = 0;
             else if (t > 1)
                 t = 1;
