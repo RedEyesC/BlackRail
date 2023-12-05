@@ -404,8 +404,6 @@ namespace GameEditor.RecastEditor
                 root.AddComponent<RecastComponent>();
             }
 
-            pmesh.npolys = 1;
-
             float[][] polyList = new float[pmesh.npolys][];
 
             for (int i = 0; i < pmesh.npolys; ++i)
@@ -452,33 +450,45 @@ namespace GameEditor.RecastEditor
                 root.AddComponent<RecastComponent>();
             }
 
+            float[][] triList = new float[dmesh.ntris][];
 
-            float[][] polyList = new float[dmesh.ntris][];
-
-            for (int i = 0; i < dmesh.ntris; ++i)
+            int tri = 0;
+            for (int i = 0; i < dmesh.nmeshes; i++)
             {
 
-                List<float> ployVert = new List<float>();
-                for (int j = 0; j < 3; j++)
+
+                int startVert = dmesh.meshes[i * 4 + 0];
+                int startTri = dmesh.meshes[i * 4 + 2];
+                int ntris = dmesh.meshes[i * 4 + 3];
+
+                for (int j = 0; j < ntris; ++j)
                 {
 
-                    int vertIndex = dmesh.tris[i * 4 + j];
+                    List<float> ployVert = new List<float>();
+                    for (int k = 0; k < 3; k++)
+                    {
 
-                    float cellX = dmesh.verts[vertIndex * 3];
-                    float cellZ = dmesh.verts[vertIndex * 3 + 2];
-                    float cellY = dmesh.verts[vertIndex * 3 + 1];
+                        int vertIndex = dmesh.tris[(startTri + j) * 4 + k];
 
-                    ployVert.Add(cellX);
-                    ployVert.Add(cellY);
-                    ployVert.Add(cellZ);
-                    ployVert.Add(0);
+                        float cellX = dmesh.verts[(startVert + vertIndex) * 3];
+                        float cellY = dmesh.verts[(startVert + vertIndex) * 3 + 1];
+                        float cellZ = dmesh.verts[(startVert + vertIndex) * 3 + 2];
+                      
 
+                        ployVert.Add(cellX);
+                        ployVert.Add(cellY);
+                        ployVert.Add(cellZ);
+                        ployVert.Add(0);
+
+                    }
+
+                    triList[tri] = ployVert.ToArray();
+                    tri++;
                 }
 
-                polyList[i] = ployVert.ToArray();
             }
 
-            root.GetComponent<RecastComponent>().SetContour(polyList);
+            root.GetComponent<RecastComponent>().SetContour(triList);
         }
     }
 

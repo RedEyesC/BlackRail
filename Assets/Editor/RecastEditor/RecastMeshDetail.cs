@@ -19,7 +19,7 @@ namespace GameEditor.RecastEditor
 
             RcHeightPatch hp = new RcHeightPatch();
 
-            Stack<int> arr = new Stack<int>();
+            List<int> arr = new List<int>();
             List<int> tris = new List<int>();
             List<float> samples = new List<float>();
             List<int> edges = new List<int>();
@@ -188,14 +188,11 @@ namespace GameEditor.RecastEditor
                     dmesh.ntris++;
                 }
 
-                return;
             }
-
-
         }
 
         private static void GetHeightData(RcCompactHeightfield chf, int pIndex, int[] polys, int nploys, int[] verts,
-          RcHeightPatch hp, Stack<int> queue, int region)
+          RcHeightPatch hp, List<int> queue, int region)
         {
 
             queue.Clear();
@@ -246,7 +243,9 @@ namespace GameEditor.RecastEditor
                                 //把region边界保存到queue
                                 if (border)
                                 {
-                                    Push3(queue, x, y, i);
+                                    queue.Add(x);
+                                    queue.Add(y);
+                                    queue.Add(i);
                                 }
 
                                 break;
@@ -266,9 +265,11 @@ namespace GameEditor.RecastEditor
             //存在多层span ，region border上的span是为了确定在哪一层，以这一层的span再进行泛洪
             while (3 < queue.Count)
             {
-                int cx = queue.Pop();
-                int cy = queue.Pop();
-                int ci = queue.Pop();
+                int cx = queue[0];
+                int cy = queue[1];
+                int ci = queue[2];
+
+                queue.RemoveRange(0, 3);
 
                 CompactSpan cs = chf.spans[ci];
                 for (int dir = 0; dir < 4; ++dir)
@@ -280,6 +281,12 @@ namespace GameEditor.RecastEditor
 
                     int ax = cx + RecastUtility.RcGetDirOffsetX(dir);
                     int ay = cy + RecastUtility.RcGetDirOffsetY(dir);
+                    
+                    if(ax < hp.xmin || ay < hp.ymin)
+                    {
+                        continue;
+                    }
+                    
                     int hx = ax - hp.xmin;
                     int hy = ay - hp.ymin;
 
@@ -298,13 +305,16 @@ namespace GameEditor.RecastEditor
                     int ai = chf.cells[ax + ay * chf.width].index + RecastUtility.RcGetCon(cs, dir);
                     CompactSpan cs2 = chf.spans[ai];
                     hp.data[hx + hy * hp.width] = cs2.y;
-                    Push3(queue, ax, ay, ai);
+
+                    queue.Insert(0, ax);
+                    queue.Insert(0, ay);
+                    queue.Insert(0, ai);
                 }
             }
         }
 
         private static void SeedArrayWithPolyCenter(RcCompactHeightfield chf, int pIndex, int[] polys, int npoly, int[] verts,
-            RcHeightPatch hp, Stack<int> queue)
+            RcHeightPatch hp, List<int> queue)
         {
 
             int[] offset = { 0, 0, -1, -1, 0, -1, 1, -1, 1, 0, 1, 1, 0, 1, -1, 1, -1, 0, };
@@ -365,9 +375,9 @@ namespace GameEditor.RecastEditor
 
 
             queue.Clear();
-            queue.Push(startCellX);
-            queue.Push(startCellY);
-            queue.Push(startSpanIndex);
+            queue.Insert(0, startCellX);
+            queue.Insert(0, startCellY);
+            queue.Insert(0, startSpanIndex);
 
             int[] dirs = { 0, 1, 2, 3 };
 
@@ -384,9 +394,11 @@ namespace GameEditor.RecastEditor
                     break;
                 }
 
-                ci = queue.Pop();
-                cy = queue.Pop();
-                cx = queue.Pop();
+                ci = queue[0];
+                cy = queue[1];
+                cx = queue[2];
+
+                queue.RemoveRange(0, 3);
 
                 if (cx == pcx && cy == pcy)
                 {
@@ -422,9 +434,9 @@ namespace GameEditor.RecastEditor
                         continue;
 
                     hp.data[hpx + hpy * hp.width] = 1;
-                    queue.Push(newX);
-                    queue.Push(newY);
-                    queue.Push(chf.cells[newX + newY * chf.width].index + RecastUtility.RcGetCon(cs, dir));
+                    queue.Insert(0, newX);
+                    queue.Insert(0, newY);
+                    queue.Insert(0, chf.cells[newX + newY * chf.width].index + RecastUtility.RcGetCon(cs, dir));
                 }
 
                 RecastUtility.RcSwap(ref dirs[directDir], ref dirs[3]);
@@ -432,9 +444,9 @@ namespace GameEditor.RecastEditor
 
             queue.Clear();
 
-            queue.Push(cx);
-            queue.Push(cy);
-            queue.Push(ci);
+            queue.Insert(0, cx);
+            queue.Insert(0, cy);
+            queue.Insert(0, ci);
 
             Array.Fill(hp.data, 0xff, 0, hp.width * hp.height);
             CompactSpan cs2 = chf.spans[ci];
@@ -645,13 +657,13 @@ namespace GameEditor.RecastEditor
 
                 for (int i = 1; i < npoly; i++)
                 {
-                    bmin[0] = Math.Min(bmin[0], poly[npoly * 3]);
-                    bmin[1] = Math.Min(bmin[1], poly[npoly * 3 + 1]);
-                    bmax[2] = Math.Max(bmax[2], poly[npoly * 3 + 2]);
+                    bmin[0] = Math.Min(bmin[0], poly[i * 3]);
+                    bmin[1] = Math.Min(bmin[1], poly[i * 3 + 1]);
+                    bmax[2] = Math.Max(bmax[2], poly[i * 3 + 2]);
 
-                    bmax[0] = Math.Max(bmax[0], poly[npoly * 3]);
-                    bmax[1] = Math.Max(bmax[1], poly[npoly * 3 + 1]);
-                    bmin[2] = Math.Min(bmin[2], poly[npoly * 3 + 2]);
+                    bmax[0] = Math.Max(bmax[0], poly[i * 3]);
+                    bmax[1] = Math.Max(bmax[1], poly[i * 3 + 1]);
+                    bmin[2] = Math.Min(bmin[2], poly[i * 3 + 2]);
 
                 }
 
@@ -1292,12 +1304,7 @@ namespace GameEditor.RecastEditor
 
         }
 
-        private static void Push3(Stack<int> queue, int v1, int v2, int v3)
-        {
-            queue.Push(v1);
-            queue.Push(v2);
-            queue.Push(v3);
-        }
+
 
         private static int GetTriFlags(int va, int vb, int vc, float[] verts, float[] vpoly, int npoly)
         {
