@@ -363,6 +363,11 @@ namespace GameEditor.RecastEditor
 
         private static void MergeAndFilterRegions(RcCompactHeightfield chf, int[] srcReg)
         {
+
+            int minRegionArea =  RecastConfig.MinRegionSize * RecastConfig.MinRegionSize;
+
+            int mergeRegionArea = RecastConfig.MergeRegionSize * RecastConfig.MergeRegionSize;
+
             int w = chf.width;
             int h = chf.height;
 
@@ -472,7 +477,7 @@ namespace GameEditor.RecastEditor
                 }
 
                 //去掉过于小的区域
-                if (spanCount < RecastConfig.MinRegionArea)
+                if (spanCount < minRegionArea)
                 {
                     for (int j = 0; j < trace.Count; ++j)
                     {
@@ -496,7 +501,7 @@ namespace GameEditor.RecastEditor
                     continue;
 
 
-                if (reg.spanCount > RecastConfig.MergeRegionArea)
+                if (reg.spanCount > mergeRegionArea)
                     continue;
 
                 int smallest = 0xfffffff;

@@ -116,9 +116,13 @@ namespace GameEditor.RecastEditor
 
                 GetHeightData(chf, pIndex, pmesh.polys, npoly, pmesh.verts, hp, arr, pmesh.regs[i]);
 
+                //RecastEditor.DrawHeightPatch(hp, chf);
+
                 int nverts = 0;
 
                 BuildPolyDetail(poly, npoly, heightSearchRadius, chf, hp, verts, ref nverts, tris, edges, samples);
+
+
 
                 //移动顶点到世界空间
                 for (int j = 0; j < nverts; ++j)
@@ -208,6 +212,7 @@ namespace GameEditor.RecastEditor
                 for (int hy = 0; hy < hp.height; hy++)
                 {
                     int y = hp.ymin + hy;
+
                     for (int hx = 0; hx < hp.width; hx++)
                     {
                         int x = hp.xmin + hx;
@@ -216,12 +221,12 @@ namespace GameEditor.RecastEditor
                         for (int i = c.index, ni = c.index + c.count; i < ni; ++i)
                         {
                             CompactSpan s = chf.spans[i];
+
                             if (s.reg == region)
                             {
 
                                 hp.data[hx + hy * hp.width] = s.y;
                                 empty = false;
-
 
                                 bool border = false;
                                 for (int dir = 0; dir < 4; ++dir)
@@ -261,6 +266,7 @@ namespace GameEditor.RecastEditor
                 SeedArrayWithPolyCenter(chf, pIndex, polys, nploys, verts, hp, queue);
             }
 
+      
 
             //存在多层span ，region border上的span是为了确定在哪一层，以这一层的span再进行泛洪
             while (3 < queue.Count)
@@ -281,21 +287,19 @@ namespace GameEditor.RecastEditor
 
                     int ax = cx + RecastUtility.RcGetDirOffsetX(dir);
                     int ay = cy + RecastUtility.RcGetDirOffsetY(dir);
-                    
-                    if(ax < hp.xmin || ay < hp.ymin)
+
+                    if (ax < hp.xmin || ay < hp.ymin)
                     {
                         continue;
                     }
-                    
+
                     int hx = ax - hp.xmin;
                     int hy = ay - hp.ymin;
-
 
                     if (hx >= hp.width || hy >= hp.height)
                     {
                         continue;
                     }
-
 
                     if (hp.data[hx + hy * hp.width] != RecastConfig.RC_UNSET_HEIGHT)
                     {
@@ -306,9 +310,9 @@ namespace GameEditor.RecastEditor
                     CompactSpan cs2 = chf.spans[ai];
                     hp.data[hx + hy * hp.width] = cs2.y;
 
-                    queue.Insert(0, ax);
-                    queue.Insert(0, ay);
-                    queue.Insert(0, ai);
+                    queue.Add(ax);
+                    queue.Add(ay);
+                    queue.Add(ai);
                 }
             }
         }
@@ -804,7 +808,7 @@ namespace GameEditor.RecastEditor
         {
             int ix = (int)Math.Floor(fx * ics + 0.01f);
             int iz = (int)Math.Floor(fz * ics + 0.01f);
-            ix = Math.Clamp(ix - hp.xmin, 0, hp.width - 1);
+            ix = Math.Clamp(ix - hp.xmin, 0, hp.width - 1); 
             iz = Math.Clamp(iz - hp.ymin, 0, hp.height - 1);
             int h = hp.data[ix + iz * hp.width];
             if (h == RecastConfig.RC_UNSET_HEIGHT)

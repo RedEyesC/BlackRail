@@ -122,7 +122,7 @@ namespace GameEditor.RecastEditor
             //计算区域边界
             RecastContour.RcBuildContours(chf, cset);
 
-            //DrawFieldContour(cset);
+            DrawFieldContour(cset);
 
             RcPolyMesh pmesh = new RcPolyMesh(cset);
 
@@ -456,7 +456,6 @@ namespace GameEditor.RecastEditor
             for (int i = 0; i < dmesh.nmeshes; i++)
             {
 
-
                 int startVert = dmesh.meshes[i * 4 + 0];
                 int startTri = dmesh.meshes[i * 4 + 2];
                 int ntris = dmesh.meshes[i * 4 + 3];
@@ -473,7 +472,7 @@ namespace GameEditor.RecastEditor
                         float cellX = dmesh.verts[(startVert + vertIndex) * 3];
                         float cellY = dmesh.verts[(startVert + vertIndex) * 3 + 1];
                         float cellZ = dmesh.verts[(startVert + vertIndex) * 3 + 2];
-                      
+
 
                         ployVert.Add(cellX);
                         ployVert.Add(cellY);
@@ -489,6 +488,62 @@ namespace GameEditor.RecastEditor
             }
 
             root.GetComponent<RecastComponent>().SetContour(triList);
+        }
+
+
+        //用于绘制计算出来的RcHeightPatch
+        public static void DrawHeightPatch(RcHeightPatch hp, RcCompactHeightfield chf)
+        {
+
+            float[] hfBBMin = chf.minBounds;
+            float cellSize = chf.cellSize;
+            float cellHeight = chf.cellHeight;
+
+            int w = hp.width;
+            int h = hp.height;
+
+            float[][] cubeList = new float[w * h][];
+
+            for (int y = 0; y < h; ++y)
+            {
+                for (int x = 0; x < w; ++x)
+                {
+                    int i = x + y * w;
+
+                    float[] spanCube = new float[4];
+
+                    if(hp.data[i]  == RecastConfig.RC_UNSET_HEIGHT)
+                    {
+                        hp.data[i] = 50;
+                    }
+
+                    float cellX = hfBBMin[0] + (hp.xmin + x) * cellSize + cellSize / 2;
+                    float cellZ = hfBBMin[2] + (hp.ymin + y) * cellSize + cellSize / 2;
+                    float cellY = hfBBMin[1] + (hp.data[i]) * cellHeight + cellHeight / 2;
+
+                    spanCube[0] = cellX;
+                    spanCube[1] = cellY;
+                    spanCube[2] = cellZ;
+                    spanCube[3] = 7;
+
+                    cubeList[x + y * w] = spanCube;
+                }
+            }
+
+            Vector3 cubeSize = new Vector3(cellSize, cellHeight, cellSize);
+
+            Scene activeScene = SceneManager.GetActiveScene();
+            string activeSceneName = activeScene.name;
+
+            GameObject root = GameObject.Find("/" + activeSceneName);
+
+            if (root.GetComponent<RecastComponent>() == null)
+            {
+                root.AddComponent<RecastComponent>();
+            }
+
+            root.GetComponent<RecastComponent>().SetCubeList(cubeList, cubeSize);
+
         }
     }
 
