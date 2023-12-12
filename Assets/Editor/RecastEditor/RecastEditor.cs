@@ -46,6 +46,9 @@ namespace GameEditor.RecastEditor
         public static void ExportRecastInfo(string path)
         {
 
+            CommonUtility.DoStartTimer("build NavMesh");
+
+
             DirectoryInfo dirInfo = new DirectoryInfo(path);
             foreach (var file in dirInfo.GetFiles())
             {
@@ -122,18 +125,21 @@ namespace GameEditor.RecastEditor
             //计算区域边界
             RecastContour.RcBuildContours(chf, cset);
 
-            DrawFieldContour(cset);
+            //DrawFieldContour(cset);
 
             RcPolyMesh pmesh = new RcPolyMesh(cset);
 
             //构建PolyMesh
             RecastMesh.RcBuildPolyMesh(cset, pmesh);
 
-            DrawFieldMesh(pmesh);
+            //DrawFieldMesh(pmesh);
 
             RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
 
+            //细化mesh网格
             RecastMeshDetail.RcBuildPolyMeshDetail(pmesh, chf, dmesh);
+
+            CommonUtility.StopTimer("build NavMesh");
 
             DrawFieldMeshDetail(dmesh);
         }
