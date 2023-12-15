@@ -142,6 +142,9 @@ namespace GameEditor.RecastEditor
             CommonUtility.StopTimer("build NavMesh");
 
             DrawFieldMeshDetail(dmesh);
+
+
+            RecastExport.ExportNavMeshDataToJson(dmesh);
         }
 
         private static Mesh CombineMesh(Transform navRoot)
@@ -444,6 +447,8 @@ namespace GameEditor.RecastEditor
             root.GetComponent<RecastComponent>().SetContour(polyList);
         }
 
+
+        //用于绘制计算出来的细化后的多边形
         public static void DrawFieldMeshDetail(RcPolyMeshDetail dmesh)
         {
             Scene activeScene = SceneManager.GetActiveScene();

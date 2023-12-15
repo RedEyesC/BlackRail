@@ -488,5 +488,18 @@ namespace GameEditor.RecastEditor
             return (float)Math.Sqrt(VdistSq2(px, pz, qx, qz));
         }
 
+        public static float Vdist3(float px, float py, float pz, float qx, float qy, float qz)
+        {
+            return (float)Math.Sqrt(VdistSq3(px,py, pz, qx,qy, qz));
+        }
+
+        public static float VdistSq3(float px, float py, float pz, float qx, float qy, float qz)
+        {
+            float dx = qx - px;
+            float dy = qy - py;
+            float dz = qz - pz;
+            return dx * dx + dy * dy + dz*dz;
+        }
+
     }
 }
