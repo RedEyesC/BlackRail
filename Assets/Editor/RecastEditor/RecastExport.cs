@@ -5,138 +5,169 @@ using System.Collections.Generic;
 namespace GameEditor.RecastEditor
 {
 
-    public class Line
+    public class DtBVNode
     {
-        public int start;
-        public int end;
-        public float[] mid;
-
-        public Line(int v0, int v1)
-        {
-            start = v0;
-            end = v1;
-        }
-
+        public int[] bmin;
+        public int[] bmax;
+        public int i;
     }
 
-
-    public class NavPoly
-    {
-        public int index;//导出时的索引
-        public Dictionary<int, Line> portals; //邻接边
-        public int[] verts;//顶点在vert中的索引
-        public float[] centroid; //重心
-        public float boundingRadius;//外接圆半径
-
-        public NavPoly(int[] vertIndexList, int triIndex)
-        {
-            index = triIndex;
-
-            verts = vertIndexList;
-        }
-    }
 
     internal class RecastExport
     {
-        public static void ExportNavMeshDataToJson(RcPolyMeshDetail dmesh)
+        public static void ExportNavMeshDataToJson(RcPolyMesh pmesh, RcPolyMeshDetail dmesh)
         {
-            NavPoly[] polys = new NavPoly[dmesh.ntris];
 
-            int tri = 0;
-            for (int i = 0; i < dmesh.nmeshes; i++)
+
+        }
+
+
+        public static DtBVNode[] CreateBVTree(RcPolyMesh pmesh, RcPolyMeshDetail? dmesh)
+        {
+
+            float quantFactor = 1 / pmesh.cellSize;
+            DtBVNode[] bnodes = new DtBVNode[pmesh.npolys];
+
+            for (int i = 0; i < pmesh.npolys; i++)
             {
+                bnodes[i] = new DtBVNode();
+            }
 
-                int startVert = dmesh.meshes[i * 4 + 0];
-                int startTri = dmesh.meshes[i * 4 + 2];
-                int ntris = dmesh.meshes[i * 4 + 3];
-
-                for (int j = 0; j < ntris; ++j)
+            for (int i = 0; i < pmesh.npolys; i++)
+            {
+                DtBVNode it = bnodes[i];
+                it.i = i;
+                if (dmesh != null)
                 {
+                    int vb = dmesh.meshes[i * 4 + 0];
+                    int ndv = dmesh.meshes[i * 4 + 1];
+                    float[] bmin = new float[3];
+                    float[] bmax = new float[3];
 
-                    List<float> ployVert = new List<float>();
-                    List<int> vertIndexList = new List<int>();
-                    for (int k = 0; k < 3; k++)
+
+                    int dvIndex = vb * 3;
+                    float[] dv0 = { dmesh.verts[dvIndex], dmesh.verts[dvIndex + 1], dmesh.verts[dvIndex + 2] };
+
+                    RecastUtility.RcVcopy(bmin, dv0);
+                    RecastUtility.RcVcopy(bmax, dv0);
+
+                    for (int j = 1; j < ndv; j++)
                     {
-
-                        int vertIndex = dmesh.tris[(startTri + j) * 4 + k];
-
-
-                        vertIndexList.Add(startVert + vertIndex);
-
+                        float[] dv = { dmesh.verts[dvIndex + j * 3], dmesh.verts[dvIndex + j * 3 + 1], dmesh.verts[dvIndex + j * 3 + 2] };
+                        RecastUtility.RcVmin(bmin, dv);
+                        RecastUtility.RcVmax(bmax, dv);
                     }
 
-                    NavPoly poly = new NavPoly(vertIndexList.ToArray(), tri);
-                    polys[tri] = poly;
-                    tri++;
+
+                    it.bmin[0] = Math.Clamp((int)((bmin[0] - pmesh.minBounds[0]) * quantFactor), 0, 0xffff);
+                    it.bmin[1] = Math.Clamp((int)((bmin[1] - pmesh.minBounds[1]) * quantFactor), 0, 0xffff);
+                    it.bmin[2] = Math.Clamp((int)((bmin[2] - pmesh.minBounds[2]) * quantFactor), 0, 0xffff);
+
+
+                    it.bmax[0] = Math.Clamp((int)((bmax[0] - pmesh.minBounds[0]) * quantFactor), 0, 0xffff);
+                    it.bmax[1] = Math.Clamp((int)((bmax[1] - pmesh.minBounds[1]) * quantFactor), 0, 0xffff);
+                    it.bmax[2] = Math.Clamp((int)((bmax[2] - pmesh.minBounds[2]) * quantFactor), 0, 0xffff);
+
+                }
+                else
+                {
+
+                    for (int j = 0; j < RecastConfig.MaxVertsPerPoly; j++)
+                    {
+                        int vertIndex = pmesh.polys[i * RecastConfig.MaxVertsPerPoly * 2 + j];
+
+                        if (vertIndex == RecastConfig.RC_MESH_NULL_IDX)
+                        {
+                            break;
+                        }
+
+
+                        float x = pmesh.verts[vertIndex * 3];
+                        float y = pmesh.verts[vertIndex * 3 + 1];
+                        float z = pmesh.verts[vertIndex * 3 + 2];
+
+
+
+                        it.bmin[0] = Math.Min(it.bmin[0], (int)x);
+                        it.bmin[1] = Math.Min(it.bmin[1], (int)y);
+                        it.bmin[2] = Math.Min(it.bmin[2], (int)z);
+
+                        it.bmax[0] = Math.Max(it.bmax[0], (int)x);
+                        it.bmax[1] = Math.Max(it.bmax[1], (int)y);
+                        it.bmax[2] = Math.Max(it.bmax[2], (int)z);
+                    }
+
+                    it.bmin[1] = (int)Math.Floor(it.bmin[1] * pmesh.cellHeight / pmesh.cellSize);
+                    it.bmax[1] = (int)Math.Floor(it.bmax[1] * pmesh.cellHeight / pmesh.cellSize);
+
                 }
 
             }
 
 
+            DtBVNode[] treeNodes = new DtBVNode[pmesh.npolys * 2];
 
-            int[] edges = new int[polys.Length * 3];
-            int edgeCount = 0;
-            foreach (NavPoly poly in polys)
+            for (int i = 0; i < pmesh.npolys * 2; i++)
             {
-
-                //初始化顶点
-                List<float[]> points = new List<float[]>();
-                for (int i = 0; i < poly.verts.Length; i++)
-                {
-                    float[] point = new float[3];
-                    point[0] = dmesh.verts[poly.verts[i] * 3];
-                    point[1] = dmesh.verts[poly.verts[i] * 3 + 1];
-                    point[2] = dmesh.verts[poly.verts[i] * 3 + 2]; ;
-
-                    points.Add(point);
-                }
-
-                //初始化中心（凸多边形简单采用中心）
-                float[] centroid = new float[3];
-                for (int i = 0; i < points.Count; i++)
-                {
-                    centroid[0] += points[i][0];
-                    centroid[1] += points[i][1];
-                    centroid[2] += points[i][2];
-                }
-
-                centroid[0] /= points.Count;
-                centroid[1] /= points.Count;
-                centroid[2] /= points.Count;
-
-                poly.centroid = centroid;
-
-                //初始化外接圆半径
-                float boundingRadius = 0;
-                for (int i = 0; i < points.Count; i++)
-                {
-                    var dis = RecastUtility.Vdist3(centroid[0], centroid[1], centroid[2], points[i][0], points[i][1], points[i][2]);
-                    boundingRadius = dis > boundingRadius ? dis : boundingRadius;
-                }
-
-                poly.boundingRadius = boundingRadius;
-
-
-                //for (int i = 0; i < points.Count; i++)
-                //{
-                //    int v0 = poly.verts[i];
-                //    int v1 = (i + 1 >= points.Count) ? poly.verts[0] : poly.verts[i + 1];
-
-                //    if (v0 < v1)
-                //    {
-
-                //        edges[edgeCount] = new Line(v0, v1);
-
-                //        //以v0位出发点的边可能有两条，所以先把之前的边的索引放入nextEdge，然后把新的放入firstEdge
-                //        nextEdge[edgeCount] = firstEdge[v0];
-                //        firstEdge[v0] = edgeCount;
-                //        edgeCount++;
-                //    }
-
-                //}
-
+                treeNodes[i] = new DtBVNode();
             }
 
+            SubDivide(bnodes, 0, pmesh.npolys, treeNodes, 0);
+
+            return treeNodes;
+        }
+
+        private static int SubDivide(DtBVNode[] bnodes, int imin, int imax, DtBVNode[] treeNodes, int curNode)
+        {
+            int inum = imax - imin;
+            int icur = curNode;
+
+            DtBVNode treeNode = treeNodes[curNode++];
+
+            if (inum == 1)
+            {
+                // Leaf
+                treeNode.bmin[0] = bnodes[imin].bmin[0];
+                treeNode.bmin[1] = bnodes[imin].bmin[1];
+                treeNode.bmin[2] = bnodes[imin].bmin[2];
+
+                treeNode.bmax[0] = bnodes[imin].bmax[0];
+                treeNode.bmax[1] = bnodes[imin].bmax[1];
+                treeNode.bmax[2] = bnodes[imin].bmax[2];
+
+                treeNode.i = bnodes[imin].i;
+            }
+            else
+            {
+                // Split
+                CalcExtends(bnodes, imin, imax, treeNode);
+            }
+
+            return 1;
+        }
+
+        private static void CalcExtends(DtBVNode[] bnodes, int imin, int imax, DtBVNode treeNode)
+        {
+
+            treeNode.bmin[0] = bnodes[imin].bmin[0];
+            treeNode.bmin[1] = bnodes[imin].bmin[1];
+            treeNode.bmin[2] = bnodes[imin].bmin[2];
+
+            treeNode.bmax[0] = bnodes[imin].bmax[0];
+            treeNode.bmax[1] = bnodes[imin].bmax[1];
+            treeNode.bmax[2] = bnodes[imin].bmax[2];
+
+            for (int i = imin + 1; i < imax; ++i)
+            {
+                DtBVNode node = bnodes[i];
+                if (treeNode.bmin[0] < node.bmin[0]) node.bmin[0] = treeNode.bmin[0];
+                if (treeNode.bmin[1] < node.bmin[1]) node.bmin[1] = treeNode.bmin[1];
+                if (treeNode.bmin[2] < node.bmin[2]) node.bmin[2] = treeNode.bmin[2];
+
+                if (treeNode.bmax[0] > node.bmax[0]) node.bmax[0] = treeNode.bmax[0];
+                if (treeNode.bmax[1] > node.bmax[1]) node.bmax[1] = treeNode.bmax[1];
+                if (treeNode.bmax[2] > node.bmax[2]) node.bmax[2] = treeNode.bmax[2];
+            }
         }
 
     }

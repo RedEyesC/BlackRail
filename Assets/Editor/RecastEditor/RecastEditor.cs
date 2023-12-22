@@ -132,7 +132,7 @@ namespace GameEditor.RecastEditor
             //构建PolyMesh
             RecastMesh.RcBuildPolyMesh(cset, pmesh);
 
-            //DrawFieldMesh(pmesh);
+            DrawFieldMesh(pmesh);
 
             RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
 
@@ -141,10 +141,9 @@ namespace GameEditor.RecastEditor
 
             CommonUtility.StopTimer("build NavMesh");
 
-            DrawFieldMeshDetail(dmesh);
+            //DrawFieldMeshDetail(dmesh);
 
-
-            RecastExport.ExportNavMeshDataToJson(dmesh);
+            RecastExport.ExportNavMeshDataToJson(pmesh,dmesh);
         }
 
         private static Mesh CombineMesh(Transform navRoot)

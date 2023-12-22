@@ -45,12 +45,14 @@ namespace GameEditor.RecastEditor
 
             for (int i = 1; i < verts.Length; i++)
             {
-                RcVmin(minBounds, verts[i]);
-                RcVmax(maxBounds, verts[i]);
+                float[] vert = { verts[i].x, verts[i].y, verts[i].z };
+
+                RcVmin(minBounds, vert);
+                RcVmax(maxBounds, vert);
             }
         }
 
-        public static void RcVmin(float[] mn, Vector3 v)
+        public static void RcVmin(float[] mn, float[] v)
         {
 
             mn[0] = Math.Min(mn[0], v[0]);
@@ -58,7 +60,7 @@ namespace GameEditor.RecastEditor
             mn[2] = Math.Min(mn[2], v[2]);
         }
 
-        public static void RcVmax(float[] mn, Vector3 v)
+        public static void RcVmax(float[] mn, float[] v)
         {
 
             mn[0] = Math.Max(mn[0], v[0]);
@@ -490,7 +492,7 @@ namespace GameEditor.RecastEditor
 
         public static float Vdist3(float px, float py, float pz, float qx, float qy, float qz)
         {
-            return (float)Math.Sqrt(VdistSq3(px,py, pz, qx,qy, qz));
+            return (float)Math.Sqrt(VdistSq3(px, py, pz, qx, qy, qz));
         }
 
         public static float VdistSq3(float px, float py, float pz, float qx, float qy, float qz)
@@ -498,7 +500,7 @@ namespace GameEditor.RecastEditor
             float dx = qx - px;
             float dy = qy - py;
             float dz = qz - pz;
-            return dx * dx + dy * dy + dz*dz;
+            return dx * dx + dy * dy + dz * dz;
         }
 
     }
