@@ -217,7 +217,7 @@ namespace GameEditor.RecastEditor
                     previousSpan = currentSpan;
                     currentSpan = currentSpan.next;
                 }
-                //newSpan位置与currentSpan重叠
+                //newSpan位置与currentSpan重叠,合并newSpan和currentSpan
                 else
                 {
                     if (currentSpan.min < newSpan.min)
@@ -348,7 +348,7 @@ namespace GameEditor.RecastEditor
                             int neighborBot = -hf.walkableClimb;
                             int neighborTop = neighborSpan != null ? neighborSpan.min : RecastConfig.MAX_HEIGHT;
 
-                            // 只处理上下表面的距离大于WalkableHeight的部分，先默认处理一次？？？？
+                            //先单独按neighborSpan不存在处理一次minNeighborHeight的值
                             if (Mathf.Min(top, neighborTop) - Math.Max(bot, neighborBot) > hf.walkableHeight)
                             {
                                 minNeighborHeight = Math.Min(minNeighborHeight, neighborBot - bot);
@@ -359,7 +359,7 @@ namespace GameEditor.RecastEditor
                                 neighborBot = neighborSpan.max;
                                 neighborTop = neighborSpan.next != null ? neighborSpan.next.min : RecastConfig.MAX_HEIGHT;
 
-                                // 只处理上下表面的距离大于WalkableHeight的部分
+                                // 只处理与上层之间宽度大于walkableHeight的部分
                                 if (Mathf.Min(top, neighborTop) - Math.Max(bot, neighborBot) > hf.walkableHeight)
                                 {
 
@@ -376,7 +376,7 @@ namespace GameEditor.RecastEditor
                             }
                         }
 
-                        //相邻span与自身的高度差，说明span高于相邻span 大于WalkableClimb
+                        //相邻span与自身的高度差，说明span高于相邻span 大于WalkableClimb  minNeighborHeight < -hf.walkableClimb => bot - neighborBot > hf.walkableClimb
                         if (minNeighborHeight < -hf.walkableClimb)
                         {
                             span.areaID = AREATYPE.None;
