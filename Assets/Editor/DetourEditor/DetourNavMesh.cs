@@ -11,11 +11,6 @@ namespace GameEditor.DetourEditor
         public int[] bmin;
         public int[] bmax;
         public int i;
-
-        public bool Contain(int x, int y, int z)
-        {
-            return x >= bmin[0] && x <= bmax[0] && y >= bmin[1] && y <= bmax[1] && z >= bmin[2] && z <= bmax[2];
-        }
     }
 
 
@@ -25,11 +20,16 @@ namespace GameEditor.DetourEditor
         public DtBVNode[] treeNodes;
         public RcPolyMesh pmesh;
         public RcPolyMeshDetail dmesh;
+        public int nodesNum;
+        private float[] halfExtents = { 2, 4, 2 };
+        private int batchSize = 32;
+        private float quantFactor;
 
         public DetourNavMesh(RcPolyMesh mesh1, RcPolyMeshDetail mesh2)
         {
             pmesh = mesh1;
             dmesh = mesh2;
+            quantFactor = 1.0f / pmesh.cellSize;
             treeNodes = CreateBVTree();
         }
 
@@ -37,7 +37,6 @@ namespace GameEditor.DetourEditor
         public DtBVNode[] CreateBVTree()
         {
 
-            float quantFactor = 1 / pmesh.cellSize;
             DtBVNode[] bnodes = new DtBVNode[pmesh.npolys];
 
             for (int i = 0; i < pmesh.npolys; i++)
@@ -124,7 +123,7 @@ namespace GameEditor.DetourEditor
                 treeNodes[i] = new DtBVNode();
             }
 
-            SubDivide(bnodes, 0, pmesh.npolys, treeNodes, 0);
+            nodesNum = SubDivide(bnodes, 0, pmesh.npolys, treeNodes, 0);
 
             return treeNodes;
         }
@@ -233,46 +232,79 @@ namespace GameEditor.DetourEditor
             return axis;
         }
 
-        public void FindPoly(float[] pos)
+        public void FindNearestPoly(float[] pos)
         {
-            //int cur = 0;
-            //int end = this._nodesNum;
 
-            //float bestDist = float.MaxValue;
-            //while (cur < end)
-            //{
-            //    DtBVNode node = treeNodes[cur];
-            //    bool isLeaf = node.i >= 0;
-            //    bool overlap = node.Contain(pos[0], pos[1],pos[2]);
 
-            //    if (isLeaf && overlap)
-            //    {
-            //        int idx = node.idx;
-            //        NavPoly navPoly = _navPolys[idx];
+            float[] pmin = new float[3];
+            float[] pmax = new float[3];
 
-            //        float r = navPoly.boundingRadius;
-            //        float d = Vector2.Distance(navPoly.centroid, pos);
-            //        if (d <= bestDist && d <= r && navPoly.Contains(pos))
-            //        {
-            //            bestPoly = navPoly;
-            //            bestDist = d;
-            //        }
-            //    }
+            RecastUtility.RcVsub(pmin, pos, halfExtents);
+            RecastUtility.RcVadd(pmax, pos, halfExtents);
 
-            //    if (overlap || isLeaf)
-            //    {
-            //        ++cur;
-            //    }
-            //    else
-            //    {
-            //        cur -= node.i;
-            //    }
-            //}
+            int[] bmin = new int[3];
+            int[] bmax = new int[3];
 
-            //return bestPoly;
+            bmin[0] = (int)(quantFactor * pmin[0]) & 0xfffe;
+            bmin[1] = (int)(quantFactor * pmin[1]) & 0xfffe;
+            bmin[2] = (int)(quantFactor * pmin[2]) & 0xfffe;
+            bmax[0] = (int)(quantFactor * pmax[0] + 1) | 1;
+            bmax[1] = (int)(quantFactor * pmax[1] + 1) | 1;
+            bmax[2] = (int)(quantFactor * pmax[2] + 1) | 1;
+
+            int cur = 0;
+            int end = nodesNum;
+
+
+            int n = 0;
+
+            while (cur < end)
+            {
+                DtBVNode node = treeNodes[cur];
+                bool isLeaf = node.i >= 0;
+                bool overlap = DtOverlapQuantBounds(bmin, bmax, node.bmin, node.bmax);
+
+                if (isLeaf && overlap)
+                {
+                    int idx = node.i;
+
+                    if (n == batchSize - 1)
+                    {
+                        //query->process(tile, polys, polyRefs, batchSize);
+                        n = 0;
+                    }
+                    else
+                    {
+                        n++;
+                    }
+                }
+
+                if (overlap || isLeaf)
+                {
+                    ++cur;
+                }
+                else
+                {
+                    cur -= node.i;
+                }
+            }
+
+            if (n > 0)
+            {
+                //query->process(tile, polys, polyRefs, n);
+            }
+
         }
 
+        private static bool DtOverlapQuantBounds(int[] amin, int[] amax, int[] bmin, int[] bmax)
+        {
 
+            bool overlap = true;
+            overlap = (amin[0] > bmax[0] || amax[0] < bmin[0]) ? false : overlap;
+            overlap = (amin[1] > bmax[1] || amax[1] < bmin[1]) ? false : overlap;
+            overlap = (amin[2] > bmax[2] || amax[2] < bmin[2]) ? false : overlap;
+            return overlap;
+        }
     }
 
     internal class SortWithX : IComparer<DtBVNode>
