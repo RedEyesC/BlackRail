@@ -5,10 +5,8 @@ using System.Collections.Generic;
 using System;
 
 #if UNITY_EDITOR
-namespace GameEditor
+namespace GameEditor.Utility
 {
-
-
     public class CommonUtility
     {
  
