@@ -22,10 +22,11 @@ namespace GameEditor.DetourEditor
         public RcPolyMeshDetail dmesh;
         public int nodesNum;
         private float[] halfExtents = { 2, 4, 2 };
+        private float[] tempVector3 = new float[3];
         private int batchSize = 32;
         private float quantFactor;
 
-        public DetourNavMesh(RcPolyMesh mesh1, RcPolyMeshDetail mesh2)
+        public void Init(RcPolyMesh mesh1, RcPolyMeshDetail mesh2)
         {
             pmesh = mesh1;
             dmesh = mesh2;
@@ -34,11 +35,24 @@ namespace GameEditor.DetourEditor
         }
 
 
+        public void SearchPath(float startX, float startY, float startZ, float endX, float endY, float endZ)
+        {
+            float[] startPos = { startX, startY, endZ };
+            float[] endPos = { endX, endY, endZ };
+
+
+
+        }
+
         public DtBVNode[] CreateBVTree()
         {
 
             DtBVNode[] bnodes = new DtBVNode[pmesh.npolys];
 
+            float[] bmin = new float[3];
+            float[] bmax = new float[3];
+
+     
             for (int i = 0; i < pmesh.npolys; i++)
             {
                 bnodes[i] = new DtBVNode();
@@ -52,21 +66,24 @@ namespace GameEditor.DetourEditor
                 {
                     int vb = dmesh.meshes[i * 4 + 0];
                     int ndv = dmesh.meshes[i * 4 + 1];
-                    float[] bmin = new float[3];
-                    float[] bmax = new float[3];
 
 
                     int dvIndex = vb * 3;
-                    float[] dv0 = { dmesh.verts[dvIndex], dmesh.verts[dvIndex + 1], dmesh.verts[dvIndex + 2] };
+                    tempVector3[0] = dmesh.verts[dvIndex];
+                    tempVector3[1] = dmesh.verts[dvIndex + 1];
+                    tempVector3[2] = dmesh.verts[dvIndex + 2];
 
-                    RecastUtility.RcVcopy(bmin, dv0);
-                    RecastUtility.RcVcopy(bmax, dv0);
+                    RecastUtility.RcVcopy(bmin, tempVector3);
+                    RecastUtility.RcVcopy(bmax, tempVector3);
 
                     for (int j = 1; j < ndv; j++)
                     {
-                        float[] dv = { dmesh.verts[dvIndex + j * 3], dmesh.verts[dvIndex + j * 3 + 1], dmesh.verts[dvIndex + j * 3 + 2] };
-                        RecastUtility.RcVmin(bmin, dv);
-                        RecastUtility.RcVmax(bmax, dv);
+                        tempVector3[0] = dmesh.verts[dvIndex + j * 3];
+                        tempVector3[1] = dmesh.verts[dvIndex + j * 3 + 1];
+                        tempVector3[2] = dmesh.verts[dvIndex + j * 3 + 2];
+
+                        RecastUtility.RcVmin(bmin, tempVector3);
+                        RecastUtility.RcVmax(bmax, tempVector3);
                     }
 
 
@@ -137,7 +154,6 @@ namespace GameEditor.DetourEditor
 
             if (inum == 1)
             {
-                // Leaf
                 treeNode.bmin[0] = bnodes[imin].bmin[0];
                 treeNode.bmin[1] = bnodes[imin].bmin[1];
                 treeNode.bmin[2] = bnodes[imin].bmin[2];
@@ -150,7 +166,6 @@ namespace GameEditor.DetourEditor
             }
             else
             {
-                // Split
                 CalcExtends(bnodes, imin, imax, treeNode);
 
                 int axis = LongestAxis(treeNode.bmax[0] - treeNode.bmin[0],
@@ -160,31 +175,26 @@ namespace GameEditor.DetourEditor
 
                 if (axis == 0)
                 {
-                    // Sort along x-axis
                     Array.Sort(bnodes, imin, imax - imin, new SortWithX());
                 }
                 else if (axis == 1)
                 {
-                    // Sort along y-axis
                     Array.Sort(bnodes, imin, imax - imin, new SortWithY());
                 }
                 else
                 {
-                    // Sort along z-axis
                     Array.Sort(bnodes, imin, imax - imin, new SortWithZ());
                 }
 
                 int isplit = imin + inum / 2;
 
-
-                // Left
                 curNode = SubDivide(bnodes, imin, isplit, treeNodes, curNode);
-                // Right
+
                 curNode = SubDivide(bnodes, isplit, imax, treeNodes, curNode);
 
                 int iescape = curNode - icur;
 
-                // Negative index means escape.
+                //取反 和叶子节点区分开
                 treeNode.i = -iescape;
 
             }
@@ -300,6 +310,7 @@ namespace GameEditor.DetourEditor
         {
 
             bool overlap = true;
+
             overlap = (amin[0] > bmax[0] || amax[0] < bmin[0]) ? false : overlap;
             overlap = (amin[1] > bmax[1] || amax[1] < bmin[1]) ? false : overlap;
             overlap = (amin[2] > bmax[2] || amax[2] < bmin[2]) ? false : overlap;
