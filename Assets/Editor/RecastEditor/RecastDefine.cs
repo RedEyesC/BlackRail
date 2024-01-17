@@ -201,6 +201,11 @@ namespace GameEditor.RecastEditor
 
     public class RcContourSet
     {
+        public float walkableSlopeAngle = 0;
+        public int walkableClimb = 0;
+        public int walkableHeight = 0;
+        public int walkableRadius = 0;
+
         public float cellSize = 0;
         public float cellHeight = 0;
 
@@ -225,6 +230,11 @@ namespace GameEditor.RecastEditor
 
             minBounds = chf.minBounds;
             maxBounds = chf.maxBounds;
+
+            walkableSlopeAngle = chf.walkableSlopeAngle;
+            walkableClimb = chf.walkableClimb;
+            walkableHeight = chf.walkableHeight;
+            walkableRadius = chf.walkableRadius;
 
         }
 
@@ -267,6 +277,11 @@ namespace GameEditor.RecastEditor
 
     public class RcPolyMesh
     {
+        public float walkableSlopeAngle = 0;
+        public int walkableClimb = 0;
+        public int walkableHeight = 0;
+        public int walkableRadius = 0;
+
         public float cellSize = 0;
         public float cellHeight = 0;
 
@@ -296,6 +311,11 @@ namespace GameEditor.RecastEditor
 
             minBounds = cset.minBounds;
             maxBounds = cset.maxBounds;
+
+            walkableSlopeAngle = cset.walkableSlopeAngle;
+            walkableClimb = cset.walkableClimb;
+            walkableHeight = cset.walkableHeight;
+            walkableRadius = cset.walkableRadius;
 
         }
 

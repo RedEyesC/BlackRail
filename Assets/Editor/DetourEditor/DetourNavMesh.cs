@@ -1,286 +1,77 @@
 ﻿
-using GameEditor.RecastEditor;
 using System;
-using System.Collections.Generic;
 
 namespace GameEditor.DetourEditor
 {
 
-    internal class DtBVNode
-    {
-        public int[] bmin;
-        public int[] bmax;
-        public int i;
-    }
-
-
     internal class DetourNavMesh
     {
 
-        public DtBVNode[] treeNodes;
-        public RcPolyMesh pmesh;
-        public RcPolyMeshDetail dmesh;
-        public int nodesNum;
-        private float[] halfExtents = { 2, 4, 2 };
-        private float[] tempVector3 = new float[3];
-        private int batchSize = 32;
-        private float quantFactor;
+        private readonly float[] halfExtents = { 2, 4, 2 };
+        private readonly int batchSize = 32;
 
-        public void Init(RcPolyMesh mesh1, RcPolyMeshDetail mesh2)
+        public DtNavData navData;
+
+        public int nodesNum;
+
+        public void Init(DtNavData param)
         {
-            pmesh = mesh1;
-            dmesh = mesh2;
-            quantFactor = 1.0f / pmesh.cellSize;
-            treeNodes = CreateBVTree();
+            navData = param;
+     
         }
 
 
         public void SearchPath(float startX, float startY, float startZ, float endX, float endY, float endZ)
         {
-            float[] startPos = { startX, startY, endZ };
+            float[] startPos = { startX, startY, startZ };
             float[] endPos = { endX, endY, endZ };
-
-
-
         }
-
-        public DtBVNode[] CreateBVTree()
-        {
-
-            DtBVNode[] bnodes = new DtBVNode[pmesh.npolys];
-
-            float[] bmin = new float[3];
-            float[] bmax = new float[3];
 
      
-            for (int i = 0; i < pmesh.npolys; i++)
-            {
-                bnodes[i] = new DtBVNode();
-            }
-
-            for (int i = 0; i < pmesh.npolys; i++)
-            {
-                DtBVNode it = bnodes[i];
-                it.i = i;
-                if (dmesh != null)
-                {
-                    int vb = dmesh.meshes[i * 4 + 0];
-                    int ndv = dmesh.meshes[i * 4 + 1];
-
-
-                    int dvIndex = vb * 3;
-                    tempVector3[0] = dmesh.verts[dvIndex];
-                    tempVector3[1] = dmesh.verts[dvIndex + 1];
-                    tempVector3[2] = dmesh.verts[dvIndex + 2];
-
-                    RecastUtility.RcVcopy(bmin, tempVector3);
-                    RecastUtility.RcVcopy(bmax, tempVector3);
-
-                    for (int j = 1; j < ndv; j++)
-                    {
-                        tempVector3[0] = dmesh.verts[dvIndex + j * 3];
-                        tempVector3[1] = dmesh.verts[dvIndex + j * 3 + 1];
-                        tempVector3[2] = dmesh.verts[dvIndex + j * 3 + 2];
-
-                        RecastUtility.RcVmin(bmin, tempVector3);
-                        RecastUtility.RcVmax(bmax, tempVector3);
-                    }
-
-
-                    it.bmin[0] = Math.Clamp((int)((bmin[0] - pmesh.minBounds[0]) * quantFactor), 0, 0xffff);
-                    it.bmin[1] = Math.Clamp((int)((bmin[1] - pmesh.minBounds[1]) * quantFactor), 0, 0xffff);
-                    it.bmin[2] = Math.Clamp((int)((bmin[2] - pmesh.minBounds[2]) * quantFactor), 0, 0xffff);
-
-
-                    it.bmax[0] = Math.Clamp((int)((bmax[0] - pmesh.minBounds[0]) * quantFactor), 0, 0xffff);
-                    it.bmax[1] = Math.Clamp((int)((bmax[1] - pmesh.minBounds[1]) * quantFactor), 0, 0xffff);
-                    it.bmax[2] = Math.Clamp((int)((bmax[2] - pmesh.minBounds[2]) * quantFactor), 0, 0xffff);
-
-                }
-                else
-                {
-
-                    for (int j = 0; j < RecastConfig.MaxVertsPerPoly; j++)
-                    {
-                        int vertIndex = pmesh.polys[i * RecastConfig.MaxVertsPerPoly * 2 + j];
-
-                        if (vertIndex == RecastConfig.RC_MESH_NULL_IDX)
-                        {
-                            break;
-                        }
-
-
-                        float x = pmesh.verts[vertIndex * 3];
-                        float y = pmesh.verts[vertIndex * 3 + 1];
-                        float z = pmesh.verts[vertIndex * 3 + 2];
-
-
-
-                        it.bmin[0] = Math.Min(it.bmin[0], (int)x);
-                        it.bmin[1] = Math.Min(it.bmin[1], (int)y);
-                        it.bmin[2] = Math.Min(it.bmin[2], (int)z);
-
-                        it.bmax[0] = Math.Max(it.bmax[0], (int)x);
-                        it.bmax[1] = Math.Max(it.bmax[1], (int)y);
-                        it.bmax[2] = Math.Max(it.bmax[2], (int)z);
-                    }
-
-                    it.bmin[1] = (int)Math.Floor(it.bmin[1] * pmesh.cellHeight / pmesh.cellSize);
-                    it.bmax[1] = (int)Math.Floor(it.bmax[1] * pmesh.cellHeight / pmesh.cellSize);
-
-                }
-
-            }
-
-
-            DtBVNode[] treeNodes = new DtBVNode[pmesh.npolys * 2];
-
-            for (int i = 0; i < pmesh.npolys * 2; i++)
-            {
-                treeNodes[i] = new DtBVNode();
-            }
-
-            nodesNum = SubDivide(bnodes, 0, pmesh.npolys, treeNodes, 0);
-
-            return treeNodes;
-        }
-
-        private int SubDivide(DtBVNode[] bnodes, int imin, int imax, DtBVNode[] treeNodes, int curNode)
-        {
-            int inum = imax - imin;
-            int icur = curNode;
-
-            DtBVNode treeNode = treeNodes[curNode++];
-
-            if (inum == 1)
-            {
-                treeNode.bmin[0] = bnodes[imin].bmin[0];
-                treeNode.bmin[1] = bnodes[imin].bmin[1];
-                treeNode.bmin[2] = bnodes[imin].bmin[2];
-
-                treeNode.bmax[0] = bnodes[imin].bmax[0];
-                treeNode.bmax[1] = bnodes[imin].bmax[1];
-                treeNode.bmax[2] = bnodes[imin].bmax[2];
-
-                treeNode.i = bnodes[imin].i;
-            }
-            else
-            {
-                CalcExtends(bnodes, imin, imax, treeNode);
-
-                int axis = LongestAxis(treeNode.bmax[0] - treeNode.bmin[0],
-                               treeNode.bmax[1] - treeNode.bmin[1],
-                               treeNode.bmax[2] - treeNode.bmin[2]);
-
-
-                if (axis == 0)
-                {
-                    Array.Sort(bnodes, imin, imax - imin, new SortWithX());
-                }
-                else if (axis == 1)
-                {
-                    Array.Sort(bnodes, imin, imax - imin, new SortWithY());
-                }
-                else
-                {
-                    Array.Sort(bnodes, imin, imax - imin, new SortWithZ());
-                }
-
-                int isplit = imin + inum / 2;
-
-                curNode = SubDivide(bnodes, imin, isplit, treeNodes, curNode);
-
-                curNode = SubDivide(bnodes, isplit, imax, treeNodes, curNode);
-
-                int iescape = curNode - icur;
-
-                //取反 和叶子节点区分开
-                treeNode.i = -iescape;
-
-            }
-
-            return curNode;
-        }
-
-        private void CalcExtends(DtBVNode[] bnodes, int imin, int imax, DtBVNode treeNode)
+        public QueryParams FindNearestPoly(float[] pos)
         {
 
-            treeNode.bmin[0] = bnodes[imin].bmin[0];
-            treeNode.bmin[1] = bnodes[imin].bmin[1];
-            treeNode.bmin[2] = bnodes[imin].bmin[2];
-
-            treeNode.bmax[0] = bnodes[imin].bmax[0];
-            treeNode.bmax[1] = bnodes[imin].bmax[1];
-            treeNode.bmax[2] = bnodes[imin].bmax[2];
-
-            for (int i = imin + 1; i < imax; ++i)
-            {
-                DtBVNode node = bnodes[i];
-                if (treeNode.bmin[0] < node.bmin[0]) node.bmin[0] = treeNode.bmin[0];
-                if (treeNode.bmin[1] < node.bmin[1]) node.bmin[1] = treeNode.bmin[1];
-                if (treeNode.bmin[2] < node.bmin[2]) node.bmin[2] = treeNode.bmin[2];
-
-                if (treeNode.bmax[0] > node.bmax[0]) node.bmax[0] = treeNode.bmax[0];
-                if (treeNode.bmax[1] > node.bmax[1]) node.bmax[1] = treeNode.bmax[1];
-                if (treeNode.bmax[2] > node.bmax[2]) node.bmax[2] = treeNode.bmax[2];
-            }
-        }
-
-        private int LongestAxis(int x, int y, int z)
-        {
-            int axis = 0;
-            int maxVal = x;
-            if (y > maxVal)
-            {
-                axis = 1;
-                maxVal = y;
-            }
-            if (z > maxVal)
-            {
-                axis = 2;
-            }
-            return axis;
-        }
-
-        public void FindNearestPoly(float[] pos)
-        {
-
+            int[] polyRefs = new int[batchSize];
 
             float[] pmin = new float[3];
             float[] pmax = new float[3];
 
-            RecastUtility.RcVsub(pmin, pos, halfExtents);
-            RecastUtility.RcVadd(pmax, pos, halfExtents);
+            DetourUtility.DtVsub(pmin, pos, halfExtents);
+            DetourUtility.DtVadd(pmax, pos, halfExtents);
 
             int[] bmin = new int[3];
             int[] bmax = new int[3];
 
-            bmin[0] = (int)(quantFactor * pmin[0]) & 0xfffe;
-            bmin[1] = (int)(quantFactor * pmin[1]) & 0xfffe;
-            bmin[2] = (int)(quantFactor * pmin[2]) & 0xfffe;
-            bmax[0] = (int)(quantFactor * pmax[0] + 1) | 1;
-            bmax[1] = (int)(quantFactor * pmax[1] + 1) | 1;
-            bmax[2] = (int)(quantFactor * pmax[2] + 1) | 1;
+            bmin[0] = (int)(navData.quantFactor * pmin[0]) & 0xfffe;
+            bmin[1] = (int)(navData.quantFactor * pmin[1]) & 0xfffe;
+            bmin[2] = (int)(navData.quantFactor * pmin[2]) & 0xfffe;
+            bmax[0] = (int)(navData.quantFactor * pmax[0] + 1) | 1;
+            bmax[1] = (int)(navData.quantFactor * pmax[1] + 1) | 1;
+            bmax[2] = (int)(navData.quantFactor * pmax[2] + 1) | 1;
 
             int cur = 0;
             int end = nodesNum;
 
 
+            QueryParams queryParams = new QueryParams();
+            queryParams.nearestDistanceSqr = float.MaxValue;
+
             int n = 0;
 
             while (cur < end)
             {
-                DtBVNode node = treeNodes[cur];
+                DtBVNode node = navData.treeNodes[cur];
                 bool isLeaf = node.i >= 0;
                 bool overlap = DtOverlapQuantBounds(bmin, bmax, node.bmin, node.bmax);
 
                 if (isLeaf && overlap)
                 {
-                    int idx = node.i;
+
+                    polyRefs[n] = node.i;
 
                     if (n == batchSize - 1)
                     {
-                        //query->process(tile, polys, polyRefs, batchSize);
+                        QueryPolygons(polyRefs, batchSize, pos, queryParams);
                         n = 0;
                     }
                     else
@@ -301,11 +92,46 @@ namespace GameEditor.DetourEditor
 
             if (n > 0)
             {
-                //query->process(tile, polys, polyRefs, n);
+                QueryPolygons(polyRefs, n, pos, queryParams);
             }
 
+
+            return queryParams;
         }
 
+        private void QueryPolygons(int[] polyRefs, int count, float[] pos, QueryParams queryParams)
+        {
+            for (int i = 0; i < count; ++i)
+            {
+                int polyRef = polyRefs[i];
+                float[] closestPtPoly = new float[3];
+                float[] diff = new float[3];
+                bool posOverPoly = false;
+                float d;
+
+                ClosestPointOnPoly(polyRef, pos, closestPtPoly, ref posOverPoly);
+
+                DetourUtility.DtVsub(diff, pos, closestPtPoly);
+                if (posOverPoly)
+                {
+                    d = Math.Abs(diff[1]) - navData.walkableClimb;
+                    d = d > 0 ? d * d : 0;
+                }
+                else
+                {
+                    d = DetourUtility.DtVlenSqr(diff);
+                }
+
+                if (d < queryParams.nearestDistanceSqr)
+                {
+                    DetourUtility.DtVcopy(queryParams.nearestPoint, closestPtPoly);
+
+                    queryParams.nearestDistanceSqr = d;
+                    queryParams.nearestRef = polyRef;
+                    queryParams.overPoly = posOverPoly;
+                }
+            }
+        }
         private static bool DtOverlapQuantBounds(int[] amin, int[] amax, int[] bmin, int[] bmax)
         {
 
@@ -316,45 +142,125 @@ namespace GameEditor.DetourEditor
             overlap = (amin[2] > bmax[2] || amax[2] < bmin[2]) ? false : overlap;
             return overlap;
         }
-    }
 
-    internal class SortWithX : IComparer<DtBVNode>
-    {
-        public int Compare(DtBVNode x, DtBVNode y)
+        private void ClosestPointOnPoly(int dtPolyRef, float[] pos, float[] closest, ref bool posOverPoly)
         {
-            if (x.bmin[0] == y.bmin[0])
+
+            DetourUtility.DtVcopy(closest, pos);
+
+            if (GetPolyHeight(dtPolyRef, pos, ref closest[1]))
             {
-                return 0;
+                if (posOverPoly)
+                {
+                    posOverPoly = true;
+                    return;
+                }
+
             }
 
-            return x.bmin[0] - y.bmin[0] > 0 ? 1 : -1;
-        }
-    }
-
-    internal class SortWithY : IComparer<DtBVNode>
-    {
-        public int Compare(DtBVNode x, DtBVNode y)
-        {
-            if (x.bmin[1] == y.bmin[1])
+            if (posOverPoly)
             {
-                return 0;
+                posOverPoly = false;
+                return;
+            };
+
+            ClosestPointOnDetailEdges(dtPolyRef, pos, closest);
+        }
+
+        private bool GetPolyHeight(int poly, float[] pos, ref float height)
+        {
+
+
+            int startVert = navData.detailMeshes[poly * 4 + 0];
+            int startTri = navData.detailMeshes[poly * 4 + 2];
+            int ntris = navData.detailMeshes[poly * 4 + 3];
+
+
+            float[][] v = new float[3][];
+
+            for (int j = 0; j < ntris; ++j)
+            {
+
+                for (int k = 0; k < 3; k++)
+                {
+
+                    int vertIndex = navData.detailTris[(startTri + j) * 4 + k];
+
+                    float cellX = navData.verts[(startVert + vertIndex) * 3];
+                    float cellY = navData.verts[(startVert + vertIndex) * 3 + 1];
+                    float cellZ = navData.verts[(startVert + vertIndex) * 3 + 2];
+
+                    v[k][0] = cellX;
+                    v[k][1] = cellY;
+                    v[k][2] = cellZ;
+
+                }
+                if (DetourUtility.DtClosestHeightPointTriangle(pos, v[0], v[1], v[2], ref height))
+                {
+                    return true;
+                }
             }
 
-            return x.bmin[1] - y.bmin[1] > 0 ? 1 : -1;
+            float[] closest = new float[3];
+            ClosestPointOnDetailEdges(poly, pos, closest);
+            height = closest[1];
+            return true;
         }
-    }
 
-    internal class SortWithZ : IComparer<DtBVNode>
-    {
-        public int Compare(DtBVNode x, DtBVNode y)
+
+        private void ClosestPointOnDetailEdges(int poly, float[] pos, float[] closest)
         {
-            if (x.bmin[2] == y.bmin[2])
+
+            float dmin = float.MaxValue;
+            float tmin = 0;
+            float[] pmin = new float[3];
+            float[] pmax = new float[3];
+
+            int startVert = navData.detailMeshes[poly * 4 + 0];
+            int startTri = navData.detailMeshes[poly * 4 + 2];
+            int ntris = navData.detailMeshes[poly * 4 + 3];
+
+            float[][] v = new float[3][];
+
+            for (int i = 0; i < ntris; ++i)
             {
-                return 0;
+
+                for (int k = 0; k < 3; k++)
+                {
+
+                    int vertIndex = navData.detailTris[(startTri + i) * 4 + k];
+
+                    float cellX = navData.verts[(startVert + vertIndex) * 3];
+                    float cellY = navData.verts[(startVert + vertIndex) * 3 + 1];
+                    float cellZ = navData.verts[(startVert + vertIndex) * 3 + 2];
+
+                    v[k][0] = cellX;
+                    v[k][1] = cellY;
+                    v[k][2] = cellZ;
+
+                }
+
+
+                for (int k = 0, j = 2; k < 3; j = k++)
+                {
+
+                    float t = 0;
+                    float d = DetourUtility.DtDistancePtSegSqr2D(pos, v[j], v[k], ref t);
+                    if (d < dmin)
+                    {
+                        dmin = d;
+                        tmin = t;
+                        pmin = v[j];
+                        pmax = v[k];
+                    }
+
+                }
+
             }
 
-            return x.bmin[2] - y.bmin[2] > 0 ? 1 : -1;
+            DetourUtility.DtVlerp(closest, pmin, pmax, tmin);
         }
+
     }
 }
 
