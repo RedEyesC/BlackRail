@@ -12,12 +12,10 @@ namespace GameEditor.DetourEditor
 
         public DtNavData navData;
 
-        public int nodesNum;
-
         public void Init(DtNavData param)
         {
             navData = param;
-     
+
         }
 
 
@@ -25,10 +23,24 @@ namespace GameEditor.DetourEditor
         {
             float[] startPos = { startX, startY, startZ };
             float[] endPos = { endX, endY, endZ };
+
+            int startRef = -1;
+            int endRef = -1;
+            float[] newStarPos = new float[3];
+            float[] newEndPos = new float[3];
+            FindNearestPoly(startPos,newStarPos,ref startRef);
+            FindNearestPoly(endPos,newEndPos,ref endRef);
+
+            if(startRef < 0 || endRef < 0)
+            {
+                return;
+            }
+            
+            FindPath(startRef,endRef,newStarPos,newEndPos);
+
         }
 
-     
-        public QueryParams FindNearestPoly(float[] pos)
+        public void FindNearestPoly(float[] pos, float[] nearestPt , ref int nearestRef)
         {
 
             int[] polyRefs = new int[batchSize];
@@ -50,7 +62,7 @@ namespace GameEditor.DetourEditor
             bmax[2] = (int)(navData.quantFactor * pmax[2] + 1) | 1;
 
             int cur = 0;
-            int end = nodesNum;
+            int end = navData.nodesNum;
 
 
             QueryParams queryParams = new QueryParams();
@@ -96,7 +108,10 @@ namespace GameEditor.DetourEditor
             }
 
 
-            return queryParams;
+            nearestRef = queryParams.nearestRef;
+
+            DetourUtility.DtVcopy(nearestPt, queryParams.nearestPoint);
+          
         }
 
         private void QueryPolygons(int[] polyRefs, int count, float[] pos, QueryParams queryParams)
@@ -132,6 +147,7 @@ namespace GameEditor.DetourEditor
                 }
             }
         }
+        
         private static bool DtOverlapQuantBounds(int[] amin, int[] amax, int[] bmin, int[] bmax)
         {
 
@@ -150,19 +166,11 @@ namespace GameEditor.DetourEditor
 
             if (GetPolyHeight(dtPolyRef, pos, ref closest[1]))
             {
-                if (posOverPoly)
-                {
-                    posOverPoly = true;
-                    return;
-                }
-
+                posOverPoly = true;
+                return;
             }
 
-            if (posOverPoly)
-            {
-                posOverPoly = false;
-                return;
-            };
+            posOverPoly = false;
 
             ClosestPointOnDetailEdges(dtPolyRef, pos, closest);
         }
@@ -207,7 +215,7 @@ namespace GameEditor.DetourEditor
             return true;
         }
 
-
+        //获取Point最接近的边缘上的位置
         private void ClosestPointOnDetailEdges(int poly, float[] pos, float[] closest)
         {
 
@@ -259,6 +267,10 @@ namespace GameEditor.DetourEditor
             }
 
             DetourUtility.DtVlerp(closest, pmin, pmax, tmin);
+        }
+
+        private void FindPath(int startRef, int endRef, float[] startPos, float[] endPos) { 
+        
         }
 
     }

@@ -77,17 +77,22 @@ namespace GameEditor.DetourEditor
             return false;
         }
 
+        //计算pt 到线段p-q的距离
         public static float DtDistancePtSegSqr2D(float[] pt, float[] p, float[] q, ref float t)
         {
             float pqx = q[0] - p[0];
             float pqz = q[2] - p[2];
             float dx = pt[0] - p[0];
             float dz = pt[2] - p[2];
+            //计算p-q的长度
             float d = pqx * pqx + pqz * pqz;
+            //计算pt-p 投影到p-q上的长度
             t = pqx * dx + pqz * dz;
+            //限制投影的在[0,1]
             if (d > 0) t /= d;
             if (t < 0) t = 0;
             else if (t > 1) t = 1;
+            //根据投影比例计算出p-q上最接近pt的点
             dx = p[0] + t * pqx - pt[0];
             dz = p[2] + t * pqz - pt[2];
             return dx * dx + dz * dz;

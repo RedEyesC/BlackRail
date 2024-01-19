@@ -4,6 +4,7 @@ using System;
 
 namespace GameEditor.DetourEditor
 {
+
     internal class DetourNavMeshBuild
     {
         public static DtNavData DtCreateNavMeshData(RcPolyMesh pmesh, RcPolyMeshDetail dmesh)
