@@ -300,6 +300,8 @@ namespace GameEditor.RecastEditor
         public int[] flags;
         public AREATYPE[] areas;
 
+        public int nvp;
+
         public float[] minBounds = new float[3];
         public float[] maxBounds = new float[3];
 
@@ -317,6 +319,7 @@ namespace GameEditor.RecastEditor
             walkableHeight = cset.walkableHeight;
             walkableRadius = cset.walkableRadius;
 
+            nvp = RecastConfig.MaxVertsPerPoly;
         }
 
     }

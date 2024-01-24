@@ -97,5 +97,26 @@ namespace GameEditor.DetourEditor
             dz = p[2] + t * pqz - pt[2];
             return dx * dx + dz * dz;
         }
+
+
+        public static int DtNextPow2(int v)
+        {
+            v--;
+            v |= v >> 1;
+            v |= v >> 2;
+            v |= v >> 4;
+            v |= v >> 8;
+            v |= v >> 16;
+            v++;
+            return v;
+        }
+
+        public static float DtVdist(float[] v1, float[] v2)
+        {
+            float dx = v2[0] - v1[0];
+            float dy = v2[1] - v1[1];
+            float dz = v2[2] - v1[2];
+            return (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
+        }
     }
 }

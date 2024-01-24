@@ -10,12 +10,32 @@ namespace GameEditor.DetourEditor
         private readonly float[] halfExtents = { 2, 4, 2 };
         private readonly int batchSize = 32;
 
+        private DtNodeQueue _openList;
+        private DtNodePool _nodePool;
         public DtNavData navData;
 
         public void Init(DtNavData param)
         {
             navData = param;
 
+            int maxNodes = param.nodesNum;
+            if (_nodePool == null || _nodePool.GetMaxNodes() < maxNodes)
+            {
+                _nodePool = new DtNodePool(maxNodes, DetourUtility.DtNextPow2(maxNodes / 4));
+            }
+            else
+            {
+                _nodePool.Clear();
+            }
+
+            if (_openList == null || _openList.GetCapacity() < maxNodes)
+            {
+                _openList = new DtNodeQueue(maxNodes);
+            }
+            else
+            {
+                _openList.Clear();
+            }
         }
 
 
@@ -28,19 +48,19 @@ namespace GameEditor.DetourEditor
             int endRef = -1;
             float[] newStarPos = new float[3];
             float[] newEndPos = new float[3];
-            FindNearestPoly(startPos,newStarPos,ref startRef);
-            FindNearestPoly(endPos,newEndPos,ref endRef);
+            FindNearestPoly(startPos, newStarPos, ref startRef);
+            FindNearestPoly(endPos, newEndPos, ref endRef);
 
-            if(startRef < 0 || endRef < 0)
+            if (startRef < 0 || endRef < 0)
             {
                 return;
             }
-            
-            FindPath(startRef,endRef,newStarPos,newEndPos);
+
+            int[] path = FindPath(startRef, endRef, newStarPos, newEndPos);
 
         }
 
-        public void FindNearestPoly(float[] pos, float[] nearestPt , ref int nearestRef)
+        public void FindNearestPoly(float[] pos, float[] nearestPt, ref int nearestRef)
         {
 
             int[] polyRefs = new int[batchSize];
@@ -111,7 +131,7 @@ namespace GameEditor.DetourEditor
             nearestRef = queryParams.nearestRef;
 
             DetourUtility.DtVcopy(nearestPt, queryParams.nearestPoint);
-          
+
         }
 
         private void QueryPolygons(int[] polyRefs, int count, float[] pos, QueryParams queryParams)
@@ -147,7 +167,7 @@ namespace GameEditor.DetourEditor
                 }
             }
         }
-        
+
         private static bool DtOverlapQuantBounds(int[] amin, int[] amax, int[] bmin, int[] bmax)
         {
 
@@ -269,10 +289,154 @@ namespace GameEditor.DetourEditor
             DetourUtility.DtVlerp(closest, pmin, pmax, tmin);
         }
 
-        private void FindPath(int startRef, int endRef, float[] startPos, float[] endPos) { 
-        
+        private int[] FindPath(int startRef, int endRef, float[] startPos, float[] endPos)
+        {
+
+            if (startRef == endRef)
+            {
+                int[] path = { startRef };
+                return path;
+            }
+
+            _openList.Clear();
+            _nodePool.Clear();
+
+            DtNode startNode = _nodePool.GetNode(startRef);
+            DetourUtility.DtVcopy(startNode.pos, startPos);
+            startNode.pidx = 0;
+            startNode.cost = 0;
+            startNode.total = DetourUtility.DtVdist(startPos, endPos) * DetourConfig.H_SCALE;
+            startNode.id = startRef;
+            startNode.flags = (int)DtNodeFlags.DT_NODE_OPEN;
+            _openList.Push(startNode);
+
+            DtNode lastBestNode = startNode;
+            float lastBestNodeCost = startNode.total;
+
+          
+            while (!_openList.Empty())
+            {
+                DtNode bestNode = _openList.Pop();
+                int bestRef = bestNode.id;
+
+                bestNode.flags &= ~(int)DtNodeFlags.DT_NODE_OPEN; //去除open的标志位
+                bestNode.flags |= (int)DtNodeFlags.DT_NODE_CLOSED; //添加closed的标志位
+
+
+                if (bestRef == endRef)
+                {
+                    lastBestNode = bestNode;
+                    break;
+                }
+
+                for (int i = 0; i < 0; i++)
+                {
+                    int neighbourRef = 0;
+
+                    DtNode neighbourNode = _nodePool.GetNode(neighbourRef);
+                    if (neighbourNode == null)
+                    {
+                        continue;
+                    }
+
+
+                    if (neighbourNode.flags == 0)
+                    {
+                        GetEdgeMidPoint(bestRef, neighbourRef, neighbourNode.pos);
+                    }
+
+                    float cost;
+                    float heuristic;
+
+                    if (neighbourRef == endRef)
+                    {
+                        float curCost = GetCost(bestNode.pos, neighbourNode.pos);
+                        float endCost = GetCost(neighbourNode.pos, endPos);
+                        cost = bestNode.cost + curCost + endCost;
+                        heuristic = 0;
+                    }
+                    else
+                    {
+                        float curCost = GetCost(bestNode.pos, neighbourNode.pos);
+                        cost = bestNode.cost + curCost;
+                        heuristic = DetourUtility.DtVdist(neighbourNode.pos, endPos) * DetourConfig.H_SCALE;
+                    }
+
+                    float total = cost + heuristic;
+
+
+                    if ((neighbourNode.flags & (int)DtNodeFlags.DT_NODE_OPEN) > 0 && total >= neighbourNode.total)
+                        continue;
+
+                    if ((neighbourNode.flags & (int)DtNodeFlags.DT_NODE_CLOSED) > 0 && total >= neighbourNode.total)
+                        continue;
+
+                    neighbourNode.pidx = _nodePool.GetNodeIdx(bestNode);
+                    neighbourNode.id = neighbourRef;
+                    neighbourNode.flags = (neighbourNode.flags & ~(int)DtNodeFlags.DT_NODE_CLOSED); //去除closed的标志位
+                    neighbourNode.cost = cost;
+                    neighbourNode.total = total;
+
+                    if ((neighbourNode.flags & (int)DtNodeFlags.DT_NODE_OPEN) > 0)
+                    {
+                        _openList.Modify(neighbourNode);
+                    }
+                    else
+                    {
+                        neighbourNode.flags |= (int)DtNodeFlags.DT_NODE_OPEN;
+                        _openList.Push(neighbourNode);
+                    }
+
+                    if (heuristic < lastBestNodeCost)
+                    {
+                        lastBestNodeCost = heuristic;
+                        lastBestNode = neighbourNode;
+                    }
+                }
+            }
+
+            return GetPathToNode(lastBestNode);
         }
 
+        public void GetEdgeMidPoint(int from, int to, float[] pos)
+        {
+            //float left[3], right[3];
+            //GetPortalPoints(from, fromPoly, fromTile, to, toPoly, toTile, left, right)))
+            //mid[0] = (left[0] + right[0]) * 0.5f;
+            //mid[1] = (left[1] + right[1]) * 0.5f;
+            //mid[2] = (left[2] + right[2]) * 0.5f;
+            //return DT_SUCCESS;
+        }
+
+        public float GetCost(float[] pa, float[] pb)
+        {
+            return DetourUtility.DtVdist(pa, pb);
+        }
+
+        public int[] GetPathToNode(DtNode endNode)
+        {
+
+            DtNode curNode = endNode;
+            int length = 0;
+            while (curNode != null)
+            {
+                length++;
+                curNode = _nodePool.GetNodeAtIdx(curNode.pidx);
+            };
+
+
+            curNode = endNode;
+            int writeCount = length;
+
+            int[] path = new int[writeCount];
+            for (int i = writeCount - 1; i >= 0; i--)
+            {
+                path[i] = curNode.id;
+                curNode = _nodePool.GetNodeAtIdx(curNode.pidx);
+            }
+
+            return path;
+        }
     }
 }
 

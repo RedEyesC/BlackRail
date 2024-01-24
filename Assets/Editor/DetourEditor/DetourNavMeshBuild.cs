@@ -11,12 +11,15 @@ namespace GameEditor.DetourEditor
         {
             DtNavData param = new DtNavData();
 
-            param.polysCount = pmesh.npolys;
+            param.polyCount = pmesh.npolys;
             param.polys = pmesh.polys;
 
             param.walkableClimb = pmesh.walkableClimb;
             param.cs = pmesh.cellSize;
             param.ch = pmesh.cellHeight;
+
+            param.polyAreas = pmesh.areas;
+            param.polyFlags = pmesh.flags;
 
             param.detailMeshes = dmesh.meshes;
             param.detailVerts = dmesh.verts;
@@ -25,28 +28,72 @@ namespace GameEditor.DetourEditor
 
             param.quantFactor = 1.0f / pmesh.cellSize;
 
-            param.nvp = RecastConfig.MaxVertsPerPoly;
+            param.nvp = pmesh.nvp;
             param.nullIdx = RecastConfig.RC_MESH_NULL_IDX;
 
             param.treeNodes = CreateBVTree(param);
+
+            param.navPolys = new DtPoly[pmesh.npolys];
+
+            int[] src = param.polys;
+            int nvp = param.nvp;
+
+            for (int i = 0; i < param.polyCount; ++i)
+            {
+                DtPoly p = param.navPolys[i];
+                p.vertCount = 0;
+                p.flags = param.polyFlags[i];
+                p.SetArea((int)param.polyAreas[i]);
+                p.SetPType(DtPolyTypes.DT_POLYTYPE_GROUND);
+                for (int j = 0; j < nvp; ++j)
+                {
+                    if (src[j] == DetourConfig.MESH_NULL_IDX) break;
+                    p.verts[j] = src[j];
+                    if ((src[nvp + j] & DetourConfig.DT_EXT_LINK) != 0)
+                    {
+                        // Border or portal edge.
+                        int dir = src[nvp + j] & 0xf;
+                        if (dir == 0xf) // Border
+                            p.neis[j] = 0;
+                        else if (dir == 0) // Portal x-
+                            p.neis[j] = DetourConfig.DT_EXT_LINK | 4;
+                        else if (dir == 1) // Portal z+
+                            p.neis[j] = DetourConfig.DT_EXT_LINK | 2;
+                        else if (dir == 2) // Portal x+
+                            p.neis[j] = DetourConfig.DT_EXT_LINK | 0;
+                        else if (dir == 3) // Portal z-
+                            p.neis[j] = DetourConfig.DT_EXT_LINK | 6;
+                    }
+                    else
+                    {
+                        // Normal connection
+                        p.neis[j] = src[nvp + j] + 1;
+                    }
+
+                    p.vertCount++;
+                }
+                
+                //src += nvp * 2;
+            }
+
             return param;
         }
 
         private static DtBVNode[] CreateBVTree(DtNavData param)
         {
 
-            DtBVNode[] bnodes = new DtBVNode[param.polysCount];
+            DtBVNode[] bnodes = new DtBVNode[param.polyCount];
 
             float[] bmin = new float[3];
             float[] bmax = new float[3];
 
 
-            for (int i = 0; i < param.polysCount; i++)
+            for (int i = 0; i < param.polyCount; i++)
             {
                 bnodes[i] = new DtBVNode();
             }
 
-            for (int i = 0; i < param.polysCount; i++)
+            for (int i = 0; i < param.polyCount; i++)
             {
                 DtBVNode it = bnodes[i];
                 it.i = i;
@@ -119,14 +166,14 @@ namespace GameEditor.DetourEditor
             }
 
 
-            DtBVNode[] treeNodes = new DtBVNode[param.polysCount * 2];
+            DtBVNode[] treeNodes = new DtBVNode[param.polyCount * 2];
 
-            for (int i = 0; i < param.polysCount * 2; i++)
+            for (int i = 0; i < param.polyCount * 2; i++)
             {
                 treeNodes[i] = new DtBVNode();
             }
 
-            param.nodesNum = SubDivide(bnodes, 0, param.polysCount, treeNodes, 0);
+            param.nodesNum = SubDivide(bnodes, 0, param.polyCount, treeNodes, 0);
 
             return treeNodes;
         }
