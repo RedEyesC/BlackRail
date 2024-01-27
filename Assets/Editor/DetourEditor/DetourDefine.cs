@@ -14,7 +14,6 @@ namespace GameEditor.DetourEditor
         public static readonly float H_SCALE = 0.999f;
         public static readonly int DT_VERTS_PER_POLYGON = 6;
         public static readonly int MESH_NULL_IDX = 0xffff; //空节点标志位
-        public static readonly int DT_EXT_LINK = 0x8000;
     }
 
     internal enum DtNodeFlags

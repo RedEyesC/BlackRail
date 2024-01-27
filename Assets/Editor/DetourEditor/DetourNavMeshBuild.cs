@@ -37,43 +37,30 @@ namespace GameEditor.DetourEditor
 
             int[] src = param.polys;
             int nvp = param.nvp;
-
+            int d = 0;
             for (int i = 0; i < param.polyCount; ++i)
             {
                 DtPoly p = param.navPolys[i];
                 p.vertCount = 0;
+                p.verts = new int[nvp];
+                p.neis = new int[nvp];
                 p.flags = param.polyFlags[i];
                 p.SetArea((int)param.polyAreas[i]);
                 p.SetPType(DtPolyTypes.DT_POLYTYPE_GROUND);
                 for (int j = 0; j < nvp; ++j)
                 {
-                    if (src[j] == DetourConfig.MESH_NULL_IDX) break;
-                    p.verts[j] = src[j];
-                    if ((src[nvp + j] & DetourConfig.DT_EXT_LINK) != 0)
-                    {
-                        // Border or portal edge.
-                        int dir = src[nvp + j] & 0xf;
-                        if (dir == 0xf) // Border
-                            p.neis[j] = 0;
-                        else if (dir == 0) // Portal x-
-                            p.neis[j] = DetourConfig.DT_EXT_LINK | 4;
-                        else if (dir == 1) // Portal z+
-                            p.neis[j] = DetourConfig.DT_EXT_LINK | 2;
-                        else if (dir == 2) // Portal x+
-                            p.neis[j] = DetourConfig.DT_EXT_LINK | 0;
-                        else if (dir == 3) // Portal z-
-                            p.neis[j] = DetourConfig.DT_EXT_LINK | 6;
-                    }
-                    else
-                    {
-                        // Normal connection
-                        p.neis[j] = src[nvp + j] + 1;
-                    }
+                    if (src[d + j] == DetourConfig.MESH_NULL_IDX) {
+                        break;
+                    } 
 
+                    p.verts[j] = src[d + j];
+                   
+                    p.neis[j] = src[d + nvp + j];
+                    
                     p.vertCount++;
                 }
-                
-                //src += nvp * 2;
+
+                d += nvp * 2;
             }
 
             return param;

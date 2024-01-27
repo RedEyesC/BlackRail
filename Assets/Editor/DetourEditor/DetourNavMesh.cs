@@ -329,9 +329,16 @@ namespace GameEditor.DetourEditor
                     break;
                 }
 
+                int parentRef = 0;
+                if (bestNode.pidx != 0)
+                    parentRef = _nodePool.GetNodeAtIdx(bestNode.pidx).id;
+
                 for (int i = 0; i < 0; i++)
                 {
                     int neighbourRef = 0;
+
+                    if (neighbourRef == 0|| neighbourRef == parentRef)
+                        continue;
 
                     DtNode neighbourNode = _nodePool.GetNode(neighbourRef);
                     if (neighbourNode == null)
@@ -373,7 +380,7 @@ namespace GameEditor.DetourEditor
 
                     neighbourNode.pidx = _nodePool.GetNodeIdx(bestNode);
                     neighbourNode.id = neighbourRef;
-                    neighbourNode.flags = (neighbourNode.flags & ~(int)DtNodeFlags.DT_NODE_CLOSED); //去除closed的标志位
+                    neighbourNode.flags &= ~(int)DtNodeFlags.DT_NODE_CLOSED; //去除closed的标志位
                     neighbourNode.cost = cost;
                     neighbourNode.total = total;
 
