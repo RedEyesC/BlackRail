@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System;
 using GameEditor.Utility;
+using GameEditor.DetourEditor;
 
 namespace GameEditor.RecastEditor
 
@@ -47,6 +48,7 @@ namespace GameEditor.RecastEditor
         public static void ExportRecastInfo(string path)
         {
 
+            CommonUtility.ResetTimers();
             CommonUtility.DoStartTimer("build NavMesh");
 
 
@@ -133,7 +135,7 @@ namespace GameEditor.RecastEditor
             //构建PolyMesh
             RecastMesh.RcBuildPolyMesh(cset, pmesh);
 
-            DrawFieldMesh(pmesh);
+            DrawMesh(pmesh);
 
             RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
 
@@ -142,9 +144,20 @@ namespace GameEditor.RecastEditor
 
             CommonUtility.StopTimer("build NavMesh");
 
-            //DrawFieldMeshDetail(dmesh);
+            //DrawMeshDetail(dmesh);
 
-            RecastExport.ExportNavMeshDataToJson(pmesh,dmesh);
+            RecastExport.ExportNavMeshDataToJson(pmesh, dmesh);
+
+
+            //寻路相关测试
+            DtNavData data = DetourNavMeshBuild.DtCreateNavMeshData(pmesh, dmesh);
+
+            DetourNavMesh dtnav = new DetourNavMesh();
+            
+            dtnav.Init(data);
+
+            dtnav.SearchPath(-6.13, -2.33, 20.7, 0.45, 15.41, 11.54);
+
         }
 
         private static Mesh CombineMesh(Transform navRoot)
@@ -397,7 +410,7 @@ namespace GameEditor.RecastEditor
 
 
         //用于绘制计算出来的分割的多边形
-        public static void DrawFieldMesh(RcPolyMesh pmesh)
+        public static void DrawMesh(RcPolyMesh pmesh)
         {
             Scene activeScene = SceneManager.GetActiveScene();
             string activeSceneName = activeScene.name;
@@ -449,7 +462,7 @@ namespace GameEditor.RecastEditor
 
 
         //用于绘制计算出来的细化后的多边形
-        public static void DrawFieldMeshDetail(RcPolyMeshDetail dmesh)
+        public static void DrawMeshDetail(RcPolyMeshDetail dmesh)
         {
             Scene activeScene = SceneManager.GetActiveScene();
             string activeSceneName = activeScene.name;
@@ -523,7 +536,7 @@ namespace GameEditor.RecastEditor
 
                     float[] spanCube = new float[4];
 
-                    if(hp.data[i]  == RecastConfig.RC_UNSET_HEIGHT)
+                    if (hp.data[i] == RecastConfig.RC_UNSET_HEIGHT)
                     {
                         hp.data[i] = 50;
                     }

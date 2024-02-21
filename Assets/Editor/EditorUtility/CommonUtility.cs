@@ -80,10 +80,6 @@ namespace GameEditor.Utility
             CreateFolder(path);
             string localPath = path + go.name + ".prefab";
 
-            // Make sure the file name is unique, in case an existing Prefab has the same name.
-            //localPath = AssetDatabase.GenerateUniqueAssetPath(localPath);
-
-            // Create the new Prefab and log whether Prefab was saved successfully.
             PrefabUtility.SaveAsPrefabAsset(go, localPath);
         }
 

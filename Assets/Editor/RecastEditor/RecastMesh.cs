@@ -33,8 +33,6 @@ namespace GameEditor.RecastEditor
             pmesh.areas = new AREATYPE[maxTris];
             Array.Fill(pmesh.areas, AREATYPE.None);
 
-
-
             int[] indices = new int[maxVertsPerCont];
             int[] tris = new int[maxVertsPerCont * 3];
 
@@ -185,11 +183,15 @@ namespace GameEditor.RecastEditor
 
             }
 
+            /// 构建边信息，每个边与哪个poly相邻
             if (!BuildMeshAdjacency(pmesh.polys, pmesh.npolys, pmesh.nverts))
             {
                 RecastUtility.LogError("rcBuildPolyMesh: Adjacency failed.");
             }
 
+            //预留给以后使用的
+            pmesh.flags = new int[pmesh.npolys];
+            Array.Fill(pmesh.flags, 0);
         }
 
 
@@ -307,7 +309,7 @@ namespace GameEditor.RecastEditor
             }
         }
 
-        /// 构建边信息，每个边与哪个poly相邻
+
         private static bool BuildMeshAdjacency(int[] polys, int npolys, int nverts)
         {
 

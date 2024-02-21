@@ -5,7 +5,7 @@ namespace GameEditor.RecastEditor
     {
         public static readonly float PI = 3.1415926f;
 
-        public static readonly string MapResPath = "Assets/Resources/map/";
+        public static readonly string MapResPath = "Assets/Resources/Map/";
         public static readonly string MapElement = "MapElement";
 
         //构建寻路网格的参数
@@ -33,8 +33,8 @@ namespace GameEditor.RecastEditor
         public static readonly int Detail_MAX_VERTS_PER_EDGE = 32; //构建多边形高度细节时每个边缘的的最大顶点数
 
 
-        public static readonly float AgentMaxSlope = 45;
-        public static readonly float AgentMaxClimb = 1f;
+        public static readonly float AgentMaxSlope = 60;
+        public static readonly float AgentMaxClimb = 2f;
         public static readonly float AgentHeight = 2.0f;
         public static readonly float AgentRadius = 0.6f;
         public static readonly float CellSize = 0.3f; //xz平面的尺寸

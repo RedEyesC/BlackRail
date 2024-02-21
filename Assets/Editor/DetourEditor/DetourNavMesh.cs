@@ -38,6 +38,11 @@ namespace GameEditor.DetourEditor
             }
         }
 
+        public void SearchPath(double startX, double startY, double startZ, double endX, double endY, double endZ)
+        {
+            SearchPath((float)startX, (float)startY, (float)startZ, (float)endX, (float)endY, (float)endZ);
+        }
+
 
         public void SearchPath(float startX, float startY, float startZ, float endX, float endY, float endZ)
         {
@@ -65,28 +70,38 @@ namespace GameEditor.DetourEditor
 
             int[] polyRefs = new int[batchSize];
 
-            float[] pmin = new float[3];
-            float[] pmax = new float[3];
+            float[] qmin = new float[3];
+            float[] qmax = new float[3];
 
-            DetourUtility.DtVsub(pmin, pos, halfExtents);
-            DetourUtility.DtVadd(pmax, pos, halfExtents);
+            DetourUtility.DtVsub(qmin, pos, halfExtents);
+            DetourUtility.DtVadd(qmax, pos, halfExtents);
 
             int[] bmin = new int[3];
             int[] bmax = new int[3];
 
-            bmin[0] = (int)(navData.quantFactor * pmin[0]) & 0xfffe;
-            bmin[1] = (int)(navData.quantFactor * pmin[1]) & 0xfffe;
-            bmin[2] = (int)(navData.quantFactor * pmin[2]) & 0xfffe;
-            bmax[0] = (int)(navData.quantFactor * pmax[0] + 1) | 1;
-            bmax[1] = (int)(navData.quantFactor * pmax[1] + 1) | 1;
-            bmax[2] = (int)(navData.quantFactor * pmax[2] + 1) | 1;
+            float[] tbmin = navData.bmin;
+            float[] tbmax = navData.bmax;
+
+
+            //把世界空间的坐标转换为navmesh网格所在坐标系
+            float minx = Math.Clamp(qmin[0], tbmin[0], tbmax[0]) - tbmin[0];
+            float miny = Math.Clamp(qmin[1], tbmin[1], tbmax[1]) - tbmin[1];
+            float minz = Math.Clamp(qmin[2], tbmin[2], tbmax[2]) - tbmin[2];
+            float maxx = Math.Clamp(qmax[0], tbmin[0], tbmax[0]) - tbmin[0];
+            float maxy = Math.Clamp(qmax[1], tbmin[1], tbmax[1]) - tbmin[1];
+            float maxz = Math.Clamp(qmax[2], tbmin[2], tbmax[2]) - tbmin[2];
+
+            bmin[0] = (int)(navData.quantFactor * minx) & 0xfffe;
+            bmin[1] = (int)(navData.quantFactor * miny) & 0xfffe;
+            bmin[2] = (int)(navData.quantFactor * minz) & 0xfffe;
+            bmax[0] = (int)(navData.quantFactor * maxx + 1) | 1;
+            bmax[1] = (int)(navData.quantFactor * maxy + 1) | 1;
+            bmax[2] = (int)(navData.quantFactor * maxz + 1) | 1;
 
             int cur = 0;
             int end = navData.nodesNum;
 
-
             QueryParams queryParams = new QueryParams();
-            queryParams.nearestDistanceSqr = float.MaxValue;
 
             int n = 0;
 
@@ -313,32 +328,37 @@ namespace GameEditor.DetourEditor
             DtNode lastBestNode = startNode;
             float lastBestNodeCost = startNode.total;
 
-          
+
             while (!_openList.Empty())
             {
                 DtNode bestNode = _openList.Pop();
-                int bestRef = bestNode.id;
+
 
                 bestNode.flags &= ~(int)DtNodeFlags.DT_NODE_OPEN; //去除open的标志位
                 bestNode.flags |= (int)DtNodeFlags.DT_NODE_CLOSED; //添加closed的标志位
 
-
-                if (bestRef == endRef)
+                if (bestNode.id == endRef)
                 {
                     lastBestNode = bestNode;
                     break;
                 }
 
+                int bestRef = bestNode.id;
+                DtPoly bestPoly = navData.navPolys[bestRef];
+
                 int parentRef = 0;
                 if (bestNode.pidx != 0)
                     parentRef = _nodePool.GetNodeAtIdx(bestNode.pidx).id;
 
-                for (int i = 0; i < 0; i++)
-                {
-                    int neighbourRef = 0;
 
-                    if (neighbourRef == 0|| neighbourRef == parentRef)
+                for (int i = bestPoly.firstLink; i != DetourConfig.DT_NULL_LINK; i = navData.links[i].next)
+                {
+                    int neighbourRef = navData.links[i].refId;
+
+                    if (neighbourRef == 0 || neighbourRef == parentRef)
                         continue;
+
+                    DtPoly neighbourPoly = navData.navPolys[neighbourRef];
 
                     DtNode neighbourNode = _nodePool.GetNode(neighbourRef);
                     if (neighbourNode == null)
@@ -346,10 +366,9 @@ namespace GameEditor.DetourEditor
                         continue;
                     }
 
-
                     if (neighbourNode.flags == 0)
                     {
-                        GetEdgeMidPoint(bestRef, neighbourRef, neighbourNode.pos);
+                        GetEdgeMidPoint(bestRef, bestPoly, neighbourRef, neighbourPoly, neighbourNode.pos);
                     }
 
                     float cost;
@@ -405,14 +424,40 @@ namespace GameEditor.DetourEditor
             return GetPathToNode(lastBestNode);
         }
 
-        public void GetEdgeMidPoint(int from, int to, float[] pos)
+        public void GetEdgeMidPoint(int from, DtPoly fromPoly, int to, DtPoly toPoly, float[] mid)
         {
-            //float left[3], right[3];
-            //GetPortalPoints(from, fromPoly, fromTile, to, toPoly, toTile, left, right)))
-            //mid[0] = (left[0] + right[0]) * 0.5f;
-            //mid[1] = (left[1] + right[1]) * 0.5f;
-            //mid[2] = (left[2] + right[2]) * 0.5f;
-            //return DT_SUCCESS;
+            float[] left = new float[3];
+            float[] right = new float[3];
+            GetPortalPoints(from, fromPoly, to, toPoly, left, right);
+            mid[0] = (left[0] + right[0]) * 0.5f;
+            mid[1] = (left[1] + right[1]) * 0.5f;
+            mid[2] = (left[2] + right[2]) * 0.5f;
+        }
+
+
+        public void GetPortalPoints(int from, DtPoly fromPoly, int to, DtPoly toPoly, float[] left, float[] right)
+        {
+            int edge = -1;
+            for (int i = fromPoly.firstLink; i != DetourConfig.DT_NULL_LINK; i = navData.links[i].next)
+            {
+                if (navData.links[i].refId == to)
+                {
+                    edge = navData.links[i].edge;
+                    break;
+                }
+            }
+
+            if (edge < 0)
+            {
+                return;
+            }
+
+            // Find portal vertices.
+            int v0 = fromPoly.verts[edge];
+            int v1 = fromPoly.verts[(edge + 1) % fromPoly.vertCount];
+
+            Array.Copy(navData.verts, v0 * 3, left, 0, 3);
+            Array.Copy(navData.verts, v1 * 3, right, 0, 3);
         }
 
         public float GetCost(float[] pa, float[] pb)
