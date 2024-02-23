@@ -6,7 +6,7 @@ namespace GameEditor.DetourEditor
 
     internal class DtNode
     {
-        public float[] pos;
+        public float[] pos = new float[3];
         public float cost;
         public float total;
         public int id;
@@ -114,7 +114,7 @@ namespace GameEditor.DetourEditor
             _hashSize = hashSize;
 
             _nodes = new DtNode[maxNodes];
-
+            Array.Fill(_nodes, new DtNode());
             _first = new int[hashSize];
             Array.Fill(_first, DetourConfig.DT_NULL_IDX);
             _next = new int[maxNodes];

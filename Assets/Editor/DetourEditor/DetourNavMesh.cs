@@ -221,6 +221,10 @@ namespace GameEditor.DetourEditor
 
             float[][] v = new float[3][];
 
+            v[0] = new float[3];
+            v[1] = new float[3];
+            v[2] = new float[3];
+
             for (int j = 0; j < ntris; ++j)
             {
 
@@ -229,9 +233,9 @@ namespace GameEditor.DetourEditor
 
                     int vertIndex = navData.detailTris[(startTri + j) * 4 + k];
 
-                    float cellX = navData.verts[(startVert + vertIndex) * 3];
-                    float cellY = navData.verts[(startVert + vertIndex) * 3 + 1];
-                    float cellZ = navData.verts[(startVert + vertIndex) * 3 + 2];
+                    float cellX = navData.detailVerts[(startVert + vertIndex) * 3];
+                    float cellY = navData.detailVerts[(startVert + vertIndex) * 3 + 1];
+                    float cellZ = navData.detailVerts[(startVert + vertIndex) * 3 + 2];
 
                     v[k][0] = cellX;
                     v[k][1] = cellY;
@@ -264,6 +268,9 @@ namespace GameEditor.DetourEditor
             int ntris = navData.detailMeshes[poly * 4 + 3];
 
             float[][] v = new float[3][];
+            v[0] = new float[3];
+            v[1] = new float[3];
+            v[2] = new float[3];
 
             for (int i = 0; i < ntris; ++i)
             {
@@ -273,9 +280,9 @@ namespace GameEditor.DetourEditor
 
                     int vertIndex = navData.detailTris[(startTri + i) * 4 + k];
 
-                    float cellX = navData.verts[(startVert + vertIndex) * 3];
-                    float cellY = navData.verts[(startVert + vertIndex) * 3 + 1];
-                    float cellZ = navData.verts[(startVert + vertIndex) * 3 + 2];
+                    float cellX = navData.detailVerts[(startVert + vertIndex) * 3];
+                    float cellY = navData.detailVerts[(startVert + vertIndex) * 3 + 1];
+                    float cellZ = navData.detailVerts[(startVert + vertIndex) * 3 + 2];
 
                     v[k][0] = cellX;
                     v[k][1] = cellY;

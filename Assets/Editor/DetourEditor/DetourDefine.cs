@@ -1,6 +1,5 @@
 ﻿
 using GameEditor.RecastEditor;
-using System;
 using System.Collections.Generic;
 
 namespace GameEditor.DetourEditor
@@ -19,7 +18,7 @@ namespace GameEditor.DetourEditor
         DT_POLYTYPE_OFFMESH_CONNECTION = 1
     };
 
-    struct DtPoly
+    internal class DtPoly
     {
         public int firstLink;
 
@@ -42,7 +41,7 @@ namespace GameEditor.DetourEditor
         public int GetPType() { return areaAndtype >> 6; }
     }
 
-    struct DtLink
+    internal class DtLink
     {
         public int refId;
         public int next;

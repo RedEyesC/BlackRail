@@ -23,18 +23,18 @@ namespace GameEditor.DetourEditor
 
             param.polyAreas = pmesh.areas;
             param.polyFlags = pmesh.flags;
-             
-            //TODO
-            //param.detailMeshes = dmesh.meshes;
-            //param.detailVerts = dmesh.verts;
-            //param.detailTris = dmesh.tris;
-            //param.detailVertsCount = dmesh.nverts;
+
+            param.detailMeshes = dmesh.meshes;
+            param.detailVerts = dmesh.verts;
+            param.detailTris = dmesh.tris;
+            param.detailVertsCount = dmesh.nverts;
 
             param.quantFactor = 1.0f / pmesh.cellSize;
 
             param.treeNodes = CreateBVTree(param);
 
             param.navPolys = new DtPoly[pmesh.npolys];
+            Array.Fill(param.navPolys, new DtPoly());
 
             int[] src = param.polys;
             int nvp = DetourConfig.MaxVertsPerPoly;
@@ -42,12 +42,15 @@ namespace GameEditor.DetourEditor
             for (int i = 0; i < param.polyCount; ++i)
             {
                 DtPoly p = param.navPolys[i];
+                
                 p.vertCount = 0;
                 p.verts = new int[nvp];
+
                 p.neis = new int[nvp];
+                Array.Fill(p.neis, DetourConfig.DT_MESH_NULL_IDX);
+
                 p.flags = param.polyFlags[i];
-                p.SetArea((int)param.polyAreas[i]);
-                p.SetPType(DtPolyTypes.DT_POLYTYPE_GROUND);
+
                 for (int j = 0; j < nvp; ++j)
                 {
                     if (src[d + j] == DetourConfig.DT_MESH_NULL_IDX)
@@ -66,7 +69,6 @@ namespace GameEditor.DetourEditor
             }
 
             int edgeCount = 0;
-            int portalCount = 0;
             for (int i = 0; i < param.polyCount; ++i)
             {
                 int p = i * 2 * nvp;
@@ -74,21 +76,13 @@ namespace GameEditor.DetourEditor
                 {
                     if (param.polys[p + j] == DetourConfig.DT_MESH_NULL_IDX) break;
                     edgeCount++;
-
-                    int dirIndex = p + nvp + j;
-                    if ((param.polys[dirIndex] & 0x8000) == 0)
-                    {
-                        int dir = param.polys[dirIndex] & 0xf;
-                        if (dir != 0xf)
-                            portalCount++;
-                    }
-
                 }
             }
 
-            param.maxLinkCount = edgeCount + portalCount * 2;
+            param.maxLinkCount = edgeCount;
 
             param.links = new DtLink[param.maxLinkCount];
+            Array.Fill(param.links, new DtLink());
 
             param.linksFreeList = 0;
 
@@ -102,15 +96,14 @@ namespace GameEditor.DetourEditor
                 for (int j = poly.vertCount - 1; j >= 0; --j)
                 {
 
-                    //TODO
-                    //if (poly.neis[j]) 
-                    //    continue;
+                    if (poly.neis[j] != DetourConfig.DT_NULL_LINK)
+                        continue;
 
                     int idx = AllocLink(param);
                     if (idx != DetourConfig.DT_NULL_LINK)
                     {
                         DtLink link = param.links[idx];
-                        link.refId = poly.neis[j] - 1;
+                        link.refId = poly.neis[j];
                         link.edge = j;
                         link.side = 0xff;
                         link.bmin = link.bmax = 0;
@@ -150,39 +143,50 @@ namespace GameEditor.DetourEditor
                 bnodes[i] = new DtBVNode();
             }
 
+            float[] tempVector3 = new float[3];
+            float[] bmin = new float[3];
+            float[] bmax = new float[3];
+
             for (int i = 0; i < param.polyCount; i++)
             {
                 DtBVNode it = bnodes[i];
                 it.i = i;
 
 
-                for (int j = 0; j < DetourConfig.MaxVertsPerPoly; j++)
+                int vb = param.detailMeshes[i * 4 + 0];
+                int ndv = param.detailMeshes[i * 4 + 1];
+
+
+                int dvIndex = vb * 3;
+                tempVector3[0] = param.detailVerts[dvIndex];
+                tempVector3[1] = param.detailVerts[dvIndex + 1];
+                tempVector3[2] = param.detailVerts[dvIndex + 2];
+
+                DetourUtility.DtVcopy(bmin, tempVector3);
+                DetourUtility.DtVcopy(bmax, tempVector3);
+
+                for (int j = 1; j < ndv; j++)
                 {
-                    int vertIndex = param.polys[i * DetourConfig.MaxVertsPerPoly * 2 + j];
+                    tempVector3[0] = param.detailVerts[dvIndex + j * 3];
+                    tempVector3[1] = param.detailVerts[dvIndex + j * 3 + 1];
+                    tempVector3[2] = param.detailVerts[dvIndex + j * 3 + 2];
 
-                    if (vertIndex == DetourConfig.DT_MESH_NULL_IDX)
-                    {
-                        break;
-                    }
-
-                    float x = param.verts[vertIndex * 3];
-                    float y = param.verts[vertIndex * 3 + 1];
-                    float z = param.verts[vertIndex * 3 + 2];
-
-
-                    it.bmin[0] = Math.Min(it.bmin[0], (int)x);
-                    it.bmin[1] = Math.Min(it.bmin[1], (int)y);
-                    it.bmin[2] = Math.Min(it.bmin[2], (int)z);
-
-                    it.bmax[0] = Math.Max(it.bmax[0], (int)x);
-                    it.bmax[1] = Math.Max(it.bmax[1], (int)y);
-                    it.bmax[2] = Math.Max(it.bmax[2], (int)z);
+                    RecastUtility.RcVmin(bmin, tempVector3);
+                    RecastUtility.RcVmax(bmax, tempVector3);
                 }
 
-                it.bmin[1] = (int)Math.Floor(it.bmin[1] * param.ch / param.cs);
-                it.bmax[1] = (int)Math.Floor(it.bmax[1] * param.ch / param.cs);
+
+                it.bmin[0] = Math.Clamp((int)((bmin[0] - param.bmin[0]) * param.quantFactor), 0, 0xffff);
+                it.bmin[1] = Math.Clamp((int)((bmin[1] - param.bmin[1]) * param.quantFactor), 0, 0xffff);
+                it.bmin[2] = Math.Clamp((int)((bmin[2] - param.bmin[2]) * param.quantFactor), 0, 0xffff);
+
+
+                it.bmax[0] = Math.Clamp((int)((bmax[0] - param.bmin[0]) * param.quantFactor), 0, 0xffff);
+                it.bmax[1] = Math.Clamp((int)((bmax[1] - param.bmin[1]) * param.quantFactor), 0, 0xffff);
+                it.bmax[2] = Math.Clamp((int)((bmax[2] - param.bmin[2]) * param.quantFactor), 0, 0xffff);
 
             }
+
 
             DtBVNode[] treeNodes = new DtBVNode[param.polyCount * 2];
 
@@ -267,13 +271,13 @@ namespace GameEditor.DetourEditor
             for (int i = imin + 1; i < imax; ++i)
             {
                 DtBVNode node = bnodes[i];
-                if (treeNode.bmin[0] < node.bmin[0]) node.bmin[0] = treeNode.bmin[0];
-                if (treeNode.bmin[1] < node.bmin[1]) node.bmin[1] = treeNode.bmin[1];
-                if (treeNode.bmin[2] < node.bmin[2]) node.bmin[2] = treeNode.bmin[2];
+                if (node.bmin[0] < treeNode.bmin[0]) treeNode.bmin[0] = node.bmin[0];
+                if (node.bmin[1] < treeNode.bmin[1]) treeNode.bmin[1] = node.bmin[1];
+                if (node.bmin[2] < treeNode.bmin[2]) treeNode.bmin[2] = node.bmin[2];
 
-                if (treeNode.bmax[0] > node.bmax[0]) node.bmax[0] = treeNode.bmax[0];
-                if (treeNode.bmax[1] > node.bmax[1]) node.bmax[1] = treeNode.bmax[1];
-                if (treeNode.bmax[2] > node.bmax[2]) node.bmax[2] = treeNode.bmax[2];
+                if (node.bmax[0] > treeNode.bmax[0]) treeNode.bmax[0] = node.bmax[0];
+                if (node.bmax[1] > treeNode.bmax[1]) treeNode.bmax[1] = node.bmax[1];
+                if (node.bmax[2] > treeNode.bmax[2]) treeNode.bmax[2] = node.bmax[2];
             }
         }
 
