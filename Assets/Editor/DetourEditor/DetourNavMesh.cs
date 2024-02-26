@@ -463,8 +463,8 @@ namespace GameEditor.DetourEditor
             int v0 = fromPoly.verts[edge];
             int v1 = fromPoly.verts[(edge + 1) % fromPoly.vertCount];
 
-            Array.Copy(navData.verts, v0 * 3, left, 0, 3);
-            Array.Copy(navData.verts, v1 * 3, right, 0, 3);
+            Array.Copy(navData.navVerts, v0 * 3, left, 0, 3);
+            Array.Copy(navData.navVerts, v1 * 3, right, 0, 3);
         }
 
         public float GetCost(float[] pa, float[] pb)

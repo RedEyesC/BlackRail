@@ -114,7 +114,11 @@ namespace GameEditor.DetourEditor
             _hashSize = hashSize;
 
             _nodes = new DtNode[maxNodes];
-            Array.Fill(_nodes, new DtNode());
+
+            for(int i = 0; i < maxNodes; i++)
+            {
+                _nodes[i] = new DtNode();
+            }
             _first = new int[hashSize];
             Array.Fill(_first, DetourConfig.DT_NULL_IDX);
             _next = new int[maxNodes];

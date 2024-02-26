@@ -69,8 +69,8 @@ namespace GameEditor.DetourEditor
 
     internal class DtNavData
     {
-        public int[] verts;
-        public int nverts;
+        public float[] navVerts;
+        public int vertCount;
 
         public int[] polys;
         public int polyCount;

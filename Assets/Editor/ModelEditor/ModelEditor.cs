@@ -17,7 +17,7 @@ namespace GameEditor.ModelEditor
         static readonly string AnimResPath = "Assets/Resources/anim/";
         static readonly string ModelDefaultShader = "Character/Default/Default";
 
-        [MenuItem("Assets/GameEditor/导出模型", false, 900)]
+        [MenuItem("Assets/Game Editor/导出模型", false, 900)]
         static void ExportModelInfo()
         {
             foreach (var obj in Selection.objects)
@@ -27,7 +27,7 @@ namespace GameEditor.ModelEditor
             }
         }
 
-        [MenuItem("Assets/GameEditor/导出模型", true)]
+        [MenuItem("Assets/Game Editor/导出模型", true)]
         static bool ValidExportModelInfo()
         {
             foreach (var obj in Selection.objects)
@@ -46,7 +46,7 @@ namespace GameEditor.ModelEditor
         }
 
 
-        [MenuItem("Assets/GameEditor/导出动画", false, 900)]
+        [MenuItem("Assets/Game Editor/导出动画", false, 900)]
         static void ExportModelAnim()
         {
             foreach (var obj in Selection.objects)
@@ -56,7 +56,7 @@ namespace GameEditor.ModelEditor
             }
         }
 
-        [MenuItem("Assets/GameEditor/导出动画", true)]
+        [MenuItem("Assets/Game Editor/导出动画", true)]
         static bool ValidExportModelAnim()
         {
             foreach (var obj in Selection.objects)

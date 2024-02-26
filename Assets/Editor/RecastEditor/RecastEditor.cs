@@ -17,7 +17,7 @@ namespace GameEditor.RecastEditor
     public class RecastEditor
     {
 
-        [MenuItem("Assets/GameEditor/导出地图navmesh", false, 900)]
+        [MenuItem("Assets/Game Editor/导出地图navmesh", false, 900)]
         public static void ExportRecast()
         {
             foreach (var obj in Selection.objects)
@@ -27,7 +27,7 @@ namespace GameEditor.RecastEditor
             }
         }
 
-        [MenuItem("Assets/GameEditor/导出地图navmesh", true)]
+        [MenuItem("Assets/Game Editor/导出地图navmesh", true)]
         public static bool ValidExportRecast()
         {
             foreach (var obj in Selection.objects)
@@ -271,12 +271,12 @@ namespace GameEditor.RecastEditor
 
             GameObject root = GameObject.Find("/" + activeSceneName);
 
-            if (root.GetComponent<RecastComponent>() == null)
+            if (root.GetComponent<RecastDebugComponent>() == null)
             {
-                root.AddComponent<RecastComponent>();
+                root.AddComponent<RecastDebugComponent>();
             }
 
-            root.GetComponent<RecastComponent>().SetCubeList(cubeList, cubeSize);
+            root.GetComponent<RecastDebugComponent>().SetCubeList(cubeList, cubeSize);
         }
 
 
@@ -355,12 +355,12 @@ namespace GameEditor.RecastEditor
 
             GameObject root = GameObject.Find("/" + activeSceneName);
 
-            if (root.GetComponent<RecastComponent>() == null)
+            if (root.GetComponent<RecastDebugComponent>() == null)
             {
-                root.AddComponent<RecastComponent>();
+                root.AddComponent<RecastDebugComponent>();
             }
 
-            root.GetComponent<RecastComponent>().SetCubeList(cubeList, cubeSize);
+            root.GetComponent<RecastDebugComponent>().SetCubeList(cubeList, cubeSize);
         }
 
 
@@ -377,9 +377,9 @@ namespace GameEditor.RecastEditor
             float cellSize = rcContourSet.cellSize;
             float cellHeight = rcContourSet.cellHeight;
 
-            if (root.GetComponent<RecastComponent>() == null)
+            if (root.GetComponent<RecastDebugComponent>() == null)
             {
-                root.AddComponent<RecastComponent>();
+                root.AddComponent<RecastDebugComponent>();
             }
 
             float[][] vertList = new float[rcContourSet.numConts][];
@@ -405,7 +405,7 @@ namespace GameEditor.RecastEditor
                 vertList[i] = contVert;
             }
 
-            root.GetComponent<RecastComponent>().SetContour(vertList);
+            root.GetComponent<RecastDebugComponent>().SetContour(vertList);
         }
 
 
@@ -421,9 +421,9 @@ namespace GameEditor.RecastEditor
             float cellSize = pmesh.cellSize;
             float cellHeight = pmesh.cellHeight;
 
-            if (root.GetComponent<RecastComponent>() == null)
+            if (root.GetComponent<RecastDebugComponent>() == null)
             {
-                root.AddComponent<RecastComponent>();
+                root.AddComponent<RecastDebugComponent>();
             }
 
             float[][] polyList = new float[pmesh.npolys][];
@@ -457,7 +457,7 @@ namespace GameEditor.RecastEditor
 
             }
 
-            root.GetComponent<RecastComponent>().SetContour(polyList);
+            root.GetComponent<RecastDebugComponent>().SetContour(polyList);
         }
 
 
@@ -469,9 +469,9 @@ namespace GameEditor.RecastEditor
 
             GameObject root = GameObject.Find("/" + activeSceneName);
 
-            if (root.GetComponent<RecastComponent>() == null)
+            if (root.GetComponent<RecastDebugComponent>() == null)
             {
-                root.AddComponent<RecastComponent>();
+                root.AddComponent<RecastDebugComponent>();
             }
 
             float[][] triList = new float[dmesh.ntris][];
@@ -511,7 +511,7 @@ namespace GameEditor.RecastEditor
 
             }
 
-            root.GetComponent<RecastComponent>().SetContour(triList);
+            root.GetComponent<RecastDebugComponent>().SetContour(triList);
         }
 
 
@@ -561,12 +561,12 @@ namespace GameEditor.RecastEditor
 
             GameObject root = GameObject.Find("/" + activeSceneName);
 
-            if (root.GetComponent<RecastComponent>() == null)
+            if (root.GetComponent<RecastDebugComponent>() == null)
             {
-                root.AddComponent<RecastComponent>();
+                root.AddComponent<RecastDebugComponent>();
             }
 
-            root.GetComponent<RecastComponent>().SetCubeList(cubeList, cubeSize);
+            root.GetComponent<RecastDebugComponent>().SetCubeList(cubeList, cubeSize);
 
         }
     }

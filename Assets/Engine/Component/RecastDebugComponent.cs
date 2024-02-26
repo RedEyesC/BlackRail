@@ -1,6 +1,6 @@
 ﻿
 using UnityEngine;
-public class RecastComponent : MonoBehaviour
+public class RecastDebugComponent : MonoBehaviour
 {
 
     public static float[][] rcContourSet;
@@ -16,6 +16,14 @@ public class RecastComponent : MonoBehaviour
 
             for (int i = 0; i < rcContourSet.Length; i++)
             {
+
+                //int[] showPath = { 153, 133, 123, 145, 115, 100, 65, 41, 104, 9, 105, 81, 53, 131 };
+
+                //if (System.Array.IndexOf(showPath, i) == -1)
+                //{
+                //    continue;
+                //}
+
                 float[] contVert = rcContourSet[i];
 
                 int numVert = contVert.Length / 4;

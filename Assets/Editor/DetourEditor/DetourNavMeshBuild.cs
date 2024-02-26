@@ -15,9 +15,11 @@ namespace GameEditor.DetourEditor
             param.bmax = pmesh.maxBounds;
             param.polyCount = pmesh.npolys;
             param.polys = pmesh.polys;
-            param.verts = pmesh.verts;
+            param.vertCount = pmesh.nverts;
 
             param.walkableClimb = pmesh.walkableClimb;
+            param.quantFactor = 1.0f / pmesh.cellSize;
+
             param.cs = pmesh.cellSize;
             param.ch = pmesh.cellHeight;
 
@@ -29,12 +31,26 @@ namespace GameEditor.DetourEditor
             param.detailTris = dmesh.tris;
             param.detailVertsCount = dmesh.nverts;
 
-            param.quantFactor = 1.0f / pmesh.cellSize;
-
+            //初始化二叉树
             param.treeNodes = CreateBVTree(param);
 
+
+            //变化顶点坐标到世界坐标系下
+            param.navVerts = new float[param.vertCount * 3];
+            for (int i = 0; i < param.vertCount; ++i)
+            {
+                param.navVerts[i * 3] = param.bmin[0] + pmesh.verts[i * 3] * param.cs;
+                param.navVerts[i * 3 + 1] = param.bmin[1] + pmesh.verts[i * 3 + 1] * param.cs;
+                param.navVerts[i * 3 + 2] = param.bmin[2] + pmesh.verts[i * 3 + 2] * param.ch;
+            }
+
+            //初始化 navPolys
             param.navPolys = new DtPoly[pmesh.npolys];
-            Array.Fill(param.navPolys, new DtPoly());
+
+            for (int i = 0; i < pmesh.npolys; i++)
+            {
+                param.navPolys[i] = new DtPoly();
+            }
 
             int[] src = param.polys;
             int nvp = DetourConfig.MaxVertsPerPoly;
@@ -42,7 +58,7 @@ namespace GameEditor.DetourEditor
             for (int i = 0; i < param.polyCount; ++i)
             {
                 DtPoly p = param.navPolys[i];
-                
+
                 p.vertCount = 0;
                 p.verts = new int[nvp];
 
@@ -68,6 +84,7 @@ namespace GameEditor.DetourEditor
                 d += nvp * 2;
             }
 
+            //初始化 links
             int edgeCount = 0;
             for (int i = 0; i < param.polyCount; ++i)
             {
@@ -82,11 +99,20 @@ namespace GameEditor.DetourEditor
             param.maxLinkCount = edgeCount;
 
             param.links = new DtLink[param.maxLinkCount];
-            Array.Fill(param.links, new DtLink());
+
+            for (int i = 0; i < param.maxLinkCount; i++)
+            {
+                param.links[i] = new DtLink();
+            }
 
             param.linksFreeList = 0;
 
             param.links[param.maxLinkCount - 1].next = DetourConfig.DT_NULL_LINK;
+
+            for (int i = 0; i < param.maxLinkCount - 1; ++i)
+            {
+                param.links[i].next = i + 1;
+            }
 
             for (int i = 0; i < param.polyCount; ++i)
             {
@@ -96,7 +122,7 @@ namespace GameEditor.DetourEditor
                 for (int j = poly.vertCount - 1; j >= 0; --j)
                 {
 
-                    if (poly.neis[j] != DetourConfig.DT_NULL_LINK)
+                    if (poly.neis[j] == DetourConfig.DT_MESH_NULL_IDX)
                         continue;
 
                     int idx = AllocLink(param);
