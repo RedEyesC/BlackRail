@@ -118,5 +118,20 @@ namespace GameEditor.DetourEditor
             float dz = v2[2] - v1[2];
             return (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
         }
+
+        public static bool DtPointInPolygon(float[] pt, float[] verts, int nverts)
+        {
+            int i, j;
+            bool c = false;
+            for (i = 0, j = nverts - 1; i < nverts; j = i++)
+            {
+                int vi = i * 3;
+                int vj = j * 3;
+                if (((verts[vi + 2] > pt[2]) != (verts[vj + 2] > pt[2])) &&
+                    (pt[0] < (verts[vj] - verts[vi]) * (pt[2] - verts[vi + 2]) / (verts[vj + 2] - verts[vi + 2]) + verts[vi]))
+                    c = !c;
+            }
+            return c;
+        }
     }
 }

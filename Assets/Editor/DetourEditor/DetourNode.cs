@@ -115,7 +115,7 @@ namespace GameEditor.DetourEditor
 
             _nodes = new DtNode[maxNodes];
 
-            for(int i = 0; i < maxNodes; i++)
+            for (int i = 0; i < maxNodes; i++)
             {
                 _nodes[i] = new DtNode();
             }
@@ -188,7 +188,7 @@ namespace GameEditor.DetourEditor
             {
                 return 0;
             }
-            return Array.IndexOf(_nodes, node);
+            return Array.IndexOf(_nodes, node) + 1;
         }
 
         public DtNode GetNodeAtIdx(int idx)

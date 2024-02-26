@@ -214,6 +214,20 @@ namespace GameEditor.DetourEditor
         {
 
 
+            float[] verts = new float[DetourConfig.MaxVertsPerPoly * 3];
+            DtPoly navPoly = navData.navPolys[poly];
+            int nv = navPoly.vertCount;
+
+            for (int i = 0; i < nv; ++i)
+            {
+                Array.Copy(navData.verts, navPoly.verts[i] * 3, verts, i * 3, 3);
+            }
+
+            if(DetourUtility.DtPointInPolygon(pos, verts, nv))
+            {
+                return false;
+            }
+
             int startVert = navData.detailMeshes[poly * 4 + 0];
             int startTri = navData.detailMeshes[poly * 4 + 2];
             int ntris = navData.detailMeshes[poly * 4 + 3];
@@ -459,7 +473,6 @@ namespace GameEditor.DetourEditor
                 return;
             }
 
-            // Find portal vertices.
             int v0 = fromPoly.verts[edge];
             int v1 = fromPoly.verts[(edge + 1) % fromPoly.vertCount];
 

@@ -15,7 +15,9 @@ namespace GameEditor.DetourEditor
             param.bmax = pmesh.maxBounds;
             param.polyCount = pmesh.npolys;
             param.polys = pmesh.polys;
+
             param.vertCount = pmesh.nverts;
+            param.verts = pmesh.verts;
 
             param.walkableClimb = pmesh.walkableClimb;
             param.quantFactor = 1.0f / pmesh.cellSize;
@@ -40,8 +42,8 @@ namespace GameEditor.DetourEditor
             for (int i = 0; i < param.vertCount; ++i)
             {
                 param.navVerts[i * 3] = param.bmin[0] + pmesh.verts[i * 3] * param.cs;
-                param.navVerts[i * 3 + 1] = param.bmin[1] + pmesh.verts[i * 3 + 1] * param.cs;
-                param.navVerts[i * 3 + 2] = param.bmin[2] + pmesh.verts[i * 3 + 2] * param.ch;
+                param.navVerts[i * 3 + 1] = param.bmin[1] + pmesh.verts[i * 3 + 1] * param.ch;
+                param.navVerts[i * 3 + 2] = param.bmin[2] + pmesh.verts[i * 3 + 2] * param.cs;
             }
 
             //初始化 navPolys
