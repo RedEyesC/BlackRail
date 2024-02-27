@@ -38,16 +38,19 @@ namespace GameEditor.DetourEditor
             }
         }
 
-        public void SearchPath(double startX, double startY, double startZ, double endX, double endY, double endZ)
+        public float[] SearchPath(double startX, double startY, double startZ, double endX, double endY, double endZ)
         {
-            SearchPath((float)startX, (float)startY, (float)startZ, (float)endX, (float)endY, (float)endZ);
+            return SearchPath((float)startX, (float)startY, (float)startZ, (float)endX, (float)endY, (float)endZ);
         }
 
 
-        public void SearchPath(float startX, float startY, float startZ, float endX, float endY, float endZ)
+        public float[] SearchPath(float startX, float startY, float startZ, float endX, float endY, float endZ)
         {
+            float[] straight = new float[256 * 3];
+
             float[] startPos = { startX, startY, startZ };
             float[] endPos = { endX, endY, endZ };
+
 
             int startRef = -1;
             int endRef = -1;
@@ -58,11 +61,15 @@ namespace GameEditor.DetourEditor
 
             if (startRef < 0 || endRef < 0)
             {
-                return;
+                int[] polys = FindPath(startRef, endRef, newStarPos, newEndPos);
+
+                if (polys.Length > 0)
+                {
+                    FindStraightPath(newStarPos, newEndPos, polys, straight);
+                }
             }
 
-            int[] path = FindPath(startRef, endRef, newStarPos, newEndPos);
-
+            return straight;
         }
 
         public void FindNearestPoly(float[] pos, float[] nearestPt, ref int nearestRef)
@@ -223,7 +230,7 @@ namespace GameEditor.DetourEditor
                 Array.Copy(navData.verts, navPoly.verts[i] * 3, verts, i * 3, 3);
             }
 
-            if(DetourUtility.DtPointInPolygon(pos, verts, nv))
+            if (DetourUtility.DtPointInPolygon(pos, verts, nv))
             {
                 return false;
             }
@@ -445,6 +452,122 @@ namespace GameEditor.DetourEditor
             return GetPathToNode(lastBestNode);
         }
 
+        //漏洞算法规划最短路径 https://www.cnblogs.com/pointer-smq/p/11332897.html
+        private void FindStraightPath(float[] startPos, float[] endPos, int[] path, float[] straightPath)
+        {
+
+
+            int straightPathCount = 0;
+            int pathSize = path.Length;
+
+
+            float[] closestStartPos = startPos;
+            float[] closestEndPos = endPos;
+
+            AppendVertex(startPos, straightPath, ref straightPathCount);
+
+            if (pathSize > 1)
+            {
+                float[] portalApex = new float[3];
+                float[] portalLeft = new float[3];
+                float[] portalRight = new float[3];
+
+                DetourUtility.DtVcopy(portalApex, closestStartPos);
+                DetourUtility.DtVcopy(portalLeft, portalApex);
+                DetourUtility.DtVcopy(portalRight, portalApex);
+
+                int apexIndex = 0;
+                int leftIndex = 0;
+                int rightIndex = 0;
+
+                for (int i = 0; i < pathSize; ++i)
+                {
+                    float[] left = new float[3];
+                    float[] right = new float[3];
+
+                    //判断是否是最后一个节点
+                    if (i + 1 < pathSize)
+                    {
+                        int from = path[i];
+                        int to = path[i + 1];
+                        GetPortalPoints(from, navData.navPolys[from], to, navData.navPolys[to], left, right);
+
+                        if (i == 0)
+                        {
+                            float t = 0;
+                            if (DetourUtility.DtDistancePtSegSqr2D(portalApex, left, right, ref t) < Math.Sqrt(0.001f))
+                                continue;
+                        }
+                    }
+                    else
+                    {
+                        DetourUtility.DtVcopy(left, endPos);
+                        DetourUtility.DtVcopy(right, endPos);
+                    }
+
+
+                    if (DetourUtility.DtTriArea2D(portalApex, portalRight, right) <= 0.0f)
+                    {
+                        if (DetourUtility.DtVequal(portalApex, portalRight) || DetourUtility.DtTriArea2D(portalApex, portalLeft, right) > 0.0f)
+                        {
+                            DetourUtility.DtVcopy(portalRight, right);
+                            rightIndex = i;
+                        }
+                        else
+                        {
+                            DetourUtility.DtVcopy(portalApex, portalLeft);
+                            apexIndex = leftIndex;
+
+                            AppendVertex(portalApex, straightPath, ref straightPathCount);
+
+                            DetourUtility.DtVcopy(portalLeft, portalApex);
+                            DetourUtility.DtVcopy(portalRight, portalApex);
+                            leftIndex = apexIndex;
+                            rightIndex = apexIndex;
+
+                            i = apexIndex;
+
+                            continue;
+                        }
+
+                    }
+
+
+                    if (DetourUtility.DtTriArea2D(portalApex, portalLeft, right) <= 0.0f)
+                    {
+                        if (DetourUtility.DtVequal(portalApex, portalLeft) || DetourUtility.DtTriArea2D(portalApex, portalRight, left) > 0.0f)
+                        {
+                            DetourUtility.DtVcopy(portalLeft, left);
+                            leftIndex = i;
+                        }
+                        else
+                        {
+                            DetourUtility.DtVcopy(portalApex, portalRight);
+                            apexIndex = rightIndex;
+
+                            AppendVertex(portalApex, straightPath, ref straightPathCount);
+
+                            DetourUtility.DtVcopy(portalLeft, portalApex);
+                            DetourUtility.DtVcopy(portalRight, portalApex);
+
+                            leftIndex = apexIndex;
+                            rightIndex = apexIndex;
+
+                            i = apexIndex;
+
+                            continue;
+                        }
+
+                    }
+
+                }
+
+            }
+
+            AppendVertex(closestEndPos, straightPath, ref straightPathCount);
+
+        }
+
         public void GetEdgeMidPoint(int from, DtPoly fromPoly, int to, DtPoly toPoly, float[] mid)
         {
             float[] left = new float[3];
@@ -509,6 +632,55 @@ namespace GameEditor.DetourEditor
 
             return path;
         }
+
+        public void ClosestPointOnPolyBoundary(int id, float[] pos, float[] closest)
+        {
+            float[] verts = new float[DetourConfig.MaxVertsPerPoly * 3];
+            float[] edged = new float[DetourConfig.MaxVertsPerPoly];
+            float[] edget = new float[DetourConfig.MaxVertsPerPoly];
+
+            DtPoly poly = navData.navPolys[id];
+            int nv = 0;
+            for (int i = 0; i < poly.vertCount; ++i)
+            {
+                Array.Copy(navData.verts, poly.verts[i] * 3, verts, nv * 3, 3);
+                nv++;
+            }
+
+            bool inside = DetourUtility.DtDistancePtPolyEdgesSqr(pos, verts, nv, edged, edget);
+            if (inside)
+            {
+                DetourUtility.DtVcopy(closest, pos);
+            }
+            else
+            {
+                float dmin = edged[0];
+                int imin = 0;
+                for (int i = 1; i < nv; ++i)
+                {
+                    if (edged[i] < dmin)
+                    {
+                        dmin = edged[i];
+                        imin = i;
+                    }
+                }
+
+                float[] va = new float[3];
+                float[] vb = new float[3];
+
+                Array.Copy(verts, imin * 3, va, 0, 3);
+                Array.Copy(verts, ((imin + 1) % nv) * 3, vb, 0, 3);
+                DetourUtility.DtVlerp(closest, va, vb, edget[imin]);
+            }
+        }
+
+
+        public void AppendVertex(float[] pos, float[] straightPath, ref int straightPathCount)
+        {
+            Array.Copy(pos, 0, straightPath, straightPathCount * 3, 3);
+            straightPathCount++;
+        }
+
     }
 }
 

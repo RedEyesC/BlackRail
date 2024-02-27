@@ -2,6 +2,7 @@
 
 namespace GameEditor.DetourEditor
 {
+
     internal class DetourUtility
     {
         public static void DtVsub(float[] dest, float[] v1, float[] v2)
@@ -77,6 +78,29 @@ namespace GameEditor.DetourEditor
             return false;
         }
 
+
+
+        public static bool DtDistancePtPolyEdgesSqr(float[] pt, float[] verts, int nverts, float[] ed, float[] et)
+        {
+            int i, j;
+            bool c = false;
+            float[] vi = new float[3];
+            float[] vj = new float[3];
+
+            for (i = 0, j = nverts - 1; i < nverts; j = i++)
+            {
+                Array.Copy(verts, i * 3, vi, 0, 3);
+                Array.Copy(verts, i * 3, vj, 0, 3);
+
+                if (((vi[2] > pt[2]) != (vj[2] > pt[2])) &&
+                    (pt[0] < (vj[0] - vi[0]) * (pt[2] - vi[2]) / (vj[2] - vi[2]) + vi[0]))
+                    c = !c;
+                ed[j] = DtDistancePtSegSqr2D(pt, vj, vi, ref et[j]);
+            }
+            return c;
+        }
+
+
         //计算pt 到线段p-q的距离
         public static float DtDistancePtSegSqr2D(float[] pt, float[] p, float[] q, ref float t)
         {
@@ -132,6 +156,33 @@ namespace GameEditor.DetourEditor
                     c = !c;
             }
             return c;
+        }
+
+        public static float DtTriArea2D(float[] a, float[] b, float[] c)
+        {
+
+            float abx = b[0] - a[0];
+            float abz = b[2] - a[2];
+            float acx = c[0] - a[0];
+            float acz = c[2] - a[2];
+            return acx * abz - abx * acz;
+        }
+
+        public static bool DtVequal(float[] p0, float[] p1)
+        {
+
+            float thr = (float)Math.Sqrt(1.0f / 16384.0f);
+            float d = DtVdistSqr(p0, p1);
+            return d < thr;
+        }
+
+        public static float DtVdistSqr(float[] v1, float[] v2)
+        {
+
+            float dx = v2[0] - v1[0];
+            float dy = v2[1] - v1[1];
+            float dz = v2[2] - v1[2];
+            return dx * dx + dy * dy + dz * dz;
         }
     }
 }
