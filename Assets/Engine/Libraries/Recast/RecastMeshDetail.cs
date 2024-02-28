@@ -2,9 +2,9 @@
 using System;
 using System.Collections.Generic;
 
-namespace GameEditor.RecastEditor
+namespace GameFramework.Recast
 {
-    internal class RecastMeshDetail
+    public class RecastMeshDetail
     {
         public static void RcBuildPolyMeshDetail(RcPolyMesh pmesh, RcCompactHeightfield chf, RcPolyMeshDetail dmesh)
         {

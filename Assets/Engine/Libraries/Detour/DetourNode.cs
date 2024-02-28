@@ -1,10 +1,10 @@
 ﻿
 using System;
 
-namespace GameEditor.DetourEditor
+namespace GameFramework.Detour
 {
 
-    internal class DtNode
+    public class DtNode
     {
         public float[] pos = new float[3];
         public float cost;

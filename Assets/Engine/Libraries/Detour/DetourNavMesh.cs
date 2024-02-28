@@ -1,10 +1,10 @@
 ﻿
 using System;
 
-namespace GameEditor.DetourEditor
+namespace GameFramework.Detour
 {
 
-    internal class DetourNavMesh
+    public class DetourNavMesh
     {
 
         private readonly float[] halfExtents = { 2, 4, 2 };

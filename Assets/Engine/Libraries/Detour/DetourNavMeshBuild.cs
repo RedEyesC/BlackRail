@@ -1,37 +1,13 @@
 ﻿
-using GameEditor.RecastEditor;
 using System;
 
-namespace GameEditor.DetourEditor
+namespace GameFramework.Detour
 {
 
-    internal class DetourNavMeshBuild
+    public class DetourNavMeshBuild
     {
-        public static DtNavData DtCreateNavMeshData(RcPolyMesh pmesh, RcPolyMeshDetail dmesh)
+        public static DtNavData DtCreateNavMeshData(DtNavData param)
         {
-            DtNavData param = new DtNavData();
-
-            param.bmin = pmesh.minBounds;
-            param.bmax = pmesh.maxBounds;
-            param.polyCount = pmesh.npolys;
-            param.polys = pmesh.polys;
-
-            param.vertCount = pmesh.nverts;
-            param.verts = pmesh.verts;
-
-            param.walkableClimb = pmesh.walkableClimb;
-            param.quantFactor = 1.0f / pmesh.cellSize;
-
-            param.cs = pmesh.cellSize;
-            param.ch = pmesh.cellHeight;
-
-            param.polyAreas = pmesh.areas;
-            param.polyFlags = pmesh.flags;
-
-            param.detailMeshes = dmesh.meshes;
-            param.detailVerts = dmesh.verts;
-            param.detailTris = dmesh.tris;
-            param.detailVertsCount = dmesh.nverts;
 
             //初始化二叉树
             param.treeNodes = CreateBVTree(param);
@@ -41,15 +17,15 @@ namespace GameEditor.DetourEditor
             param.navVerts = new float[param.vertCount * 3];
             for (int i = 0; i < param.vertCount; ++i)
             {
-                param.navVerts[i * 3] = param.bmin[0] + pmesh.verts[i * 3] * param.cs;
-                param.navVerts[i * 3 + 1] = param.bmin[1] + pmesh.verts[i * 3 + 1] * param.ch;
-                param.navVerts[i * 3 + 2] = param.bmin[2] + pmesh.verts[i * 3 + 2] * param.cs;
+                param.navVerts[i * 3] = param.bmin[0] + param.verts[i * 3] * param.cs;
+                param.navVerts[i * 3 + 1] = param.bmin[1] + param.verts[i * 3 + 1] * param.ch;
+                param.navVerts[i * 3 + 2] = param.bmin[2] + param.verts[i * 3 + 2] * param.cs;
             }
 
             //初始化 navPolys
-            param.navPolys = new DtPoly[pmesh.npolys];
+            param.navPolys = new DtPoly[param.polyCount];
 
-            for (int i = 0; i < pmesh.npolys; i++)
+            for (int i = 0; i < param.polyCount; i++)
             {
                 param.navPolys[i] = new DtPoly();
             }
@@ -199,8 +175,8 @@ namespace GameEditor.DetourEditor
                     tempVector3[1] = param.detailVerts[dvIndex + j * 3 + 1];
                     tempVector3[2] = param.detailVerts[dvIndex + j * 3 + 2];
 
-                    RecastUtility.RcVmin(bmin, tempVector3);
-                    RecastUtility.RcVmax(bmax, tempVector3);
+                    DetourUtility.DtVmin(bmin, tempVector3);
+                    DetourUtility.DtVmax(bmax, tempVector3);
                 }
 
 

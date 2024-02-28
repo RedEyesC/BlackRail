@@ -1,6 +1,6 @@
-﻿namespace GameEditor.DetourEditor
+﻿namespace GameFramework.Detour
 {
-    internal class DetourConfig
+    public class DetourConfig
     {
         public static readonly int DT_NODE_PARENT_BITS = 24;
         public static readonly int DT_NODE_STATE_BITS = 2;

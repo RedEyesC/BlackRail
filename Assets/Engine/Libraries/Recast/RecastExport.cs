@@ -1,10 +1,10 @@
 ﻿
 
-namespace GameEditor.RecastEditor
+namespace GameFramework.Recast
 {
 
 
-    internal class RecastExport
+    public class RecastExport
     {
         public static void ExportNavMeshDataToJson(RcPolyMesh pmesh, RcPolyMeshDetail dmesh)
         {

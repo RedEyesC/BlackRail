@@ -1,9 +1,9 @@
 ﻿
 using System;
 
-namespace GameEditor.RecastEditor
+namespace GameFramework.Recast
 {
-    internal class RecastMesh
+    public class RecastMesh
     {
         static public void RcBuildPolyMesh(RcContourSet cset, RcPolyMesh pmesh)
         {
@@ -638,9 +638,6 @@ namespace GameEditor.RecastEditor
             return RecastConfig.MaxVertsPerPoly;
         }
 
-
-
-     
     }
 }
 

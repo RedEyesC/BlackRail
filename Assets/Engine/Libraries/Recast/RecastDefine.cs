@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace GameEditor.RecastEditor
+namespace GameFramework.Recast
 {
     public class RcHeightfield
     {

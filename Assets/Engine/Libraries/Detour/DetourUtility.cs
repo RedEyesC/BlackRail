@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace GameEditor.DetourEditor
+namespace GameFramework.Detour
 {
 
-    internal class DetourUtility
+    public class DetourUtility
     {
         public static void DtVsub(float[] dest, float[] v1, float[] v2)
         {
@@ -184,5 +184,22 @@ namespace GameEditor.DetourEditor
             float dz = v2[2] - v1[2];
             return dx * dx + dy * dy + dz * dz;
         }
+
+        public static void DtVmin(float[] mn, float[] v)
+        {
+
+            mn[0] = Math.Min(mn[0], v[0]);
+            mn[1] = Math.Min(mn[1], v[1]);
+            mn[2] = Math.Min(mn[2], v[2]);
+        }
+
+        public static void DtVmax(float[] mn, float[] v)
+        {
+
+            mn[0] = Math.Max(mn[0], v[0]);
+            mn[1] = Math.Max(mn[1], v[1]);
+            mn[2] = Math.Max(mn[2], v[2]);
+        }
+
     }
 }

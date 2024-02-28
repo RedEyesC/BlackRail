@@ -1,12 +1,9 @@
 ﻿
-namespace GameEditor.RecastEditor
+namespace GameFramework.Recast
 {
-    internal class RecastConfig
+    public class RecastConfig
     {
         public static readonly float PI = 3.1415926f;
-
-        public static readonly string MapResPath = "Assets/Resources/Map/";
-        public static readonly string MapElement = "MapElement";
 
         //构建寻路网格的参数
         public static readonly int MAX_HEIGHT = 500;
@@ -37,7 +34,7 @@ namespace GameEditor.RecastEditor
         public static readonly float AgentMaxClimb = 2f;
         public static readonly float AgentHeight = 2.0f;
         public static readonly float AgentRadius = 0.6f;
-        public static readonly float CellSize = 0.3f; //xz平面的尺寸
+        public static readonly float CellSize = 0.2f; //xz平面的尺寸
         public static readonly float CellHeight = 0.2f; // y轴的尺寸
 
         public static readonly bool FilterLowHangingObstacles = false;//过滤悬空可走的span

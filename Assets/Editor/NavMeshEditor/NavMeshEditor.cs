@@ -8,14 +8,19 @@ using System.Collections.Generic;
 using System.IO;
 using System;
 using GameEditor.Utility;
-using GameEditor.DetourEditor;
-
+using GameFramework.Recast;
+using GameFramework.Detour;
 namespace GameEditor.RecastEditor
 
 {
 
     public class RecastEditor
     {
+
+
+        public static readonly string MapResPath = "Assets/Resources/Map/";
+        public static readonly string MapElement = "MapElement";
+
 
         [MenuItem("Assets/Game Editor/导出地图navmesh", false, 900)]
         public static void ExportRecast()
@@ -33,7 +38,7 @@ namespace GameEditor.RecastEditor
             foreach (var obj in Selection.objects)
             {
                 string path = AssetDatabase.GetAssetPath(obj);
-                if (path.Contains(RecastConfig.MapResPath) && AssetDatabase.IsValidFolder(path))
+                if (path.Contains(MapResPath) && AssetDatabase.IsValidFolder(path))
                 {
                     continue;
                 }
@@ -67,96 +72,23 @@ namespace GameEditor.RecastEditor
 
             GameObject root = GameObject.Find("/" + activeSceneName);
 
-            Transform navRoot = root.transform.Find(RecastConfig.MapElement);
+            Transform navRoot = root.transform.Find(MapElement);
 
             Mesh mesh = CombineMesh(navRoot);
 
-            RecastUtility.CalcBounds(mesh.vertices, out float[] meshMinBounds, out float[] meshMaxBounds);
+            float[] vertices = new float[mesh.vertexCount * 3];
 
-            RecastUtility.CalcGridSize(meshMinBounds, meshMaxBounds, RecastConfig.CellSize, out int meshWidth, out int meshHeight);
-
-            RcHeightfield hf = new RcHeightfield(meshMinBounds, meshMaxBounds, meshWidth, meshHeight, RecastConfig.AgentMaxSlope, RecastConfig.AgentMaxClimb, RecastConfig.AgentHeight, RecastConfig.AgentRadius, RecastConfig.CellSize, RecastConfig.CellHeight);
-
-            //判断三角形是否可行走
-            AREATYPE[] areas = RcMarkWalkableTriangles(hf.walkableSlopeAngle, mesh.vertices, mesh.triangles);
-
-            //体素化三角形，构建高度场
-            RecastHeightField.RcRasterizeTriangles(mesh.vertices, mesh.triangles, areas, hf);
-
-
-            //过滤悬空的可走障碍物
-            if (RecastConfig.FilterLowHangingObstacles)
+            for (int i = 0; i < mesh.vertexCount; i++)
             {
-                RecastHeightField.RcFilterLowHangingWalkableObstacles(hf);
+
+                vertices[i * 3 + 0] = mesh.vertices[i].x;
+                vertices[i * 3 + 1] = mesh.vertices[i].y;
+                vertices[i * 3 + 2] = mesh.vertices[i].z;
             }
 
-            //过滤高度差过大的span
-            if (RecastConfig.FilterLedgeSpans)
-            {
-                RecastHeightField.RcFilterLedgeSpans(hf);
-            }
+            int[] triangles = mesh.triangles;
 
-            //过滤不可通过高度span
-            if (RecastConfig.FilterWalkableLowHeightSpans)
-            {
-                RecastHeightField.RcFilterWalkableLowHeightSpans(hf);
-            }
-
-            //DrawHeightfield(hf,true);
-
-            //构建空心高度场
-            RcCompactHeightfield chf = new RcCompactHeightfield(hf);
-
-            RecastHeightField.RcBuildCompactHeightfield(hf, chf);
-
-            //设置边缘不可行走
-            RecastHeightField.RcErodeWalkableArea(chf);
-
-            //设置特殊地形标识，用于设置的标记区域的多边形是y值恒定的多边形
-            //RecastHeightField.RcMarkConvexPolyArea(chf, vertices,AREATYPE.None);
-
-            //构建距离场
-            RecastHeightField.RcBuildDistanceField(chf);
-
-            //分水岭算法构建区域 
-            RecastContour.RcBuildRegions(chf);
-
-            //DrawCompactHeightField(chf, 3);
-
-            RcContourSet cset = new RcContourSet(chf);
-
-            //计算区域边界
-            RecastContour.RcBuildContours(chf, cset);
-
-            //DrawFieldContour(cset);
-
-            RcPolyMesh pmesh = new RcPolyMesh(cset);
-
-            //构建PolyMesh
-            RecastMesh.RcBuildPolyMesh(cset, pmesh);
-
-            DrawMesh(pmesh);
-
-            RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
-
-            //细化mesh网格
-            RecastMeshDetail.RcBuildPolyMeshDetail(pmesh, chf, dmesh);
-
-            CommonUtility.StopTimer("build NavMesh");
-
-            //DrawMeshDetail(dmesh);
-
-            RecastExport.ExportNavMeshDataToJson(pmesh, dmesh);
-
-
-            //寻路相关测试
-            DtNavData data = DetourNavMeshBuild.DtCreateNavMeshData(pmesh, dmesh);
-
-            DetourNavMesh dtnav = new DetourNavMesh();
-            
-            dtnav.Init(data);
-
-            dtnav.SearchPath(-6.13, -2.33, 20.7, 0.45, 15.41, 11.54);
+            SoleMeshBuild(vertices, triangles);
 
         }
 
@@ -179,37 +111,120 @@ namespace GameEditor.RecastEditor
             return mesh;
         }
 
-
-        private static AREATYPE[] RcMarkWalkableTriangles(float walkableSlopeAngle, Vector3[] verts, int[] tris)
+        public static void SoleMeshBuild(float[] vertices, int[] triangles)
         {
 
-            float walkableThr = (float)Math.Cos(walkableSlopeAngle / 180.0f * RecastConfig.PI);
+            RecastUtility.CalcBounds(vertices, out float[] meshMinBounds, out float[] meshMaxBounds);
 
-            int numTris = tris.Length / 3;
-            AREATYPE[] areas = new AREATYPE[numTris];
+            RecastUtility.CalcGridSize(meshMinBounds, meshMaxBounds, RecastConfig.CellSize, out int meshWidth, out int meshHeight);
 
-            for (int i = 0; i < numTris; i++)
+            RcHeightfield hf = new RcHeightfield(meshMinBounds, meshMaxBounds, meshWidth, meshHeight, RecastConfig.AgentMaxSlope, RecastConfig.AgentMaxClimb, RecastConfig.AgentHeight, RecastConfig.AgentRadius, RecastConfig.CellSize, RecastConfig.CellHeight);
+
+            //判断三角形是否可行走
+            AREATYPE[] areas = RecastUtility.RcMarkWalkableTriangles(hf.walkableSlopeAngle, vertices, triangles);
+
+            //体素化三角形，构建高度场
+            RecastHeightField.RcRasterizeTriangles(vertices, triangles, areas, hf);
+
+            //过滤悬空的可走障碍物
+            if (RecastConfig.FilterLowHangingObstacles)
             {
-
-
-                //计算三角形法向量
-                Vector3 norm = RecastUtility.CalcTriNormal(verts[tris[i * 3]], verts[tris[i * 3 + 1]], verts[tris[i * 3 + 2]]);
-
-                //法向量在y轴的投影越大，倾斜角度越小
-                if (norm[1] > walkableThr)
-                {
-                    areas[i] = AREATYPE.Walke;
-                }
-                else
-                {
-                    areas[i] = AREATYPE.None;
-                }
-
+                RecastHeightField.RcFilterLowHangingWalkableObstacles(hf);
             }
 
-            return areas;
-        }
+            //过滤高度差过大的span
+            if (RecastConfig.FilterLedgeSpans)
+            {
+                RecastHeightField.RcFilterLedgeSpans(hf);
+            }
 
+            //过滤不可通过高度span
+            if (RecastConfig.FilterWalkableLowHeightSpans)
+            {
+                RecastHeightField.RcFilterWalkableLowHeightSpans(hf);
+            }
+
+            DrawHeightfield(hf,true);
+
+            return;
+
+            //构建空心高度场
+            RcCompactHeightfield chf = new RcCompactHeightfield(hf);
+
+            RecastHeightField.RcBuildCompactHeightfield(hf, chf);
+
+            //设置边缘不可行走
+            RecastHeightField.RcErodeWalkableArea(chf);
+
+            //设置特殊地形标识，用于设置的标记区域的多边形是y值恒定的多边形
+            //RecastHeightField.RcMarkConvexPolyArea(chf, vertices,AREATYPE.None);
+
+            //构建距离场
+            RecastHeightField.RcBuildDistanceField(chf);
+
+            //分水岭算法构建区域 
+            RecastContour.RcBuildRegions(chf);
+
+            //DrawCompactHeightField(chf, 2);
+
+            RcContourSet cset = new RcContourSet(chf);
+
+            //计算区域边界
+            RecastContour.RcBuildContours(chf, cset);
+
+            //DrawFieldContour(cset);
+
+            RcPolyMesh pmesh = new RcPolyMesh(cset);
+
+            //构建PolyMesh
+            RecastMesh.RcBuildPolyMesh(cset, pmesh);
+
+            //DrawMesh(pmesh);
+
+            RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
+
+            //细化mesh网格
+            RecastMeshDetail.RcBuildPolyMeshDetail(pmesh, chf, dmesh);
+
+            //DrawMeshDetail(dmesh);
+
+            RecastExport.ExportNavMeshDataToJson(pmesh, dmesh);
+
+            DtNavData param = new DtNavData();
+
+            param.bmin = pmesh.minBounds;
+            param.bmax = pmesh.maxBounds;
+            param.polyCount = pmesh.npolys;
+            param.polys = pmesh.polys;
+
+            param.vertCount = pmesh.nverts;
+            param.verts = pmesh.verts;
+
+            param.walkableClimb = pmesh.walkableClimb;
+            param.quantFactor = 1.0f / pmesh.cellSize;
+
+            param.cs = pmesh.cellSize;
+            param.ch = pmesh.cellHeight;
+
+            param.polyFlags = pmesh.flags;
+
+            param.detailMeshes = dmesh.meshes;
+            param.detailVerts = dmesh.verts;
+            param.detailTris = dmesh.tris;
+            param.detailVertsCount = dmesh.nverts;
+
+
+            //寻路相关测试
+            DetourNavMeshBuild.DtCreateNavMeshData(param);
+
+            DetourNavMesh dtnav = new DetourNavMesh();
+
+            dtnav.Init(param);
+
+            dtnav.SearchPath(-6.13, -2.33, 20.7, 0.45, 15.41, 11.54);
+            //dtnav.SearchPath(-6.13, -2.33, 20.7, 17.2, -2.2, 27.09);
+
+        }
 
 
         //用于绘制计算出来的高度场,并标记可行走区域
@@ -234,7 +249,7 @@ namespace GameEditor.RecastEditor
                 List<float> spanCube = new List<float>();
                 while (currentSpan != null)
                 {
-                    for (int y = currentSpan.min; y < currentSpan.max; y++)
+                    for (int y = currentSpan.max; y < currentSpan.max; y++)
                     {
                         float cellX = hfBBMin[0] + (float)x * cellSize + cellSize / 2;
                         float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;

@@ -1,20 +1,30 @@
 ﻿
 using System;
-using UnityEngine;
 
-namespace GameEditor.RecastEditor
+namespace GameFramework.Recast
 {
-    internal class RecastHeightField
+    public class RecastHeightField
     {
-        public static void RcRasterizeTriangles(Vector3[] verts, int[] tris, AREATYPE[] areas, RcHeightfield hf)
+        public static void RcRasterizeTriangles(float[] verts, int[] tris, AREATYPE[] areas, RcHeightfield hf)
         {
+            float[] vert1 = new float[3];
+            float[] vert2 = new float[3];
+            float[] vert3 = new float[3];
 
             int numTris = tris.Length / 3;
             for (int i = 0; i < numTris; i++)
             {
-                Vector3 vert1 = verts[tris[i * 3]];
-                Vector3 vert2 = verts[tris[i * 3 + 1]];
-                Vector3 vert3 = verts[tris[i * 3 + 2]];
+                vert1[0] = verts[tris[i * 3] * 3];
+                vert1[1] = verts[tris[i * 3] * 3 + 1];
+                vert1[2] = verts[tris[i * 3] * 3 + 2];
+
+                vert2[0] = verts[tris[i * 3 + 1] * 3];
+                vert2[1] = verts[tris[i * 3 + 1] * 3 + 1];
+                vert2[2] = verts[tris[i * 3 + 1] * 3 + 2];
+
+                vert3[0] = verts[tris[i * 3 + 2] * 3];
+                vert3[1] = verts[tris[i * 3 + 2] * 3 + 1];
+                vert3[2] = verts[tris[i * 3 + 2] * 3 + 2];
 
                 if (!RasterizeTri(vert1, vert2, vert3, areas[i], hf))
                 {
@@ -25,15 +35,17 @@ namespace GameEditor.RecastEditor
 
         }
 
-        private static bool RasterizeTri(Vector3 v0, Vector3 v1, Vector3 v2, AREATYPE areaType, RcHeightfield hf)
+        private static bool RasterizeTri(float[] v0, float[] v1, float[] v2, AREATYPE areaType, RcHeightfield hf)
         {
-            Vector3 triBBMin = v0;
-            triBBMin = Vector3.Min(triBBMin, v1);
-            triBBMin = Vector3.Min(triBBMin, v2);
+            float[] triBBMin = new float[3];
+            RecastUtility.RcVcopy(triBBMin, v0);
+            RecastUtility.RcVmin(triBBMin, v1);
+            RecastUtility.RcVmin(triBBMin, v2);
 
-            Vector3 triBBMax = v0;
-            triBBMax = Vector3.Max(triBBMax, v1);
-            triBBMax = Vector3.Max(triBBMax, v2);
+            float[] triBBMax = new float[3];
+            RecastUtility.RcVcopy(triBBMax, v0);
+            RecastUtility.RcVmax(triBBMax, v1);
+            RecastUtility.RcVmax(triBBMax, v2);
 
             float[] hfBBMin = hf.minBounds;
             float[] hfBBMax = hf.maxBounds;
@@ -41,8 +53,6 @@ namespace GameEditor.RecastEditor
             float cellSize = hf.cellSize;
             float inverseCellSize = 1 / hf.cellSize;
             float inverseCellHeight = 1 / hf.cellHeight;
-
-
 
             float by = hfBBMax[1] - hfBBMin[1];
 
@@ -56,17 +66,17 @@ namespace GameEditor.RecastEditor
             int z0 = ((int)((triBBMin[2] - hfBBMin[2]) * inverseCellSize));
             int z1 = ((int)((triBBMax[2] - hfBBMin[2]) * inverseCellSize));
 
-            // 案例里写着·使用-1比0 更好的平铺三角形？？，为什么呢
+
             z0 = Math.Clamp(z0, -1, hf.height - 1);
             z1 = Math.Clamp(z1, 0, hf.height - 1);
 
 
-            //三角形被正方形切割最多切割出7边形，存放四组多边形的数据
-            Vector3[] nvInList = new Vector3[7];
-      
-            nvInList[0] = v0;
-            nvInList[1] = v1;
-            nvInList[2] = v2;
+            //三角形被正方形切割最多切割出7边形
+            float[] nvInList = new float[7 * 3];
+
+            Array.Copy(v0, 0, nvInList, 0, 3);
+            Array.Copy(v1, 0, nvInList, 3, 3);
+            Array.Copy(v2, 0, nvInList, 6, 3);
 
 
             int nvIn = 3;
@@ -77,7 +87,7 @@ namespace GameEditor.RecastEditor
                 float cellZ = hfBBMin[2] + (float)z * cellSize;
 
                 //切割三角形，nvRowList 为切割线下半部分的顶点 ,输出的nvInList 为切割线上半部分顶点
-                RecastUtility.DividePoly(nvInList, nvIn, cellZ + cellSize, RcAxis.AXIS_Z, out int nvRow, out nvIn, out Vector3[] nvRowList, out nvInList);
+                RecastUtility.DividePoly(nvInList, nvIn, cellZ + cellSize, RcAxis.AXIS_Z, out int nvRow, out nvIn, out float[] nvRowList, out nvInList);
 
                 //没切割到东西，顶点小于3构不成多边形
                 if (nvRow < 3)
@@ -92,13 +102,13 @@ namespace GameEditor.RecastEditor
 
 
                 //重复之前的步骤，按x轴切割
-                float minX = nvRowList[0][0];
-                float maxX = nvRowList[0][0];
+                float minX = nvRowList[0];
+                float maxX = nvRowList[0];
 
                 for (int vert = 1; vert < nvRow; ++vert)
                 {
 
-                    float x = nvRowList[vert][0];
+                    float x = nvRowList[vert * 3];
 
                     minX = Math.Min(minX, x);
                     maxX = Math.Max(maxX, x);
@@ -122,7 +132,7 @@ namespace GameEditor.RecastEditor
                 for (int x = x0; x <= x1; ++x)
                 {
                     float cellX = hfBBMin[0] + (float)x * cellSize;
-                    RecastUtility.DividePoly(nvRowList, nvIn2, cellX + cellSize, RcAxis.AXIS_X, out int nvRow2, out nvIn2, out Vector3[] p1InList, out nvRowList);
+                    RecastUtility.DividePoly(nvRowList, nvIn2, cellX + cellSize, RcAxis.AXIS_X, out int nvRow2, out nvIn2, out float[] p1InList, out nvRowList);
 
                     if (nvRow2 < 3)
                     {
@@ -134,13 +144,13 @@ namespace GameEditor.RecastEditor
                         continue;
                     }
 
-                    float spanMin = p1InList[0][1];
-                    float spanMax = p1InList[0][1];
+                    float spanMin = p1InList[1];
+                    float spanMax = p1InList[1];
 
                     for (int vert = 1; vert < nvRow2; ++vert)
                     {
 
-                        float y = p1InList[vert][1];
+                        float y = p1InList[vert * 3 + 1];
 
                         spanMin = Math.Min(spanMin, y);
                         spanMax = Math.Max(spanMax, y);
@@ -174,8 +184,8 @@ namespace GameEditor.RecastEditor
                         spanMax = by;
                     }
 
-                    int spanMinCellIndex = (int)Mathf.Max(Mathf.Floor(spanMin * inverseCellHeight), 0);
-                    int spanMaxCellIndex = (int)Mathf.Max(Mathf.Ceil(spanMax * inverseCellHeight), spanMinCellIndex + 1);
+                    int spanMinCellIndex = (int)Math.Max(Math.Floor(spanMin * inverseCellHeight), 0);
+                    int spanMaxCellIndex = (int)Math.Max(Math.Ceiling(spanMax * inverseCellHeight), spanMinCellIndex + 1);
 
                     // 加入高度场
                     if (!AddSpan(hf, x, z, spanMinCellIndex, spanMaxCellIndex, areaType))
@@ -229,9 +239,9 @@ namespace GameEditor.RecastEditor
                         newSpan.max = currentSpan.max;
                     }
 
-                    if (Mathf.Abs(newSpan.max - currentSpan.max) < hf.walkableClimb)
+                    if (Math.Abs(newSpan.max - currentSpan.max) < hf.walkableClimb)
                     {
-                        newSpan.areaID = (AREATYPE)Mathf.Max((int)newSpan.areaID, (int)currentSpan.areaID);
+                        newSpan.areaID = (AREATYPE)Math.Max((int)newSpan.areaID, (int)currentSpan.areaID);
                     }
 
                     //从链表中释放currentSpan
@@ -288,7 +298,7 @@ namespace GameEditor.RecastEditor
 
                         if (!walkable && previousWasWalkable)
                         {
-                            if (Mathf.Abs(span.max - previousSpan.max) <= hf.walkableClimb)
+                            if (Math.Abs(span.max - previousSpan.max) <= hf.walkableClimb)
                             {
                                 span.areaID = previousArea;
                             }
@@ -349,7 +359,7 @@ namespace GameEditor.RecastEditor
                             int neighborTop = neighborSpan != null ? neighborSpan.min : RecastConfig.MAX_HEIGHT;
 
                             //先单独按neighborSpan不存在处理一次minNeighborHeight的值
-                            if (Mathf.Min(top, neighborTop) - Math.Max(bot, neighborBot) > hf.walkableHeight)
+                            if (Math.Min(top, neighborTop) - Math.Max(bot, neighborBot) > hf.walkableHeight)
                             {
                                 minNeighborHeight = Math.Min(minNeighborHeight, neighborBot - bot);
                             }
@@ -360,13 +370,13 @@ namespace GameEditor.RecastEditor
                                 neighborTop = neighborSpan.next != null ? neighborSpan.next.min : RecastConfig.MAX_HEIGHT;
 
                                 // 只处理与上层之间宽度大于walkableHeight的部分
-                                if (Mathf.Min(top, neighborTop) - Math.Max(bot, neighborBot) > hf.walkableHeight)
+                                if (Math.Min(top, neighborTop) - Math.Max(bot, neighborBot) > hf.walkableHeight)
                                 {
 
                                     minNeighborHeight = Math.Min(minNeighborHeight, neighborBot - bot);
 
                                     //寻找相邻的span与自身高度差小于WalkableClimb
-                                    if (Mathf.Abs(neighborBot - bot) <= hf.walkableClimb)
+                                    if (Math.Abs(neighborBot - bot) <= hf.walkableClimb)
                                     {
                                         if (neighborBot < accessibleNeighborMinHeight) accessibleNeighborMinHeight = neighborBot;
                                         if (neighborBot > accessibleNeighborMaxHeight) accessibleNeighborMaxHeight = neighborBot;
@@ -442,7 +452,7 @@ namespace GameEditor.RecastEditor
                         int bot = span.max;
                         int top = span.next != null ? span.next.min : RecastConfig.MAX_HEIGHT;
 
-                        chf.spans[currentCellIndex] = new CompactSpan(Mathf.Clamp(bot, 0, RecastConfig.MAX_HEIGHT), Math.Clamp(top - bot, 0, RecastConfig.MAX_HEIGHT), span.areaID);
+                        chf.spans[currentCellIndex] = new CompactSpan(Math.Clamp(bot, 0, RecastConfig.MAX_HEIGHT), Math.Clamp(top - bot, 0, RecastConfig.MAX_HEIGHT), span.areaID);
                         chf.areas[currentCellIndex] = span.areaID;
 
                         currentCellIndex++;
@@ -488,7 +498,7 @@ namespace GameEditor.RecastEditor
 
 
                                 //与相邻的空心体素的之间的高度大于行走高度，之间的落差小于可攀爬高度
-                                if (((top - bot) >= chf.walkableHeight) && (Mathf.Abs(neighborSpan.y - span.y) <= chf.walkableClimb))
+                                if (((top - bot) >= chf.walkableHeight) && (Math.Abs(neighborSpan.y - span.y) <= chf.walkableClimb))
                                 {
                                     // Mark direction as walkable.
                                     int layerIndex = k - neighborCell.index;
@@ -729,7 +739,7 @@ namespace GameEditor.RecastEditor
         }
 
 
-        public static void RcMarkConvexPolyArea(RcCompactHeightfield chf, Vector3[] vertices, AREATYPE areaId)
+        public static void RcMarkConvexPolyArea(RcCompactHeightfield chf, float[] vertices, AREATYPE areaId)
         {
             int xSize = chf.width;
             int zSize = chf.height;
@@ -798,7 +808,7 @@ namespace GameEditor.RecastEditor
         }
 
 
-        private static bool PointInPoly(Vector3[] verts, float[] point)
+        private static bool PointInPoly(float[] verts, float[] point)
         {
             bool inPoly = false;
             int nvert = verts.Length;
@@ -806,15 +816,15 @@ namespace GameEditor.RecastEditor
 
             for (int i = 0, j = nvert - 1; i < nvert; j = i++)
             {
-                Vector3 vi = verts[i];
-                Vector3 vj = verts[j];
+                int vi = i * 3;
+                int vj = j * 3;
 
-                if ((vi[2] > point[2]) == (vj[2] > point[2]))
+                if ((verts[vi + 2] > point[2]) == (verts[vj + 2] > point[2]))
                 {
                     continue;
                 }
 
-                if (point[0] >= (vj[0] - vi[0]) * (point[2] - vi[2]) / (vj[2] - vi[2]) + vi[0])
+                if (point[0] >= (verts[vj] - verts[vi]) * (point[2] - verts[vi + 2]) / (verts[vj + 2] - verts[vi + 2]) + verts[vi])
                 {
                     continue;
                 }

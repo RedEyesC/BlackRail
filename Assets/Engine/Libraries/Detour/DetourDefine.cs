@@ -1,8 +1,7 @@
 ﻿
-using GameEditor.RecastEditor;
 using System.Collections.Generic;
 
-namespace GameEditor.DetourEditor
+namespace GameFramework.Detour
 {
 
     internal enum DtNodeFlags
@@ -18,7 +17,7 @@ namespace GameEditor.DetourEditor
         DT_POLYTYPE_OFFMESH_CONNECTION = 1
     };
 
-    internal class DtPoly
+    public class DtPoly
     {
         public int firstLink;
 
@@ -31,17 +30,9 @@ namespace GameEditor.DetourEditor
         public int vertCount;
 
         public int areaAndtype;
-
-        public void SetArea(int a) { areaAndtype = (areaAndtype & 0xc0) | (a & 0x3f); }
-
-        public void SetPType(DtPolyTypes t) { areaAndtype = (areaAndtype & 0x3f) | ((int)t << 6); }
-
-        public int GetArea() { return areaAndtype & 0x3f; }
-
-        public int GetPType() { return areaAndtype >> 6; }
     }
 
-    internal class DtLink
+    public class DtLink
     {
         public int refId;
         public int next;
@@ -59,7 +50,7 @@ namespace GameEditor.DetourEditor
         public bool overPoly;
     }
 
-    internal class DtBVNode
+    public class DtBVNode
     {
         public int[] bmin = new int[3];
         public int[] bmax = new int[3];
@@ -67,7 +58,7 @@ namespace GameEditor.DetourEditor
 
     }
 
-    internal class DtNavData
+    public class DtNavData
     {
         public float[] navVerts;
         public int[] verts;
@@ -99,7 +90,6 @@ namespace GameEditor.DetourEditor
         public int walkableClimb;
         public float quantFactor;
 
-        public AREATYPE[] polyAreas;
         public int[] polyFlags;
     }
 

@@ -3,7 +3,7 @@
 using System;
 using UnityEngine;
 
-namespace GameEditor.RecastEditor
+namespace GameFramework.Recast
 {
     public enum AREATYPE
     {
@@ -25,27 +25,28 @@ namespace GameEditor.RecastEditor
         P1 = 14,
         P2 = 21,
     };
-    internal class RecastUtility
+    public class RecastUtility
     {
-        static Vector3 tempVec1 = new Vector3();
-        static Vector3 tempVec2 = new Vector3();
+        static float[] tempVec1 = new float[3];
+        static float[] tempVec2 = new float[3];
 
-        public static Vector3 CalcTriNormal(Vector3 v0, Vector3 v1, Vector3 v2)
+        public static void CalcTriNormal(float[] v0, float[] v1, float[] v2, float[] faceNormal)
         {
-            tempVec1 = v1 - v0;
-            tempVec2 = v2 - v0;
+            RcVsub(tempVec1, v1, v0);
+            RcVsub(tempVec2, v2, v0);
 
-            return Vector3.Normalize(Vector3.Cross(tempVec1, tempVec2));
+            RcVcross(faceNormal, tempVec1, tempVec2);
+            RcVnormalize(faceNormal);
         }
 
-        public static void CalcBounds(Vector3[] verts, out float[] minBounds, out float[] maxBounds)
+        public static void CalcBounds(float[] verts, out float[] minBounds, out float[] maxBounds)
         {
-            minBounds = new float[3] { verts[0][0], verts[0][1], verts[0][2] };
-            maxBounds = new float[3] { verts[0][0], verts[0][1], verts[0][2] };
+            minBounds = new float[3] { verts[0], verts[1], verts[2] };
+            maxBounds = new float[3] { verts[0], verts[1], verts[2] };
 
-            for (int i = 1; i < verts.Length; i++)
+            for (int i = 1; i < verts.Length / 3; i++)
             {
-                float[] vert = { verts[i].x, verts[i].y, verts[i].z };
+                float[] vert = { verts[i * 3], verts[i * 3 + 1], verts[i * 3 + 2] };
 
                 RcVmin(minBounds, vert);
                 RcVmax(maxBounds, vert);
@@ -75,25 +76,24 @@ namespace GameEditor.RecastEditor
         }
 
         //a的包围盒包含于b的包围盒 或者 a的包围盒与b的包围盒相交
-        public static bool OverlapBounds(Vector3 aMin, Vector3 aMax, float[] bMin, float[] bMax)
+        public static bool OverlapBounds(float[] aMin, float[] aMax, float[] bMin, float[] bMax)
         {
             return aMin[0] <= bMax[0] && aMax[0] >= bMin[0] &&
                 aMin[1] <= bMax[1] && aMax[1] >= bMin[1] &&
                 aMin[2] <= bMax[2] && aMax[2] >= bMin[2];
         }
 
-        public static void DividePoly(Vector3[] VertList, int inVertsCount, float axisOffset, RcAxis axis, out int outVerts1Count, out int outVerts2Count, out Vector3[] outVertList1, out Vector3[] outVertList2)
+        public static void DividePoly(float[] vertList, int inVertsCount, float axisOffset, RcAxis axis, out int outVerts1Count, out int outVerts2Count, out float[] outvertList1, out float[] outvertList2)
         {
 
-            Vector3[] outList1 = new Vector3[7];
-            Vector3[] outList2 = new Vector3[7];
+            float[] outList1 = new float[7 * 3];
+            float[] outList2 = new float[7 * 3];
             float[] inVertAxisDelta = new float[12];
             //多边形顶点到切割线的距离
             for (int inVert = 0; inVert < inVertsCount; ++inVert)
             {
-                inVertAxisDelta[inVert] = axisOffset - VertList[inVert][(int)axis];
+                inVertAxisDelta[inVert] = axisOffset - vertList[inVert * 3 + (int)axis];
             }
-
 
             int poly1Vert = 0;
             int poly2Vert = 0;
@@ -108,8 +108,11 @@ namespace GameEditor.RecastEditor
                     float s = inVertAxisDelta[inVertB] / (inVertAxisDelta[inVertB] - inVertAxisDelta[inVertA]);
 
                     //计算出中间点坐标
-                    outList1[poly1Vert] = VertList[inVertB] + (VertList[inVertA] - VertList[inVertB]) * s;
-                    outList2[poly2Vert] = outList1[poly1Vert];
+                    outList1[poly1Vert * 3] = vertList[inVertB * 3] + (vertList[inVertA * 3] - vertList[inVertB * 3]) * s;
+                    outList1[poly1Vert * 3 + 1] = vertList[inVertB * 3 + 1] + (vertList[inVertA * 3 + 1] - vertList[inVertB * 3 + 1]) * s;
+                    outList1[poly1Vert * 3 + 2] = vertList[inVertB * 3 + 2] + (vertList[inVertA * 3 + 2] - vertList[inVertB * 3 + 2]) * s;
+
+                    Array.Copy(outList1, poly1Vert * 3, outList2, poly2Vert * 3, 3);
 
                     poly1Vert++;
                     poly2Vert++;
@@ -118,12 +121,12 @@ namespace GameEditor.RecastEditor
                     //根据a点距离把a点添加到划分好的三角形
                     if (inVertAxisDelta[inVertA] > 0)
                     {
-                        outList1[poly1Vert] = VertList[inVertA];
+                        Array.Copy(vertList, inVertA * 3, outList1, poly1Vert * 3, 3);
                         poly1Vert++;
                     }
                     else if (inVertAxisDelta[inVertA] < 0)
                     {
-                        outList2[poly2Vert] = VertList[inVertA];
+                        Array.Copy(vertList, inVertA * 3, outList2, poly2Vert * 3, 3);
                         poly2Vert++;
                     }
                 }
@@ -132,14 +135,14 @@ namespace GameEditor.RecastEditor
 
                     if (inVertAxisDelta[inVertA] >= 0)
                     {
-                        outList1[poly1Vert] = VertList[inVertA];
+                        Array.Copy(vertList, inVertA * 3, outList1, poly1Vert * 3, 3);
                         poly1Vert++;
                         if (inVertAxisDelta[inVertA] != 0)
                         {
                             continue;
                         }
                     }
-                    outList2[poly2Vert] = VertList[inVertA];
+                    Array.Copy(vertList, inVertA * 3, outList2, poly2Vert * 3, 3);
                     poly2Vert++;
                 }
             }
@@ -147,8 +150,8 @@ namespace GameEditor.RecastEditor
             outVerts1Count = poly1Vert;
             outVerts2Count = poly2Vert;
 
-            outVertList1 = outList1;
-            outVertList2 = outList2;
+            outvertList1 = outList1;
+            outvertList2 = outList2;
 
         }
 
@@ -468,6 +471,22 @@ namespace GameEditor.RecastEditor
             return a[0] * b[0] + a[2] * b[2];
         }
 
+        public static void RcVcross(float[] dest, float[] v1, float[] v2)
+        {
+
+            dest[0] = v1[1] * v2[2] - v1[2] * v2[1];
+            dest[1] = v1[2] * v2[0] - v1[0] * v2[2];
+            dest[2] = v1[0] * v2[1] - v1[1] * v2[0];
+        }
+
+        public static void RcVnormalize(float[] v)
+        {
+            float d = (float)(1.0f / Math.Sqrt(Math.Sqrt(v[0]) + Math.Sqrt(v[1]) + Math.Sqrt(v[2])));
+            v[0] *= d;
+            v[1] *= d;
+            v[2] *= d;
+        }
+
         public static float Vcross2(float[] p1, float[] p2, float[] p3)
         {
 
@@ -503,5 +522,50 @@ namespace GameEditor.RecastEditor
             return dx * dx + dy * dy + dz * dz;
         }
 
+        public static AREATYPE[] RcMarkWalkableTriangles(float walkableSlopeAngle, float[] verts, int[] tris)
+        {
+
+            float walkableThr = (float)Math.Cos(walkableSlopeAngle / 180.0f * RecastConfig.PI);
+
+            int numTris = tris.Length / 3;
+            AREATYPE[] areas = new AREATYPE[numTris];
+
+            float[] norm = new float[3];
+
+            float[] vert1 = new float[3];
+            float[] vert2 = new float[3];
+            float[] vert3 = new float[3];
+
+            for (int i = 0; i < numTris; i++)
+            {
+                vert1[0] = verts[tris[i * 3] * 3];
+                vert1[1] = verts[tris[i * 3] * 3 + 1];
+                vert1[2] = verts[tris[i * 3] * 3 + 2];
+
+                vert2[0] = verts[tris[i * 3 + 1] * 3];
+                vert2[1] = verts[tris[i * 3 + 1] * 3 + 1];
+                vert2[2] = verts[tris[i * 3 + 1] * 3 + 2];
+
+                vert3[0] = verts[tris[i * 3 + 2] * 3];
+                vert3[1] = verts[tris[i * 3 + 2] * 3 + 1];
+                vert3[2] = verts[tris[i * 3 + 2] * 3 + 2];
+
+                //计算三角形法向量
+                CalcTriNormal(vert1, vert2, vert3, norm);
+
+                //法向量在y轴的投影越大，倾斜角度越小
+                if (norm[1] > walkableThr)
+                {
+                    areas[i] = AREATYPE.Walke;
+                }
+                else
+                {
+                    areas[i] = AREATYPE.None;
+                }
+
+            }
+
+            return areas;
+        }
     }
 }

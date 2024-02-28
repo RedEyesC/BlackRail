@@ -2,9 +2,9 @@
 using System;
 using System.Collections.Generic;
 
-namespace GameEditor.RecastEditor
+namespace GameFramework.Recast
 {
-    internal class RecastContour
+    public class RecastContour
     {
         public static void RcBuildRegions(RcCompactHeightfield chf)
         {
