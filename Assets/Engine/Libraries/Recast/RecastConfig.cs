@@ -34,7 +34,7 @@ namespace GameFramework.Recast
         public static readonly float AgentMaxClimb = 2f;
         public static readonly float AgentHeight = 2.0f;
         public static readonly float AgentRadius = 0.6f;
-        public static readonly float CellSize = 0.2f; //xz平面的尺寸
+        public static readonly float CellSize = 0.3f; //xz平面的尺寸
         public static readonly float CellHeight = 0.2f; // y轴的尺寸
 
         public static readonly bool FilterLowHangingObstacles = false;//过滤悬空可走的span

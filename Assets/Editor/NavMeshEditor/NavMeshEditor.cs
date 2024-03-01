@@ -144,9 +144,7 @@ namespace GameEditor.RecastEditor
                 RecastHeightField.RcFilterWalkableLowHeightSpans(hf);
             }
 
-            DrawHeightfield(hf,true);
-
-            return;
+            //DrawHeightfield(hf,true);
 
             //构建空心高度场
             RcCompactHeightfield chf = new RcCompactHeightfield(hf);
@@ -165,7 +163,7 @@ namespace GameEditor.RecastEditor
             //分水岭算法构建区域 
             RecastContour.RcBuildRegions(chf);
 
-            //DrawCompactHeightField(chf, 2);
+            //DrawCompactHeightField(chf, 3);
 
             RcContourSet cset = new RcContourSet(chf);
 
@@ -186,7 +184,7 @@ namespace GameEditor.RecastEditor
             //细化mesh网格
             RecastMeshDetail.RcBuildPolyMeshDetail(pmesh, chf, dmesh);
 
-            //DrawMeshDetail(dmesh);
+            DrawMeshDetail(dmesh);
 
             RecastExport.ExportNavMeshDataToJson(pmesh, dmesh);
 
@@ -231,14 +229,11 @@ namespace GameEditor.RecastEditor
         public static void DrawHeightfield(RcHeightfield hf, bool showWalk = false)
         {
 
-            int total = 0;
-            int walkable = 0;
-
             float[] hfBBMin = hf.minBounds;
             float cellSize = hf.cellSize;
             float cellHeight = hf.cellHeight;
 
-            float[][] cubeList = new float[hf.spans.Length][];
+            List<float> param = new List<float>();
 
             for (int i = 0; i < hf.spans.Length; i++)
             {
@@ -246,64 +241,71 @@ namespace GameEditor.RecastEditor
                 int z = i / hf.width;
 
                 RcSpan currentSpan = hf.spans[i];
-                List<float> spanCube = new List<float>();
+
                 while (currentSpan != null)
                 {
-                    for (int y = currentSpan.max; y < currentSpan.max; y++)
+
+                    for (int y = currentSpan.min; y < currentSpan.max; y++)
                     {
+                        //只绘制最上层方便观察
+                        if (y != currentSpan.max - 1)
+                        {
+                            continue;
+                        }
+
                         float cellX = hfBBMin[0] + (float)x * cellSize + cellSize / 2;
                         float cellZ = hfBBMin[2] + (float)z * cellSize + cellSize / 2;
                         float cellY = hfBBMin[1] + (float)y * cellHeight + cellHeight / 2;
 
-                        total++;
+                        param.Add(1);
+                        param.Add(12);
 
+                        param.Add(i);
+                        param.Add(cellX);
+                        param.Add(cellY);
+                        param.Add(cellZ);
 
-                        spanCube.Add(cellX);
-                        spanCube.Add(cellY);
-                        spanCube.Add(cellZ);
+                        param.Add(cellSize);
+                        param.Add(cellHeight);
+                        param.Add(cellSize);
 
-                        if (showWalk && currentSpan.areaID != AREATYPE.Walke && y == currentSpan.max - 1)
+                        //标记不可行走为红色
+                        if (showWalk && currentSpan.areaID != AREATYPE.Walke)
                         {
-                            spanCube.Add(0);
+                            param.Add(1);
+                            param.Add(0);
+                            param.Add(0);
                         }
                         else
                         {
-                            spanCube.Add(7);
-                            walkable++;
+                            param.Add(0);
+                            param.Add(0);
+                            param.Add(1);
                         }
 
                     }
 
                     currentSpan = currentSpan.next;
                 }
-                cubeList[i] = spanCube.ToArray();
             }
 
-            Vector3 cubeSize = new Vector3(cellSize, cellHeight, cellSize);
 
-            Scene activeScene = SceneManager.GetActiveScene();
-            string activeSceneName = activeScene.name;
-
-            GameObject root = GameObject.Find("/" + activeSceneName);
-
-            if (root.GetComponent<RecastDebugComponent>() == null)
-            {
-                root.AddComponent<RecastDebugComponent>();
-            }
-
-            root.GetComponent<RecastDebugComponent>().SetCubeList(cubeList, cubeSize);
+            SetNavDebug(param.ToArray());
         }
+
+
 
 
         //用于绘制计算出来的空心高度场，绘制距离场参数,并标记区域 ,type 1 距离场,type 2 可行走区域,type 3 划分区域
         public static void DrawCompactHeightField(RcCompactHeightfield chf, int type = 1)
         {
 
-
             float[] hfBBMin = chf.minBounds;
             float cellSize = chf.cellSize;
             float cellHeight = chf.cellHeight;
 
+            Color[] colorMap = {Color.green, Color.blue, Color.white, Color.black,
+                Color.yellow, Color.cyan, Color.magenta, Color.gray };
 
             int w = chf.width;
             int h = chf.height;
@@ -318,16 +320,13 @@ namespace GameEditor.RecastEditor
                 }
             }
 
-            float[][] cubeList = new float[h * w][];
+            List<float> param = new List<float>();
 
             for (int z = 0; z < h; ++z)
             {
                 for (int x = 0; x < w; ++x)
                 {
                     CompactCell c = chf.cells[x + z * w];
-
-
-                    float[] spanCube = new float[c.count * 4];
 
                     for (int i = c.index, ni = (c.index + c.count); i < ni; ++i)
                     {
@@ -339,43 +338,52 @@ namespace GameEditor.RecastEditor
                         float cellZ = hfBBMin[2] + z * cellSize + cellSize / 2;
                         float cellY = hfBBMin[1] + span.y * cellHeight + cellHeight / 2;
 
-                        int index = i - c.index;
+                        param.Add(1);
+                        param.Add(12);
 
-                        spanCube[index * 4] = cellX;
-                        spanCube[index * 4 + 1] = cellY;
-                        spanCube[index * 4 + 2] = cellZ;
+                        param.Add(i);
+                        param.Add(cellX);
+                        param.Add(cellY);
+                        param.Add(cellZ);
+
+                        param.Add(cellSize);
+                        param.Add(cellHeight);
+                        param.Add(cellSize);
+
 
                         if (chf.distanceToBoundary != null && type == 1)
                         {
-                            spanCube[index * 4 + 3] = (float)chf.distanceToBoundary[i] / (float)maxDistance;
+                            float color = (float)chf.distanceToBoundary[i] / (float)maxDistance;
+                            param.Add(color);
+                            param.Add(color);
+                            param.Add(color);
                         }
-                        else if (chf.areas[i] == AREATYPE.Walke && type == 2)
+                        else if (chf.areas[i] != AREATYPE.Walke && type == 2)
                         {
-                            spanCube[index * 4 + 3] = 7;
+                            //标记不可行走为红色
+                            param.Add(1);
+                            param.Add(0);
+                            param.Add(0);
                         }
                         else if (type == 3)
                         {
-                            spanCube[index * 4 + 3] = span.reg;
+                            Color color = colorMap[(int)span.reg % 8];
+                            param.Add(color.r);
+                            param.Add(color.g);
+                            param.Add(color.b);
                         }
-                    }
+                        else
+                        {
+                            param.Add(0);
+                            param.Add(0);
+                            param.Add(1);
+                        }
 
-                    cubeList[x + z * w] = spanCube;
+                    }
                 }
             }
 
-            Vector3 cubeSize = new Vector3(cellSize, cellHeight, cellSize);
-
-            Scene activeScene = SceneManager.GetActiveScene();
-            string activeSceneName = activeScene.name;
-
-            GameObject root = GameObject.Find("/" + activeSceneName);
-
-            if (root.GetComponent<RecastDebugComponent>() == null)
-            {
-                root.AddComponent<RecastDebugComponent>();
-            }
-
-            root.GetComponent<RecastDebugComponent>().SetCubeList(cubeList, cubeSize);
+            SetNavDebug(param.ToArray());
         }
 
 
@@ -383,70 +391,61 @@ namespace GameEditor.RecastEditor
         public static void DrawFieldContour(RcContourSet rcContourSet)
         {
 
-            Scene activeScene = SceneManager.GetActiveScene();
-            string activeSceneName = activeScene.name;
-
-            GameObject root = GameObject.Find("/" + activeSceneName);
-
             float[] hfBBMin = rcContourSet.minBounds;
             float cellSize = rcContourSet.cellSize;
             float cellHeight = rcContourSet.cellHeight;
 
-            if (root.GetComponent<RecastDebugComponent>() == null)
-            {
-                root.AddComponent<RecastDebugComponent>();
-            }
-
-            float[][] vertList = new float[rcContourSet.numConts][];
+            List<float> param = new List<float>();
 
             for (int i = 0; i < rcContourSet.numConts; ++i)
             {
                 RcContour cont = rcContourSet.conts[i];
 
-                float[] contVert = new float[cont.nverts * 4];
+
+                int len = 4 + cont.nverts * 3;
+
+                param.Add(2);
+                param.Add(len);
+                param.Add(i);
+                param.Add(cont.nverts);
 
                 for (int j = 0; j < cont.nverts; j++)
                 {
                     float cellX = hfBBMin[0] + cont.verts[j * 4] * cellSize;
-                    float cellZ = hfBBMin[2] + cont.verts[j * 4 + 2] * cellSize;
                     float cellY = hfBBMin[1] + cont.verts[j * 4 + 1] * cellHeight;
+                    float cellZ = hfBBMin[2] + cont.verts[j * 4 + 2] * cellSize;
 
-                    contVert[j * 4] = cellX;
-                    contVert[j * 4 + 1] = cellY;
-                    contVert[j * 4 + 2] = cellZ;
-                    contVert[j * 4 + 3] = cont.verts[j * 4 + 3];
+                    param.Add(cellX);
+                    param.Add(cellY);
+                    param.Add(cellZ);
 
                 }
-                vertList[i] = contVert;
             }
 
-            root.GetComponent<RecastDebugComponent>().SetContour(vertList);
+            SetNavDebug(param.ToArray());
         }
 
 
         //用于绘制计算出来的分割的多边形
         public static void DrawMesh(RcPolyMesh pmesh)
         {
-            Scene activeScene = SceneManager.GetActiveScene();
-            string activeSceneName = activeScene.name;
-
-            GameObject root = GameObject.Find("/" + activeSceneName);
-
             float[] hfBBMin = pmesh.minBounds;
             float cellSize = pmesh.cellSize;
             float cellHeight = pmesh.cellHeight;
 
-            if (root.GetComponent<RecastDebugComponent>() == null)
-            {
-                root.AddComponent<RecastDebugComponent>();
-            }
+            List<float> param = new List<float>();
 
-            float[][] polyList = new float[pmesh.npolys][];
+            int len = 4 + RecastConfig.MaxVertsPerPoly * 3;
+            float[] po1y = new float[len];
 
             for (int i = 0; i < pmesh.npolys; ++i)
             {
 
-                List<float> ployVert = new List<float>();
+                int count = 0;
+
+                po1y[0] = 2;
+                po1y[1] = len;
+                po1y[2] = i;
 
                 for (int j = 0; j < RecastConfig.MaxVertsPerPoly; j++)
                 {
@@ -462,36 +461,33 @@ namespace GameEditor.RecastEditor
                     float cellZ = hfBBMin[2] + pmesh.verts[vertIndex * 3 + 2] * cellSize;
                     float cellY = hfBBMin[1] + pmesh.verts[vertIndex * 3 + 1] * cellHeight;
 
-                    ployVert.Add(cellX);
-                    ployVert.Add(cellY);
-                    ployVert.Add(cellZ);
-                    ployVert.Add(0);
+                    po1y[4 + count * 3] = cellX;
+                    po1y[4 + count * 3 + 1] = cellY;
+                    po1y[4 + count * 3 + 2] = cellZ;
+
+                    count++;
 
                 }
-                polyList[i] = ployVert.ToArray();
+
+                po1y[3] = count;
+
+                for (int j = 0; j < len; j++)
+                {
+                    param.Add(po1y[j]);
+                }
 
             }
 
-            root.GetComponent<RecastDebugComponent>().SetContour(polyList);
+            SetNavDebug(param.ToArray());
         }
 
 
         //用于绘制计算出来的细化后的多边形
         public static void DrawMeshDetail(RcPolyMeshDetail dmesh)
         {
-            Scene activeScene = SceneManager.GetActiveScene();
-            string activeSceneName = activeScene.name;
 
-            GameObject root = GameObject.Find("/" + activeSceneName);
+            List<float> param = new List<float>();
 
-            if (root.GetComponent<RecastDebugComponent>() == null)
-            {
-                root.AddComponent<RecastDebugComponent>();
-            }
-
-            float[][] triList = new float[dmesh.ntris][];
-
-            int tri = 0;
             for (int i = 0; i < dmesh.nmeshes; i++)
             {
 
@@ -499,10 +495,17 @@ namespace GameEditor.RecastEditor
                 int startTri = dmesh.meshes[i * 4 + 2];
                 int ntris = dmesh.meshes[i * 4 + 3];
 
+                int len = 4 + ntris * 3 * 3;
+
+                param.Add(2);
+                param.Add(len);
+                param.Add(i);
+                param.Add(ntris * 3);
+
+
                 for (int j = 0; j < ntris; ++j)
                 {
 
-                    List<float> ployVert = new List<float>();
                     for (int k = 0; k < 3; k++)
                     {
 
@@ -512,21 +515,16 @@ namespace GameEditor.RecastEditor
                         float cellY = dmesh.verts[(startVert + vertIndex) * 3 + 1];
                         float cellZ = dmesh.verts[(startVert + vertIndex) * 3 + 2];
 
-
-                        ployVert.Add(cellX);
-                        ployVert.Add(cellY);
-                        ployVert.Add(cellZ);
-                        ployVert.Add(0);
+                        param.Add(cellX);
+                        param.Add(cellY);
+                        param.Add(cellZ);
 
                     }
-
-                    triList[tri] = ployVert.ToArray();
-                    tri++;
                 }
 
             }
 
-            root.GetComponent<RecastDebugComponent>().SetContour(triList);
+            SetNavDebug(param.ToArray());
         }
 
 
@@ -571,18 +569,23 @@ namespace GameEditor.RecastEditor
 
             Vector3 cubeSize = new Vector3(cellSize, cellHeight, cellSize);
 
+
+
+        }
+
+        public static void SetNavDebug(float[] val)
+        {
             Scene activeScene = SceneManager.GetActiveScene();
             string activeSceneName = activeScene.name;
 
             GameObject root = GameObject.Find("/" + activeSceneName);
 
-            if (root.GetComponent<RecastDebugComponent>() == null)
+            if (root.GetComponent<NavDebugComponent>() == null)
             {
-                root.AddComponent<RecastDebugComponent>();
+                root.AddComponent<NavDebugComponent>();
             }
 
-            root.GetComponent<RecastDebugComponent>().SetCubeList(cubeList, cubeSize);
-
+            root.GetComponent<NavDebugComponent>().SetDrawParam(val);
         }
     }
 

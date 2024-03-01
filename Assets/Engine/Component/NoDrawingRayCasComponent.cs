@@ -1,9 +1,9 @@
 ﻿using UnityEngine.UI;
 
-public class NoDrawingRayCast : MaskableGraphic
+public class NoDrawingRayCastComponet : MaskableGraphic
 {
 
-    protected NoDrawingRayCast()
+    protected NoDrawingRayCastComponet()
     {
         useLegacyMeshGeneration = false;
     }

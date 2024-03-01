@@ -55,7 +55,7 @@ public static class TransformExtensions
     public static void AddClickEventListener(this Transform t, ClickComponent.EventPosDelegate action)
     {
         if (t.GetComponent<Graphic>() == null)
-            t.gameObject.AddComponent<NoDrawingRayCast>();
+            t.gameObject.AddComponent<NoDrawingRayCastComponet>();
 
         ClickComponent ev = ClickComponent.Get(t);
         if (ev != null)
