@@ -481,10 +481,20 @@ namespace GameFramework.Recast
 
         public static void RcVnormalize(float[] v)
         {
-            float d = (float)(1.0f / Math.Sqrt(Math.Sqrt(v[0]) + Math.Sqrt(v[1]) + Math.Sqrt(v[2])));
+            float d = (float)(1.0f / RcSqrt(Sqrt(v[0]) + Sqrt(v[1]) + Sqrt(v[2])));
             v[0] *= d;
             v[1] *= d;
             v[2] *= d;
+        }
+
+        public static float RcSqrt(float x)
+        {
+            return (float)Math.Sqrt(x);
+        }
+
+        public static float Sqrt(float x)
+        {
+            return x * x;
         }
 
         public static float Vcross2(float[] p1, float[] p2, float[] p3)

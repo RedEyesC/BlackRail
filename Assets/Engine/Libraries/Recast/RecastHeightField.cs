@@ -167,9 +167,9 @@ namespace GameFramework.Recast
                     {
                         continue;
                     }
-                    //recastnavigation 里 spanMin > by ,但是本地测试单独一个正方体体素化的时候，
-                    //假如少了 = ，可能会出现一个片面刚刚和包围盒最上方重合,这时候体素会对多一层，因为spanMaxCellIndex必须至少比spanMinCellIndex大1
-                    if (spanMin >= by)
+
+                   
+                    if (spanMin > by)
                     {
                         continue;
                     }
