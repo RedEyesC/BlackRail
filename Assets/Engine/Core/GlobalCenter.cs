@@ -23,8 +23,6 @@ namespace GameFramework.Runtime
 
             CreateModule<UIManager>();
 
-            CreateModule<ScriptManager>();
-
             CreateModule<AppLoopManager>();
 
             foreach (GameModule module in _gameModules)

@@ -7,9 +7,16 @@
             return "start";
         }
 
+        public override void StateUpdate(float elapseSeconds, float realElapseSeconds)
+        {
+            GameCenter.Update(elapseSeconds, realElapseSeconds);
+
+        }
+
         public override void StateEnter(params object[] paramList)
         {
-            GlobalCenter.GetModule<ScriptManager>().CallGameStart();
+            GameCenter.CreateInstance();
+            GameCenter.Start();
         }
     }
 }
