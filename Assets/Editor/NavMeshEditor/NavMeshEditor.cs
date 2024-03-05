@@ -177,14 +177,14 @@ namespace GameEditor.RecastEditor
             //构建PolyMesh
             RecastMesh.RcBuildPolyMesh(cset, pmesh);
 
-            //DrawMesh(pmesh);
+            DrawMesh(pmesh);
 
             RcPolyMeshDetail dmesh = new RcPolyMeshDetail();
 
             //细化mesh网格
             RecastMeshDetail.RcBuildPolyMeshDetail(pmesh, chf, dmesh);
 
-            DrawMeshDetail(dmesh);
+            //DrawMeshDetail(dmesh);
 
             RecastExport.ExportNavMeshDataToJson(pmesh, dmesh);
 
@@ -219,9 +219,9 @@ namespace GameEditor.RecastEditor
 
             dtnav.Init(param);
 
-            dtnav.SearchPath(-6.13, -2.33, 20.7, 0.45, 15.41, 11.54);
+            float[] path = dtnav.SearchPath(-6.13, -2.33, 20.7, 0.45, 15.41, 11.54);
             //dtnav.SearchPath(-6.13, -2.33, 20.7, 17.2, -2.2, 27.09);
-
+            //DrawPath(path);
         }
 
 
@@ -292,8 +292,6 @@ namespace GameEditor.RecastEditor
 
             SetNavDebug(param.ToArray());
         }
-
-
 
 
         //用于绘制计算出来的空心高度场，绘制距离场参数,并标记区域 ,type 1 距离场,type 2 可行走区域,type 3 划分区域
@@ -527,51 +525,80 @@ namespace GameEditor.RecastEditor
             SetNavDebug(param.ToArray());
         }
 
-
-        //用于绘制计算出来的RcHeightPatch
-        public static void DrawHeightPatch(RcHeightPatch hp, RcCompactHeightfield chf)
+        //用于绘制计算出来的寻路结果
+        public static void DrawPath(float[] path)
         {
 
-            float[] hfBBMin = chf.minBounds;
-            float cellSize = chf.cellSize;
-            float cellHeight = chf.cellHeight;
+            List<float> param = new List<float>();
 
-            int w = hp.width;
-            int h = hp.height;
+            int count = path.Length/3;
 
-            float[][] cubeList = new float[w * h][];
-
-            for (int y = 0; y < h; ++y)
+            for (int i = 0; i < count - 1; i++)
             {
-                for (int x = 0; x < w; ++x)
-                {
-                    int i = x + y * w;
 
-                    float[] spanCube = new float[4];
+                int i1 = (i + 1) % count;
 
-                    if (hp.data[i] == RecastConfig.RC_UNSET_HEIGHT)
-                    {
-                        hp.data[i] = 50;
-                    }
+                param.Add(3);
+                param.Add(9);
+                param.Add(i);
 
-                    float cellX = hfBBMin[0] + (hp.xmin + x) * cellSize + cellSize / 2;
-                    float cellZ = hfBBMin[2] + (hp.ymin + y) * cellSize + cellSize / 2;
-                    float cellY = hfBBMin[1] + (hp.data[i]) * cellHeight + cellHeight / 2;
+                param.Add(path[i * 3]);
+                param.Add(path[i * 3 + 1]);
+                param.Add(path[i * 3 + 2]);
 
-                    spanCube[0] = cellX;
-                    spanCube[1] = cellY;
-                    spanCube[2] = cellZ;
-                    spanCube[3] = 7;
+                param.Add(path[i1 * 3]);
+                param.Add(path[i1 * 3 + 1]);
+                param.Add(path[i1 * 3 + 2]);
 
-                    cubeList[x + y * w] = spanCube;
-                }
             }
 
-            Vector3 cubeSize = new Vector3(cellSize, cellHeight, cellSize);
-
-
-
+            SetNavDebug(param.ToArray());
         }
+
+        //用于绘制计算出来的RcHeightPatch
+        //public static void DrawHeightPatch(RcHeightPatch hp, RcCompactHeightfield chf)
+        //{
+
+        //    float[] hfBBMin = chf.minBounds;
+        //    float cellSize = chf.cellSize;
+        //    float cellHeight = chf.cellHeight;
+
+        //    int w = hp.width;
+        //    int h = hp.height;
+
+        //    float[][] cubeList = new float[w * h][];
+
+        //    for (int y = 0; y < h; ++y)
+        //    {
+        //        for (int x = 0; x < w; ++x)
+        //        {
+        //            int i = x + y * w;
+
+        //            float[] spanCube = new float[4];
+
+        //            if (hp.data[i] == RecastConfig.RC_UNSET_HEIGHT)
+        //            {
+        //                hp.data[i] = 50;
+        //            }
+
+        //            float cellX = hfBBMin[0] + (hp.xmin + x) * cellSize + cellSize / 2;
+        //            float cellZ = hfBBMin[2] + (hp.ymin + y) * cellSize + cellSize / 2;
+        //            float cellY = hfBBMin[1] + (hp.data[i]) * cellHeight + cellHeight / 2;
+
+        //            spanCube[0] = cellX;
+        //            spanCube[1] = cellY;
+        //            spanCube[2] = cellZ;
+        //            spanCube[3] = 7;
+
+        //            cubeList[x + y * w] = spanCube;
+        //        }
+        //    }
+
+        //    Vector3 cubeSize = new Vector3(cellSize, cellHeight, cellSize);
+
+
+
+        //}
 
         public static void SetNavDebug(float[] val)
         {

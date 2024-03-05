@@ -40,13 +40,26 @@ namespace GameFramework.Detour
 
         public float[] SearchPath(double startX, double startY, double startZ, double endX, double endY, double endZ)
         {
-            return SearchPath((float)startX, (float)startY, (float)startZ, (float)endX, (float)endY, (float)endZ);
+            float[] straight = new float[256 * 3];
+            int straightPathCount = 0;
+
+            SearchPath((float)startX, (float)startY, (float)startZ, (float)endX, (float)endY, (float)endZ, straight, ref straightPathCount);
+
+            float[] path = new float[straightPathCount * 3];
+
+            for (int i = 0; i < straightPathCount; i++)
+            {
+                path[i * 3] = straight[i * 3];
+                path[i * 3 + 1] = straight[i * 3 + 1];
+                path[i * 3 + 2] = straight[i * 3 + 2];
+            }
+
+            return path;    
         }
 
 
-        public float[] SearchPath(float startX, float startY, float startZ, float endX, float endY, float endZ)
+        public float[] SearchPath(float startX, float startY, float startZ, float endX, float endY, float endZ, float[] straight, ref int straightPathCount)
         {
-            float[] straight = new float[256 * 3];
 
             float[] startPos = { startX, startY, startZ };
             float[] endPos = { endX, endY, endZ };
@@ -59,13 +72,13 @@ namespace GameFramework.Detour
             FindNearestPoly(startPos, newStarPos, ref startRef);
             FindNearestPoly(endPos, newEndPos, ref endRef);
 
-            if (startRef < 0 || endRef < 0)
+            if (startRef > 0 && endRef > 0)
             {
                 int[] polys = FindPath(startRef, endRef, newStarPos, newEndPos);
 
                 if (polys.Length > 0)
                 {
-                    FindStraightPath(newStarPos, newEndPos, polys, straight);
+                    FindStraightPath(newStarPos, newEndPos, polys, straight, ref straightPathCount);
                 }
             }
 
@@ -332,7 +345,7 @@ namespace GameFramework.Detour
             DetourUtility.DtVlerp(closest, pmin, pmax, tmin);
         }
 
-        private int[] FindPath(int startRef, int endRef, float[] startPos, float[] endPos)
+        public int[] FindPath(int startRef, int endRef, float[] startPos, float[] endPos)
         {
 
             if (startRef == endRef)
@@ -453,11 +466,9 @@ namespace GameFramework.Detour
         }
 
         //漏洞算法规划最短路径 https://www.cnblogs.com/pointer-smq/p/11332897.html
-        private void FindStraightPath(float[] startPos, float[] endPos, int[] path, float[] straightPath)
+        public void FindStraightPath(float[] startPos, float[] endPos, int[] path, float[] straightPath, ref int straightPathCount)
         {
 
-
-            int straightPathCount = 0;
             int pathSize = path.Length;
 
 
@@ -480,10 +491,11 @@ namespace GameFramework.Detour
                 int leftIndex = 0;
                 int rightIndex = 0;
 
+                float[] left = new float[3];
+                float[] right = new float[3];
+
                 for (int i = 0; i < pathSize; ++i)
                 {
-                    float[] left = new float[3];
-                    float[] right = new float[3];
 
                     //判断是否是最后一个节点
                     if (i + 1 < pathSize)

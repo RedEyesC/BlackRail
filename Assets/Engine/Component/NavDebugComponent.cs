@@ -29,7 +29,7 @@ public class NavDebugComponent : MonoBehaviour
                         break;
 
                     case 2:
-                        int lineId = (int)parameterList[index + 2];
+                        int meshId = (int)parameterList[index + 2];
                         int nverts = (int)parameterList[index + 3];
 
                         int vertIndex = index + 4;
@@ -40,9 +40,16 @@ public class NavDebugComponent : MonoBehaviour
                             Vector3 v1 = new Vector3(parameterList[vertIndex + j * 3], parameterList[vertIndex + j * 3 + 1], parameterList[vertIndex + j * 3 + 2]);
                             Vector3 v2 = new Vector3(parameterList[vertIndex + j1 * 3], parameterList[vertIndex + j1 * 3 + 1], parameterList[vertIndex + j1 * 3 + 2]);
 
-                            DrawLine(lineId, v1, v2, Color.blue);
+                            DrawLine(meshId, v1, v2, Color.blue);
                         }
                         break;
+                    case 3:
+                        int lineId = (int)parameterList[index + 2];
+                        Vector3 l1 = new Vector3(parameterList[index + 3], parameterList[index + 4], parameterList[index + 5]);
+                        Vector3 l2 = new Vector3(parameterList[index + 6], parameterList[index + 7], parameterList[index + 8]);
+                        DrawLine(lineId, l1, l2, Color.blue);
+                        break;
+
                 }
 
                 index += len;
