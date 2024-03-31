@@ -26,7 +26,7 @@ namespace GameFramework.Runtime
                 _mapId = 0;
 
                 string path = Utils.GetMapPath(_mapId);
-                _requestId = GlobalCenter.GetModule<AssetManager>().UnLoadSceneAsync(path);
+                //_requestId = GlobalCenter.GetModule<AssetManager>().UnLoadSceneAsync(path);
 
             }
         }
@@ -35,7 +35,7 @@ namespace GameFramework.Runtime
         {
             _mapId = mapId;
             string path = Utils.GetMapPath(mapId);
-            _requestId = GlobalCenter.GetModule<AssetManager>().LoadSceneAsync(path, OnLoadResFinish);
+            //_requestId = GlobalCenter.GetModule<AssetManager>().LoadSceneAsync(path, OnLoadResFinish);
 
         }
 

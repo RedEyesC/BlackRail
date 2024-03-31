@@ -27,12 +27,12 @@ namespace GameFramework.Runtime
 
         private Vector3 _tmpVector = new Vector3();
 
-        private bool _colliderCheckEnable = true;
+        //private bool _colliderCheckEnable = true;
         public Vector3 _colliderOffset = new Vector3(0, 0.5f, 0);
         public float _sphereCastRadius = 0.2f;
         public float _colliderPointOffset = 0.12f;
         private float _colliderDistt = 0f;
-        private float _colliderFadeOutSpeed = 2;
+        //private float _colliderFadeOutSpeed = 2;
 
 
         public override void Destroy()

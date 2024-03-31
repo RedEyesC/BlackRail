@@ -1,35 +1,46 @@
-using UnityEngine;
+
+
 using System.Collections.Generic;
-using System.Diagnostics;
-using System;
+using UnityEngine;
 
 namespace GameFramework.Runtime
 {
-    public delegate void RequestCallBack(int reqID, bool isSuccess);
+    public enum ResMod
+    {
+        Raw,
+        Bundle
+    }
 
+    public interface IRecyclable
+    {
+        void EndRecycle();
+        bool CanRecycle();
+        bool IsUnused();
+        void RecycleAsync();
+        bool Recycling();
+    }
 
     public class AssetManager : GameModule
     {
+        private static readonly Dictionary<string, RequestQueue> _queuesMap = new Dictionary<string, RequestQueue>();
+        private static readonly List<RequestQueue> _queues = new List<RequestQueue>();
+        private static readonly Queue<RequestQueue> _append = new Queue<RequestQueue>();
 
+        private static float _elapseSeconds;
 
-        private int _assetReqID = 0;
-        private Dictionary<int, AssetRequest> _assetRequestMap = new Dictionary<int, AssetRequest>();
-        private Queue<AssetRequest> _assetRequestCache = new Queue<AssetRequest>();
+        private static byte _updateMaxRequests = maxRequests;
+        public static bool autoslicing { get; set; } = true;
+        public static bool Working => _queues.Exists(o => o.working);
 
-        private Queue<int> _finishRequestQueue = new Queue<int>();
+        public static bool busy =>
+            autoslicing && _elapseSeconds > autoslicingTimestep;
 
-        private Dictionary<string, AssetInfo> _assetInfoMap = new Dictionary<string, AssetInfo>();
+        public static float autoslicingTimestep { get; set; } = 1f / 60f;
+        public static byte maxRequests { get; set; } = 10;
 
-        private LinkedListNode<AssetTask> _curTaskNode = null;
-        private LinkedList<AssetTask> _taskList = new LinkedList<AssetTask>();
-        private Stack<LinkedListNode<AssetTask>> _taskNodeCache = new Stack<LinkedListNode<AssetTask>>();
-
-
-        private struct LoadAssetInfo
-        {
-
-
-        }
+        private static readonly Queue<Object> UnusedAssets = new Queue<Object>();
+        private static readonly List<IRecyclable> Recyclables = new List<IRecyclable>();
+        private static readonly List<IRecyclable> Progressing = new List<IRecyclable>();
 
         public override void Start()
         {
@@ -38,253 +49,168 @@ namespace GameFramework.Runtime
 
         public override void Update(float elapseSeconds, float realElapseSeconds)
         {
+            _elapseSeconds = Time.realtimeSinceStartup;
 
-            _curTaskNode = _taskList.First;
-            LinkedListNode<AssetTask> tmpNode = null;
-            while ((_curTaskNode != null))
-
+            if (_append.Count > 0)
             {
-                if (_curTaskNode.Value.Update())
+                while (_append.Count > 0)
                 {
-                    _curTaskNode.Value.Reset();
-                    tmpNode = _curTaskNode;
-                    _curTaskNode = _curTaskNode.Next;
+                    var item = _append.Dequeue();
+                    _queues.Add(item);
+                }
 
-                    _taskList.Remove(tmpNode);
-                    tmpNode.Value = null;
-                    //把使用完的节点压入缓存队列，等待下次复用
-                    _taskNodeCache.Push(tmpNode);
-                }
-                else
-                {
-                    _curTaskNode = _curTaskNode.Next;
-                }
+                _queues.Sort(Comparison);
             }
+
+            foreach (var queue in _queues)
+                if (!queue.Update())
+                    break;
+
+            ResizeIfNeed();
+
+            if (UnusedAssets.Count > 0)
+            {
+                while (UnusedAssets.Count > 0)
+                {
+                    var item = UnusedAssets.Dequeue();
+                    Resources.UnloadAsset(item);
+                }
+
+                Resources.UnloadUnusedAssets();
+            }
+
+            for (var index = 0; index < Recyclables.Count; index++)
+            {
+                var request = Recyclables[index];
+                if (!request.CanRecycle()) continue;
+
+                Recyclables.RemoveAt(index);
+                index--;
+
+                // 卸载的资源加载好后，可能会被再次使用
+                if (!request.IsUnused()) continue;
+                request.RecycleAsync();
+                Progressing.Add(request);
+            }
+
+            for (var index = 0; index < Progressing.Count; index++)
+            {
+                var request = Progressing[index];
+                if (request.Recycling()) continue;
+                Progressing.RemoveAt(index);
+                index--;
+                if (request.CanRecycle() && request.IsUnused()) request.EndRecycle();
+                if (busy) return;
+            }
+
+        }
+
+        #region scheduler
+
+        private static int Comparison(RequestQueue x, RequestQueue y)
+        {
+            return x.priority.CompareTo(y.priority);
+        }
+
+        private static void ResizeIfNeed()
+        {
+            if (_updateMaxRequests == maxRequests) return;
+
+            foreach (var queue in _queues) queue.maxRequests = maxRequests;
+
+            _updateMaxRequests = maxRequests;
+        }
+
+        public static void Enqueue(Request request)
+        {
+            var key = request.GetType().Name;
+            if (!_queuesMap.TryGetValue(key, out var queue))
+            {
+                queue = new RequestQueue { key = key, maxRequests = maxRequests, priority = request.priority };
+                _queuesMap.Add(key, queue);
+                _append.Enqueue(queue);
+            }
+
+            queue.Enqueue(request);
         }
 
         public override void Destroy()
         {
-            _assetRequestMap.Clear();
-            _finishRequestQueue.Clear();
-
-            _assetInfoMap.Clear();
-
-            _assetReqID = 0;
-            _assetRequestCache.Clear();
-
-
-            _curTaskNode = null;
-            _taskList.Clear();
-            _taskNodeCache.Clear();
-
 
         }
 
 
         public void Restart()
         {
-            _assetRequestMap.Clear();
-            _finishRequestQueue.Clear();
-
-
-            _curTaskNode = null;
-            _taskList.Clear();
-            _taskNodeCache.Clear();
 
         }
 
-
-        #region Asset Task
-
-        public void AddTask(AssetTask task)
-        {
-            if (_taskNodeCache.Count > 0)
-            {
-                LinkedListNode<AssetTask> node = _taskNodeCache.Pop();
-                node.Value = task;
-                _taskList.AddLast(node);
-            }
-            else
-            {
-                _taskList.AddLast(task);
-            }
-        }
-
-        public int GetTaskNum()
-        {
-            return _taskList.Count;
-        }
-
-        public void SetMaxTaskNum(int n)
-        {
-            AssetTask.SetMaxTaskNum(n);
-        }
         #endregion
 
 
 
-        #region Get Asset
-        public AssetInfo GetAssetInfo(string assetName)
-        {
-            AssetInfo info = null;
-            if (_assetInfoMap.TryGetValue(assetName, out info))
-            {
-                return info;
-            }
-            else
-            {
-                info = new AssetInfo(assetName);
-                _assetInfoMap.Add(assetName, info);
+        #region Request
 
-            }
-            return info;
+        public static AssetRequest LoadAssetAsync(string bundleName, string assetName, bool isAll = false, System.Action<Request> callback = null)
+        {
+            return AssetRequest.Load(bundleName, assetName, isAll, callback);
         }
 
-        public UnityEngine.Object GetAssetObj(string assetName)
+        public static void UnLoadAssetAsync(AssetRequest req)
         {
-            AssetInfo info = GetAssetInfo(assetName);
-            if (info != null)
-            {
-                return info.GetAssetObj();
-            }
+            req.Release();
+        }
+
+        #endregion
+
+        #region Reycle
+
+        public static void UnloadAsset(Object asset)
+        {
+            UnusedAssets.Enqueue(asset);
+        }
+
+
+        public static void RecycleAsync(IRecyclable recyclable)
+        {
+            // 防止重复回收
+            if (Recyclables.Contains(recyclable) || Progressing.Contains(recyclable))
+                return;
+            Recyclables.Add(recyclable);
+        }
+
+        #endregion
+
+
+        #region Asset
+
+        public static UnityEngine.Object GetAssetObj(string bundleName, string assetName)
+        {
+            return AssetRequest.Get<Object>(bundleName, assetName);
+        }
+
+        public static T GetAssetObjWithType<T>(string bundleName, string assetName) where T : Object
+        {
+            return AssetRequest.Get<T>(bundleName, assetName);
+        }
+
+        public static T[] GetAssetAllObjWithType<T>(string bundleName, string assetName) where T : Object
+        {
+            return AssetRequest.GetAll<T>(bundleName, assetName);
+        }
+
+        #endregion
+
+
+        #region Depend
+
+        //TODO
+        public static string[] GetBundleDepend(string bundleName)
+        {
             return null;
         }
 
-        public T GetAssetObjWithType<T>(string assetName) where T : class
-        {
-            AssetInfo info = GetAssetInfo(assetName);
-            if (info != null)
-            {
-                return info.GetAssetObjWithType<T>();
-            }
-            return null;
-        }
         #endregion
-
-
-
-
-        #region Request Load Asset
-
-        public int LoadSceneAsync(string assetName, RequestCallBack callback = null)
-        {
-            AssetRequest req = CreateAssetRequest(assetName, callback, AssetRequestType.LoadScene);
-            req.ProcessRequest();
-            return req.requestID;
-        }
-
-        public int UnLoadSceneAsync(string assetName, RequestCallBack callback = null)
-        {
-            AssetRequest req = CreateAssetRequest(assetName, callback, AssetRequestType.UnloadScene);
-            req.ProcessRequest();
-            return req.requestID;
-        }
-
-
-        public int LoadAssetAsync(string assetName, RequestCallBack callback = null)
-        {
-            AssetRequest req = CreateAssetRequest(assetName, callback, AssetRequestType.LoadOne);
-            req.ProcessRequest();
-            return req.requestID;
-        }
-
-        public int LoadAllAssetAsync(string assetName, RequestCallBack callback = null)
-        {
-            AssetRequest req = CreateAssetRequest(assetName, callback, AssetRequestType.LoadAll);
-            req.ProcessRequest();
-            return req.requestID;
-        }
-
-
-        public int UnLoadAssetAsync(string assetName, RequestCallBack callback = null)
-        {
-            AssetRequest req = CreateAssetRequest(assetName, callback, AssetRequestType.UnloadOne);
-            req.ProcessRequest();
-            return req.requestID;
-        }
-
-        public void UnLoad(int reqID)
-        {
-            AssetRequest req = GetAssetRequest(reqID);
-            if (req != null)
-            {
-                req.isCancel = true;
-                if (!req.isRunning)
-                    FreeLoadRequest(req);
-            }
-        }
-
-        public void UnLoadUnuseAsset()
-        {
-            UnloadUnuseAssetTask task = new UnloadUnuseAssetTask();
-            AddTask(task);
-        }
-
-        #endregion
-
-        #region Asset Request
-        private AssetRequest GetAssetRequest(int reqID)
-        {
-            AssetRequest req = null;
-            _assetRequestMap.TryGetValue(reqID, out req);
-            return req;
-        }
-
-        private AssetRequest CreateAssetRequest(string assetName, RequestCallBack callback, AssetRequestType type)
-        {
-
-            AssetInfo info = GetAssetInfo(assetName);
-
-
-            AssetRequest req = null;
-            if (_assetRequestCache.Count > 0)
-                req = _assetRequestCache.Dequeue();
-            else
-                req = new AssetRequest(info, type, OnRequestFinish);
-
-            req.requestID = ++_assetReqID;
-            req.SetTaskFinishCallBack(callback);
-
-            _assetRequestMap.Add(req.requestID, req);
-
-            return req;
-        }
-
-        private void OnRequestFinish(AssetRequest req)
-        {
-            if (req.isCancel)
-                FreeLoadRequest(req);
-            else
-                _finishRequestQueue.Enqueue(req.requestID);
-        }
-
-        private void FreeLoadRequest(AssetRequest req)
-        {
-            if (_assetRequestMap.ContainsKey(req.requestID))
-            {
-                _assetRequestMap.Remove(req.requestID);
-            }
-
-            req.Reset();
-
-            _assetRequestCache.Enqueue(req);
-        }
-        #endregion
-
-
-        public GameObject CreateAsset(string assetName)
-        {
-            GameObject viewObj = GlobalCenter.GetModule<AssetManager>().GetAssetObjWithType<GameObject>(assetName);
-            GameObject go = GameObject.Instantiate<GameObject>(viewObj);
-
-            return go;
-        }
-
-
-        public void DestoryAsset(GameObject go)
-        {
-            UnityEngine.GameObject.Destroy(go);
-        }
 
     }
 

@@ -17,7 +17,7 @@ namespace GameFramework.Runtime
         {
             if (isSuccess)
             {
-                _obj = GlobalCenter.GetModule<AssetManager>().CreateAsset(_path);
+                //_obj = GlobalCenter.GetModule<AssetManager>().CreateAsset(_path);
             }
 
             if (_loadCallBack != null)
@@ -35,13 +35,13 @@ namespace GameFramework.Runtime
 
             if (_obj != null)
             {
-                GlobalCenter.GetModule<AssetManager>().DestoryAsset(_obj);
+                //GlobalCenter.GetModule<AssetManager>().DestoryAsset(_obj);
             }
 
             _path = path;
             _loadCallBack = cb;
 
-            _reqId = GlobalCenter.GetModule<AssetManager>().LoadAssetAsync(path, OnLoadResFinish);
+            //_reqId = GlobalCenter.GetModule<AssetManager>().LoadAssetAsync(path, OnLoadResFinish);
 
 
         }

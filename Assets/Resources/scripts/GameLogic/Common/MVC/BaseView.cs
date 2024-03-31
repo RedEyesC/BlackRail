@@ -7,21 +7,11 @@ namespace GameFramework.Runtime
     {
         protected object[] _openParams;
 
-        protected int _cacheTime = 60;
+        protected int _cacheTime = 10;
         private int _cacheTimeID = 0;
-
-        private List<int> _refPackageReqList = new List<int>();
+        protected UIState _state = UIState.Close;
+        private List<AssetRequest> _refPackageReqList = new List<AssetRequest>();
         private int _refPackageReqFinishNum;
-
-        protected bool isOpen
-        {
-            get
-            {
-                return _state == UIState.Open;
-            }
-        }
-
-
 
         public void Open(params object[] paramList)
         {
@@ -49,12 +39,13 @@ namespace GameFramework.Runtime
 
         }
 
-        protected override void Close(bool immediately = false)
+        protected abstract void OnOpen(params object[] paramList);
+
+        protected void Close(bool immediately = false)
         {
 
             if (_state == UIState.Open)
             {
-                base.Close(immediately);
                 OnClose();
 
                 SetVisible(false);
@@ -69,7 +60,7 @@ namespace GameFramework.Runtime
                 {
                     if (_cacheTimeID == 0)
                     {
-                        _cacheTimeID = GlobalCenter.GetModule<TimerManager>().SetTimeout(() =>
+                        _cacheTimeID = TimerManager.SetTimeout(() =>
                         {
                             UnLoadRes();
                             _state = UIState.Close;
@@ -88,6 +79,8 @@ namespace GameFramework.Runtime
             }
         }
 
+        protected abstract void OnClose();
+
         protected void ShowLayout()
         {
             SetVisible(true);
@@ -98,14 +91,12 @@ namespace GameFramework.Runtime
             _refPackageReqList.Clear();
             _refPackageReqFinishNum = 0;
 
-            string path = Utils.GetUIPrefabPath(_packageName, _comName);
-
-            int id = GlobalCenter.GetModule<AssetManager>().LoadAssetAsync(path,OnLoadResFinish);
-
-            _refPackageReqList.Add(id);
+            string bundleName = Utils.GetUIBundlePath(_packageName);
+            AssetRequest req  = AssetManager.LoadAssetAsync(bundleName, _comName, true, OnLoadResFinish);
+            _refPackageReqList.Add(req);
         }
 
-        private void OnLoadResFinish(int requestID, bool isSuccess)
+        private void OnLoadResFinish(Request request)
         {
             _refPackageReqFinishNum++;
 
@@ -128,13 +119,12 @@ namespace GameFramework.Runtime
 
         private void UnLoadPackage()
         {
-
             if (_refPackageReqList.Count > 0)
             {
 
-                foreach (var id in _refPackageReqList)
+                foreach (var req in _refPackageReqList)
                 {
-                    GlobalCenter.GetModule<AssetManager>().UnLoad(id);
+                    AssetManager.UnLoadAssetAsync(req);
                 }
 
                 _refPackageReqList.Clear();
@@ -147,7 +137,7 @@ namespace GameFramework.Runtime
         {
             if (_cacheTimeID > 0)
             {
-                GlobalCenter.GetModule<TimerManager>().ClearTimer(_cacheTimeID);
+                TimerManager.ClearTimer(_cacheTimeID);
                 _cacheTimeID = 0;
             }
         }
@@ -162,12 +152,14 @@ namespace GameFramework.Runtime
 
         }
 
-        public void SetVisible(bool val)
+
+        protected bool isOpen
         {
-            if (_root)
+            get
             {
-                _root.SetActive(val);
+                return _state == UIState.Open;
             }
         }
+
     }
 }

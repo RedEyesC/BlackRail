@@ -125,15 +125,16 @@ namespace GameFramework.Runtime
         }
 
 
-        public GameObject CreateLayout(string assetName)
+        public GameObject CreateLayout(string bundleName, string assetName)
         {
-            GameObject viewObj = GlobalCenter.GetModule<AssetManager>().GetAssetObjWithType<GameObject>(assetName);
+            GameObject viewObj = AssetManager.GetAssetObjWithType<GameObject>(bundleName, assetName);
 
             GameObject go = GameObject.Instantiate<GameObject>(viewObj);
             _UIRootTrans.AddChild(go.transform);
 
             return go;
         }
+
 
         public void DestroyLayout(GameObject go)
         {

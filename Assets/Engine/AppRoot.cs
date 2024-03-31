@@ -13,6 +13,9 @@ namespace GameFramework.Runtime
         // Start is called before the first frame update
         void Start()
         {
+
+            InitInterface();
+
             GlobalCenter.CreateInstance();
 
             GlobalCenter.Start();
@@ -27,6 +30,13 @@ namespace GameFramework.Runtime
         void OnDestroy()
         {
             GlobalCenter.Destroy();
+        }
+
+        void InitInterface()
+        {
+            AppInterface.StartCoroutine = StartCoroutine;
+            AppInterface.StopCoroutine = StopCoroutine;
+            AppInterface.AddComponent = gameObject.AddComponent;
         }
     }
 }

@@ -1,6 +1,4 @@
-﻿
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace GameFramework.Runtime
@@ -8,8 +6,8 @@ namespace GameFramework.Runtime
     internal abstract class BaseCtrl
     {
 
-        private Dictionary<string, Type> _viewDefines = new Dictionary<string, Type>();
-        private Dictionary<string, BaseView> _viewMap = new Dictionary<string, BaseView>();
+        private static Dictionary<string, Type> _viewDefines = new Dictionary<string, Type>();
+        private static Dictionary<string, BaseView> _viewMap = new Dictionary<string, BaseView>();
 
         protected void RegisterView(string viewName, Type viewType)
         {
@@ -20,7 +18,7 @@ namespace GameFramework.Runtime
         }
 
 
-        protected void OpenView(string viewName, params object[] paramList)
+        protected static void OpenView(string viewName, params object[] paramList)
         {
             BaseView view = GetView(viewName);
             if (view != null)
@@ -29,7 +27,7 @@ namespace GameFramework.Runtime
             }
         }
 
-        public BaseView GetView(string name)
+        public static BaseView GetView(string name)
         {
             if (_viewDefines.ContainsKey(name))
             {

@@ -3,10 +3,16 @@
     internal class Utils
     {
 
-        public static string GetUIPrefabPath(string pkgName ,string comName)
+        public static string GetUIPrefabPath(string pkgName, string comName)
         {
-            return  string.Format("ui/{0}/{1}",pkgName, comName);
+            return string.Format("UI/{0}/{1}", pkgName, comName);
         }
+
+        public static string GetUIBundlePath(string pkgName)
+        {
+            return string.Format("UI/{0}.ab", pkgName);
+        }
+
 
         public static string GetMapPath(int mapId)
         {

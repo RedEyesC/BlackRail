@@ -6,16 +6,18 @@ namespace GameFramework.Runtime
 {
     public class TimerEvent
     {
-        public int time = 0;
-        public int id = 0;
-        public float tickTime = 0;
+        public float time;
+        public int id;
+        public float tickTime;
+        public bool tick;
         public System.Action callBack;
-        public TimerEvent(System.Action callBack, int time, int id, float tickTime)
+        public TimerEvent(System.Action callBack, float time, float tickTime, bool tick, int id)
         {
             this.id = id;
             this.time = time;
             this.tickTime = tickTime;
             this.callBack = callBack;
+            this.tick = tick;
         }
 
     }
