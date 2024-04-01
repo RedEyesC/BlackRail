@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: charter_face
-  m_Shader: {fileID: 4800000, guid: eb622b08bbcd26241a1b72f33ac11975, type: 3}
+  m_Shader: {fileID: 4800000, guid: 804085232d40b5742b991da1dcb4a0f1, type: 3}
   m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -94,28 +94,43 @@ Material:
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
+    - _EmissionFactor: 1
+    - _EnableBlack: 0
     - _EnvironmentReflections: 1
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
+    - _HueOffset: 0.405
+    - _LightArea: 0.51
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _QueueOffset: 0
     - _ReceiveShadows: 1
+    - _RenderScale: 1
+    - _ReverseHue: 0
+    - _SaturateOffset: 0
+    - _SecodShadow: 0.51
+    - _ShadowContrast: 0
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _Surface: 0
     - _UVSec: 0
+    - _ValueOffset: 0.019
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0.93, g: 0.93, b: 0.93, a: 0.9490196}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _EffectColor: {r: 0, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _EnvColor: {r: 1, g: 1, b: 1, a: 1}
+    - _EnvColror: {r: 1, g: 1, b: 1, a: 1}
+    - _FirstShadowMultColor: {r: 0.95, g: 0.77, b: 0.82, a: 0}
+    - _SecondShadowMultColor: {r: 0.58, g: 0.55, b: 0.79, a: 0}
     - _ShadowColor: {r: 0.95, g: 0.7, b: 0.8, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
