@@ -9,10 +9,10 @@ namespace GameFramework.Runtime
     {
         public static Vector2 resolutionSize = new Vector2(1280.0f, 720.0f);
 
-        private GameObject _UIRoot = null;
-        private Transform _UIRootTrans = null;
-        private Camera _Camera = null;
-        private float _ScaleFactor = 1.0f;
+        private static GameObject _UIRoot = null;
+        private static Transform _UIRootTrans = null;
+        private static Camera _Camera = null;
+        private static float _ScaleFactor = 1.0f;
 
         public Camera GetCamera()
         {
@@ -125,18 +125,22 @@ namespace GameFramework.Runtime
         }
 
 
-        public GameObject CreateLayout(string bundleName, string assetName)
+        public static GComponent CreateLayout(string bundleName, string assetName)
         {
             GameObject viewObj = AssetManager.GetAssetObjWithType<GameObject>(bundleName, assetName);
 
             GameObject go = GameObject.Instantiate<GameObject>(viewObj);
-            _UIRootTrans.AddChild(go.transform);
 
-            return go;
+            _UIRootTrans.AddChild(go.transform);
+            GComponent root = new GComponent();
+            root.obj = go;
+            root.ConstructUI();
+
+            return root;
         }
 
 
-        public void DestroyLayout(GameObject go)
+        public static void DestroyLayout(GameObject go)
         {
             UnityEngine.GameObject.Destroy(go);
         }

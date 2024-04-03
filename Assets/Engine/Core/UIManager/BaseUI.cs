@@ -1,9 +1,8 @@
-﻿
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace GameFramework.Runtime
 {
-    internal abstract class UIBase
+    internal abstract class BaseUI
     {
         protected enum UIState
         {
@@ -22,7 +21,7 @@ namespace GameFramework.Runtime
         protected string _comName;
         protected Layer _layerName = Layer.UI;
 
-        protected UnityEngine.GameObject _root;
+        protected GComponent _root;
         protected void SetLayer(Layer layer)
         {
             _layerName = layer;
@@ -31,16 +30,16 @@ namespace GameFramework.Runtime
 
         private void SetLayerInternal()
         {
-            _root.layer = (int)_layerName;
+            _root.SetLayer((int)_layerName);
         }
 
         protected void CreateLayout()
         {
 
-            if (!_root)
+            if (_root != null)
             {
                 string bundleName = Utils.GetUIBundlePath(_packageName);
-                _root = GlobalCenter.GetModule<UIManager>().CreateLayout(bundleName, _comName);
+                _root = UIManager.CreateLayout(bundleName, _comName);
             }
 
             OnLayoutCreated();
@@ -49,9 +48,9 @@ namespace GameFramework.Runtime
 
         protected void DestroyLayout()
         {
-            if (_root)
+            if (_root != null)
             {
-                GlobalCenter.GetModule<UIManager>().DestroyLayout(_root);
+                UIManager.DestroyLayout(_root.obj);
                 _root = null;
             }
         }
@@ -61,21 +60,20 @@ namespace GameFramework.Runtime
             SetLayerInternal();
         }
 
-        protected UnityEngine.Transform GetChild(string name)
+        protected T GetChild<T>(string name) where T : GObject
         {
-
             if (_root != null)
             {
-                UnityEngine.Transform obj = _root.transform;
-
+                GComponent obj = _root;
                 string[] nameList = name.Split('/');
-
-                for (int i = 0; i < nameList.Length; i++)
+                int count = nameList.Length - 1;
+                for (int i = 0; i < count; i++)
                 {
-                    obj = obj.Find(nameList[i]);
+                    obj = obj.GetChild(nameList[i]) as GComponent;
                 }
 
-                return obj;
+                return obj.GetChild(nameList[count]) as T;
+
             }
 
             return null;
@@ -83,15 +81,10 @@ namespace GameFramework.Runtime
 
         public void SetVisible(bool val)
         {
-            if (_root)
+            if (_root != null)
             {
                 _root.SetActive(val);
             }
-        }
-
-        public Transform GetRoot()
-        {
-            return _root.transform;
         }
 
     }

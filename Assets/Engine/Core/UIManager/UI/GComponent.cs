@@ -1,0 +1,43 @@
+﻿using System.Collections.Generic;
+using UnityEngine;
+
+namespace GameFramework.Runtime
+{
+    public class GComponent : GObject
+    {
+
+        internal List<GObject> _children;
+
+        public GComponent()
+        {
+
+        }
+
+        override public void ConstructUI()
+        {
+            GObject child;
+
+            int childCount = obj.transform.childCount;
+            for (int i = 0; i < childCount; i++)
+            {
+                GameObject childObj = obj.transform.GetChild(i).gameObject;
+                child = UIObjectFactory.NewObject(childObj);
+                child.obj = childObj;
+                child.ConstructUI();
+                _children.Add(child);
+            }
+
+        }
+
+        public GObject GetChild(string name)
+        {
+            int cnt = _children.Count;
+            for (int i = 0; i < cnt; ++i)
+            {
+                if (_children[i].name == name)
+                    return _children[i];
+            }
+            return null;
+        }
+    }
+}

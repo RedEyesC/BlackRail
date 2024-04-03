@@ -3,7 +3,7 @@
 namespace GameFramework.Runtime
 {
 
-    internal abstract class BaseView : UIBase
+    internal abstract class BaseView : BaseUI
     {
         protected object[] _openParams;
 
@@ -105,7 +105,7 @@ namespace GameFramework.Runtime
                 return;
             }
 
-            if (!_root)
+            if (_root == null)
             {
                 this.CreateLayout();
             }

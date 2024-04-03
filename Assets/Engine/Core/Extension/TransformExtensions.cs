@@ -52,17 +52,6 @@ public static class TransformExtensions
 
 
     #region Touch Relative
-    public static void AddClickEventListener(this Transform t, ClickComponent.EventPosDelegate action)
-    {
-        if (t.GetComponent<Graphic>() == null)
-            t.gameObject.AddComponent<NoDrawingRayCastComponet>();
-
-        ClickComponent ev = ClickComponent.Get(t);
-        if (ev != null)
-        {
-            ev.onClick = action;
-        }
-    }
 
     public static void RemoveClickEventListener(this Transform t)
     {

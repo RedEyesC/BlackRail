@@ -1,7 +1,4 @@
 ﻿
-
-using UnityEngine;
-
 namespace GameFramework.Runtime
 {
     internal class LoginView : BaseView
@@ -21,11 +18,12 @@ namespace GameFramework.Runtime
         protected override void OnOpen(params object[] paramList)
         {
 
-            GetChild("btn_start").AddClickEventListener((float x, float y) =>
+            GetChild<GButton>("btn_start").AddClickEventListener((float x, float y) =>
             {
                 this.Close();
             });
 
+           GButton  a = GetChild<GButton>("111");
         }
      
     }
