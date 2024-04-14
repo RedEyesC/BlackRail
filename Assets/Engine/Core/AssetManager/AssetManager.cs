@@ -151,9 +151,14 @@ namespace GameFramework.Runtime
 
         #region Request
 
-        public static AssetRequest LoadAssetAsync(string bundleName, string assetName, bool isAll = false, System.Action<Request> callback = null)
+        public static AssetRequest LoadAssetAsync(string bundleName, string assetName, System.Action<Request> callback = null)
         {
-            return AssetRequest.Load(bundleName, assetName, isAll, callback);
+            return AssetRequest.Load(bundleName, assetName, false, callback);
+        }
+
+        public static AssetRequest LoadAllAssetAsync(string bundleName, System.Action<Request> callback = null)
+        {
+            return AssetRequest.Load(bundleName, null, true, callback);
         }
 
         public static void UnLoadAssetAsync(AssetRequest req)

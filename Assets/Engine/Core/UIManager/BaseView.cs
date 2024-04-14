@@ -2,7 +2,6 @@
 
 namespace GameFramework.Runtime
 {
-
     internal abstract class BaseView : BaseUI
     {
         protected object[] _openParams;
@@ -92,7 +91,7 @@ namespace GameFramework.Runtime
             _refPackageReqFinishNum = 0;
 
             string bundleName = Utils.GetUIBundlePath(_packageName);
-            AssetRequest req  = AssetManager.LoadAssetAsync(bundleName, _comName, true, OnLoadResFinish);
+            AssetRequest req  = AssetManager.LoadAllAssetAsync(bundleName, OnLoadResFinish);
             _refPackageReqList.Add(req);
         }
 

@@ -14,140 +14,34 @@ namespace GameFramework.Runtime
         public string bundleName;
         public string assetName;
 
+        public IAssetHandler handler { get; } = CreateHandler();
+
         public Object asset { get; set; }
         public Object[] assets { get; set; }
         public bool isAll { get; private set; }
         public override int priority => 1;
 
-        private enum Step
-        {
-            LoadDependencies,
-            LoadAsset
-        }
-
-        private Dependencies _dependencies;
-        private BundleRequest _loadBundleRequest;
-        private Step _step;
-
-
+        public static Func<IAssetHandler> CreateHandler { get; set; } = EditorAssetHandler.CreateInstance;
+ 
         protected override void OnStart()
         {
-            _dependencies = Dependencies.LoadAsync(bundleName);
-            _step = Step.LoadDependencies;
+            handler.OnStart(this);
         }
 
         protected override void OnWaitForCompletion()
         {
-            _dependencies.WaitForCompletion();
-            if (result == Request.Result.Failed) return;
-            //  特殊处理，防止异步转同步卡顿。
-            if (_loadBundleRequest == null)
-                LoadAsset();
-            else
-                SetResult();
+            handler.WaitForCompletion(this);
         }
 
         protected override void OnUpdated()
         {
-            if (isDone) return;
-            switch (_step)
-            {
-                case Step.LoadDependencies:
-                    _dependencies.Update();
-                    progress = _dependencies.progress * 0.5f;
-                    if (!_dependencies.isDone) return;
-                    LoadAssetAsync();
-                    break;
-
-                case Step.LoadAsset:
-                    progress = 0.5f + _loadBundleRequest.loadProgress * 0.5f;
-                    if (!_loadBundleRequest.loadIsDone) return;
-                    SetResult();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            handler.Update(this);
         }
-
-        private void LoadAsset()
-        {
-            if (!_dependencies.CheckResult(this, out var bundleRequest))
-                return;
-
-            if (isAll)
-            {
-                assets = bundleRequest.LoadAllAssets();
-                if (assets == null)
-                {
-                    SetResult(Request.Result.Failed, "assets == null");
-                    return;
-                }
-            }
-            else
-            {
-                asset = bundleRequest.LoadAsset(assetName);
-                if (asset == null)
-                {
-                    SetResult(Request.Result.Failed, "asset == null");
-                    return;
-                }
-            }
-
-            SetResult(Request.Result.Success);
-        }
-
-
-        private void LoadAssetAsync()
-        {
-            if (!_dependencies.CheckResult(this, out var bundleRequest))
-                return;
-
-            _loadBundleRequest = bundleRequest;
-
-            if (isAll)
-            {
-                bundleRequest.LoadAllAssetsAsync();
-            }
-            else
-            {
-                bundleRequest.LoadAssetAsync(assetName);
-            }
-
-            _step = Step.LoadAsset;
-        }
-
-
-        private void SetResult()
-        {
-            if (isAll)
-            {
-                assets = _loadBundleRequest.loadAssetObjs;
-                if (assets == null)
-                {
-                    SetResult(Request.Result.Failed, "assets == null");
-                    return;
-                }
-            }
-            else
-            {
-                asset = _loadBundleRequest.loadAssetObjs[0];
-                if (asset == null)
-                {
-                    SetResult(Request.Result.Failed, "asset == null");
-                    return;
-                }
-            }
-
-            SetResult(Request.Result.Success);
-        }
-
 
         protected override void OnDispose()
         {
             Remove(this);
-
-            _dependencies.Release();
-            _loadBundleRequest = null;
+            handler.Dispose(this);
 
             if (isAll)
             {

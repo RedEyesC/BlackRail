@@ -41,9 +41,9 @@ namespace GameFramework.Runtime
                 Load(dep);
         }
 
-        public bool CheckResult(LoadRequest request, out BundleRequest bundleRequest)
+        public bool CheckResult(LoadRequest request, out AssetBundle assetBundle)
         {
-            bundleRequest = null;
+            assetBundle = null;
             foreach (var bundle in _bundles)
             {
                 if (bundle.result != Request.Result.Failed) continue;
@@ -51,8 +51,8 @@ namespace GameFramework.Runtime
                 return false;
             }
 
-            bundleRequest = _bundleRequest;
-            if (bundleRequest.result == Request.Result.Success) return true;
+            assetBundle = _bundleRequest.assetBundle;
+            if (assetBundle != null) return true;
             request.SetResult(Request.Result.Failed, "assetBundle == null");
             return false;
         }

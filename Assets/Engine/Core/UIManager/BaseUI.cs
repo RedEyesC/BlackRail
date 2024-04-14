@@ -36,7 +36,7 @@ namespace GameFramework.Runtime
         protected void CreateLayout()
         {
 
-            if (_root != null)
+            if (_root == null)
             {
                 string bundleName = Utils.GetUIBundlePath(_packageName);
                 _root = UIManager.CreateLayout(bundleName, _comName);
