@@ -4,13 +4,13 @@
     {
         public LoginCtrl()
         {
-            RegisterView("login_view", typeof(LoginView));
+            RegisterView("loginView", typeof(LoginView));
         }
 
 
         public void OpenLoginView()
         {
-            OpenView("login_view", "test");
+            OpenView("loginView", "test");
         }
     }
 }

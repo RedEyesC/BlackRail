@@ -18,12 +18,11 @@ namespace GameFramework.Runtime
         protected override void OnOpen(params object[] paramList)
         {
 
-            GetChild<GButton>("btn_start").AddClickEventListener((float x, float y) =>
+            GetChild<GButton>("btn_start").AddClickCallback((float x, float y) =>
             {
-                this.Close();
+                Close();
             });
 
-           GButton  a = GetChild<GButton>("111");
         }
      
     }
