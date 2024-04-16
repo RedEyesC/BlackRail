@@ -14,10 +14,10 @@ namespace GameFramework.Runtime
         public string bundleName;
         public string assetName;
 
-        public IAssetHandler handler { get; } = CreateHandler();
+        public IAssetHandler handler { get;} = CreateHandler();
 
         public Object asset { get; set; }
-        public Object[] assets { get; set; }
+        public Dictionary<string,Object> assets { get; set; }
         public bool isAll { get; private set; }
         public override int priority => 1;
 
@@ -47,8 +47,8 @@ namespace GameFramework.Runtime
             {
                 if (assets != null)
                     foreach (var o in assets)
-                        if (!(o is GameObject))
-                            AssetManager.UnloadAsset(o);
+                        if (!(o.Value is GameObject))
+                            AssetManager.UnloadAsset(o.Value);
             }
             else
             {
@@ -66,18 +66,21 @@ namespace GameFramework.Runtime
             Unused.Enqueue(request);
         }
 
-        internal static T Get<T>(string bundleName, string assetName) where T : Object
+        internal static T Get<T>(string bundleName, string assetName,bool isAll) where T : Object
         {
-            var path = $"{bundleName}/{assetName}";
-            if (!Loaded.TryGetValue(path, out var request)) return null;
-            return request.asset as T;
-        }
+            if(!isAll)
+            {
+                var path = $"{bundleName}/{assetName}";
+                if (!Loaded.TryGetValue(path, out var request)) return null;
+                return request.asset as T;
+            }
+            else
+            {
+                var path = $"{bundleName}/";
+                if (!Loaded.TryGetValue(path, out var request)) return null;
+                return request.assets[assetName] as T;
+            }
 
-        internal static T[] GetAll<T>(string bundleName, string assetName) where T : Object
-        {
-            var path = $"{bundleName}/{assetName}";
-            if (!Loaded.TryGetValue(path, out var request)) return null;
-            return request.assets as T[];
         }
 
         internal static AssetRequest Load(string bundleName, string assetName, bool isAll, System.Action<Request> callback)

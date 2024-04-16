@@ -1,7 +1,9 @@
 
 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace GameFramework.Runtime
 {
@@ -148,7 +150,6 @@ namespace GameFramework.Runtime
         #endregion
 
 
-
         #region Request
 
         public static AssetRequest LoadAssetAsync(string bundleName, string assetName, System.Action<Request> callback = null)
@@ -167,6 +168,7 @@ namespace GameFramework.Runtime
         }
 
         #endregion
+
 
         #region Reycle
 
@@ -189,19 +191,15 @@ namespace GameFramework.Runtime
 
         #region Asset
 
-        public static UnityEngine.Object GetAssetObj(string bundleName, string assetName)
+        public static Object GetAssetObj(string bundleName, string assetName , bool isAll = false)
         {
-            return AssetRequest.Get<Object>(bundleName, assetName);
+            return AssetRequest.Get<Object>(bundleName, assetName,isAll);
         }
 
-        public static T GetAssetObjWithType<T>(string bundleName, string assetName) where T : Object
-        {
-            return AssetRequest.Get<T>(bundleName, assetName);
-        }
 
-        public static T[] GetAssetAllObjWithType<T>(string bundleName, string assetName) where T : Object
+        public static T GetAssetObjWithType<T>(string bundleName, string assetName,bool isAll = false) where T : Object
         {
-            return AssetRequest.GetAll<T>(bundleName, assetName);
+            return AssetRequest.Get<T>(bundleName, assetName, isAll);
         }
 
         #endregion

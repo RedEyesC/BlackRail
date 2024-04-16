@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace GameFramework.Runtime
 {
@@ -58,7 +60,13 @@ namespace GameFramework.Runtime
 
             if (request.isAll)
             {
-                request.assets = assetBundle.LoadAllAssets();
+                Dictionary<string, Object> dict = new Dictionary<string, Object>();
+                foreach (Object obj in assetBundle.LoadAllAssets())
+                {
+                    dict.Add(obj.name, obj);
+                }
+                request.assets = dict;
+
                 if (request.assets == null)
                 {
                     request.SetResult(Request.Result.Failed, "assets == null");
@@ -93,7 +101,14 @@ namespace GameFramework.Runtime
         {
             if (request.isAll)
             {
-                request.assets = _loadAssetAsync.allAssets;
+                Dictionary<string, Object> dict = new Dictionary<string, Object>();
+                foreach (Object obj in _loadAssetAsync.allAssets)
+                {
+                    dict.Add(obj.name, obj);
+                }
+
+                request.assets = dict;
+
                 if (request.assets == null)
                 {
                     request.SetResult(Request.Result.Failed, "assets == null");

@@ -7,7 +7,7 @@ using Object = UnityEngine.Object;
 
 namespace GameFramework.Runtime
 {
-    public struct EditorAssetHandler : IAssetHandler
+    public class EditorAssetHandler : IAssetHandler
     {
         private enum Step
         {
@@ -33,6 +33,7 @@ namespace GameFramework.Runtime
             switch (_step)
             {
                 case Step.LoadDependencies:
+                    _step = Step.LoadAsset;
                     AppInterface.StartCoroutine(LoadAssetByResAsync(request));
                     break;
 
@@ -50,7 +51,13 @@ namespace GameFramework.Runtime
         {
             if (request.isAll)
             {
-                request.assets = loadAssetObjs;
+                Dictionary<string, Object> dict = new Dictionary<string, Object>();
+                foreach (Object obj in loadAssetObjs)
+                {
+                    dict.Add(obj.name, obj);
+                }
+                request.assets = dict;
+
                 if (request.assets == null)
                 {
                     request.SetResult(Request.Result.Failed, "assets == null");
@@ -102,7 +109,7 @@ namespace GameFramework.Runtime
             string resPath = bundleName.Remove(bundleName.LastIndexOf(".")) + "/";
 
             List<Object> objList = new List<Object>();
-            List<string> fileList = GetFileList(assetName);
+            List<string> fileList = GetFileList(bundleName, assetName);
 
 
             for (int i = 0; i < fileList.Count; i++)
@@ -123,25 +130,28 @@ namespace GameFramework.Runtime
             string resPath = bundleName.Remove(bundleName.LastIndexOf(".")) + "/";
 
             List<Object> objList = new List<Object>();
-            List<string> fileList = GetFileList(assetName);
+            List<string> fileList = GetFileList(bundleName, assetName);
 
             yield return null;
 
             ResourceRequest req = null;
             for (int i = 0; i < fileList.Count; i++)
             {
+
+                resProgress = i / fileList.Count;
+
                 req = Resources.LoadAsync(resPath + fileList[i]);
                 yield return req;
 
                 if (req.asset != null)
                     objList.Add(req.asset);
 
-                resProgress = i / fileList.Count;
             }
 
             loadAssetObjs = objList.ToArray();
             loadIsDone = true;
-            resProgress = 1f;
+            resProgress = 1.0f;
+
         }
 
         private List<string> GetFileList(string bundleName, string asstName = null)

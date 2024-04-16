@@ -127,7 +127,7 @@ namespace GameFramework.Runtime
 
         public static GComponent CreateLayout(string bundleName, string assetName)
         {
-            GameObject viewObj = AssetManager.GetAssetObjWithType<GameObject>(bundleName, assetName);
+            GameObject viewObj = AssetManager.GetAssetObjWithType<GameObject>(bundleName, assetName,true);
 
             GameObject go = GameObject.Instantiate<GameObject>(viewObj);
 
