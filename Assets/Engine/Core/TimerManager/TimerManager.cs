@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace GameFramework.Runtime
 {
@@ -7,12 +7,13 @@ namespace GameFramework.Runtime
     public class TimerManager : GameModule
     {
         private static int _idCounter = 0;
-        private static float _nowTime = 0;
 
-        private static List<TimerEvent> _timerCache = new List<TimerEvent>();
-        private static Dictionary<int, TimerEvent> _timerMap = new Dictionary<int, TimerEvent>();
+        private static readonly List<TimerEvent> _timerCache = new List<TimerEvent>(100);
+        private static readonly Dictionary<int, TimerEvent> _timerMap = new Dictionary<int, TimerEvent>();
 
-        private static List<int> _keysToRemove = new List<int>();
+        private static readonly List<TimerEvent> _toRemove = new List<TimerEvent>();
+        private static readonly Dictionary<int, TimerEvent> _toAdd = new Dictionary<int, TimerEvent>();
+
         public override void Destroy()
         {
             ClearAllTimer();
@@ -25,111 +26,142 @@ namespace GameFramework.Runtime
 
         public override void Update(float elapseSeconds, float realElapseSeconds)
         {
-            _nowTime += elapseSeconds;
 
-            //c# 无法实现在遍历字典的同时删除字典的值，额外存放一份字典的key用于遍历
-            _keysToRemove = new List<int>(_timerMap.Keys);
+            Dictionary<int, TimerEvent>.Enumerator iter;
 
-            foreach (int key in _keysToRemove)
+            if (_timerMap.Count > 0)
             {
-
-                TimerEvent info = _timerMap[key];
-
-                if (info.callBack != null)
+                iter = _timerMap.GetEnumerator();
+                while (iter.MoveNext())
                 {
+                    TimerEvent i = iter.Current.Value;
 
-                    if (_nowTime > info.tickTime)
+                    if (i.deleted)
                     {
-                        System.Action callBack = info.callBack;
-                        if (info.time > 0)
-                        {
-                            info.tickTime = _nowTime + info.time;
-                        }
-                        else
-                        {
-                            ClearTimer(key);
-                        }
-
-                        if (info.tick)
-                        {
-                            info.tick = false;
-                            callBack();
-                            info.tick = true;
-                        }
-
+                        _toRemove.Add(i);
+                        continue;
                     }
 
+                    i.elapsed += elapseSeconds;
+                    if (i.elapsed < i.interval)
+                        continue;
+
+                    i.elapsed -= i.interval;
+                    if (i.elapsed < 0 || i.elapsed > 0.03f)
+                        i.elapsed = 0;
+
+                    if (i.repeat > 0)
+                    {
+                        i.repeat--;
+                        if (i.repeat == 0)
+                        {
+                            i.deleted = true;
+                            _toRemove.Add(i);
+                        }
+                    }
+
+                    i.callBack?.Invoke();
                 }
+
+                iter.Dispose();
+            }
+
+
+            int len = _toRemove.Count;
+            if (len > 0)
+            {
+
+                for (int k = 0; k < len; k++)
+                {
+                    TimerEvent i = _toRemove[k];
+                    _timerMap.Remove(i.id);
+                    ReturnToPool(i);
+                }
+                _toRemove.Clear();
+            }
+
+
+            if (_toAdd.Count > 0)
+            {
+                iter = _toAdd.GetEnumerator();
+                while (iter.MoveNext())
+                {
+                    _timerMap.Add(iter.Current.Key, iter.Current.Value);
+                }
+                    
+                iter.Dispose();
+                _toAdd.Clear();
             }
 
         }
 
-        public static int SetTimeout(System.Action callback, float timeout)
+        public static int Add(System.Action callback, float interval, int repeat)
         {
-            TimerEvent info = PopOneTimerInfo();
-            info.time = 0;
+            TimerEvent info = GetFromPool();
+            info.repeat = repeat;
             info.callBack = callback;
-            info.tickTime = _nowTime + timeout;
+            info.interval = interval;
+            info.deleted = false;
 
-            _timerMap.Add(info.id, info);
+            _toAdd[info.id] = info;
 
             return info.id;
+        }
+
+
+        public static int SetTimeout(System.Action callback, float timeout)
+        {
+            return Add(callback, timeout, 1);
         }
 
         public static int SetInterval(System.Action callback, float interval)
         {
-            TimerEvent info = PopOneTimerInfo();
-            info.time = interval;
-            info.callBack = callback;
-            info.tickTime = _nowTime + interval;
-
-            _timerMap.Add(info.id, info);
-
-            return info.id;
+            return Add(callback, interval, 0);
         }
 
-        public static TimerEvent PopOneTimerInfo()
+        public static TimerEvent GetFromPool()
         {
-            TimerEvent timerInfo = null;
-            foreach (TimerEvent timerEvent in _timerCache)
+            TimerEvent timerInfo;
+            int cnt = _timerCache.Count;
+            if (cnt > 0)
             {
-                if (timerEvent.callBack == null)
-                {
-                    timerInfo = timerEvent;
-                    break;
-                }
-            }
+                timerInfo = _timerCache[cnt - 1];
+                _timerCache.RemoveAt(cnt - 1);
 
-            _idCounter++;
-
-            if (timerInfo == null)
-            {
-                timerInfo = new TimerEvent(null, 0, 0, true, _idCounter);
-                _timerCache.Add(timerInfo);
+                timerInfo.deleted = false;
+                timerInfo.elapsed = 0;
             }
             else
             {
-                timerInfo.id = _idCounter;
-                timerInfo.tick = true;
+                timerInfo = new TimerEvent();
             }
+
+            timerInfo.id = ++_idCounter;
 
             return timerInfo;
         }
 
-        public static void ClearTimer(int Id)
+        private static void ReturnToPool(TimerEvent t)
         {
-            if (_timerMap.ContainsKey(Id))
+            t.callBack = null;
+            _timerCache.Add(t);
+        }
+
+        public static void ClearTimer(int id)
+        {
+            TimerEvent t;
+            if (_toAdd.TryGetValue(id,out t))
             {
-                TimerEvent timerEvent = _timerMap[Id];
-
-                if (timerEvent != null)
-                {
-                    _timerMap.Remove(Id);
-                    timerEvent.callBack = null;
-                }
-
+                _toAdd.Remove(id);
+                ReturnToPool(t);
+                return;
             }
 
+            if (_timerMap.TryGetValue(id, out t))
+            {
+                t.deleted = true;
+            }
+                
         }
 
         public static void ClearAllTimer()
@@ -140,8 +172,18 @@ namespace GameFramework.Runtime
 
             }
 
+            foreach (KeyValuePair<int, TimerEvent> kvp in _toAdd)
+            {
+                kvp.Value.callBack = null;
+
+            }
+
             _timerMap.Clear();
             _timerCache.Clear();
+
+            _toAdd.Clear();
+            _toRemove.Clear();
+
             _idCounter = 0;
         }
 
