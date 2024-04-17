@@ -1,8 +1,19 @@
 ﻿using System.Collections.Generic;
-using System.Collections.ObjectModel;
 
 namespace GameFramework.Runtime
 {
+    public class TimerEvent
+    {
+        public float interval;
+        public int repeat;
+
+        public int id;
+
+        public float elapsed;
+        public bool deleted;
+
+        public System.Action callBack;
+    }
 
     public class TimerManager : GameModule
     {
