@@ -1,6 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using GameFramework.Runtime;
+using System.Collections.Generic;
 
-namespace GameFramework.Runtime
+namespace GameFramework.Timers
 {
     public class TimerEvent
     {
