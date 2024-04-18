@@ -38,6 +38,7 @@ namespace GameFramework.Event
             ClearEvent();
             _eventHandlers.Clear();
             _funcMap.Clear();
+            _cachedNodes.Clear();
 
         }
 
