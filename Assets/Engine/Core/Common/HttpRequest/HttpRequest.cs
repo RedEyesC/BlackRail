@@ -24,7 +24,7 @@ namespace GameFramework.Runtime
                 req.timeout = timeout;
                 yield return req.SendWebRequest();
 
-                if (req.result == UnityWebRequest.Result.ConnectionError || req.result == UnityWebRequest.Result.ConnectionError)
+                if (req.result == UnityWebRequest.Result.ProtocolError || req.result == UnityWebRequest.Result.ConnectionError)
                 {
                     callBack(false, req.error, null);
                 }
@@ -73,7 +73,7 @@ namespace GameFramework.Runtime
 
                 yield return req.SendWebRequest();
 
-                if (req.result == UnityWebRequest.Result.ConnectionError || req.result == UnityWebRequest.Result.ConnectionError)
+                if (req.result == UnityWebRequest.Result.ProtocolError || req.result == UnityWebRequest.Result.ConnectionError)
                 {
                     callBack(false, req.error, null);
                 }
