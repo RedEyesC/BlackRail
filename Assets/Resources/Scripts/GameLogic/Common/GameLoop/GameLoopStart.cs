@@ -1,4 +1,6 @@
-﻿namespace GameFramework.Runtime
+﻿using GameFramework.UI;
+
+namespace GameFramework.Runtime
 {
     internal class GameLoopStart : StateBase
     {

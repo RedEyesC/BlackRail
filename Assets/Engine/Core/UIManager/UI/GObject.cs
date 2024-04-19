@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace GameFramework.Runtime
+namespace GameFramework.UI
 {
     public class GObject
     {
@@ -26,6 +26,11 @@ namespace GameFramework.Runtime
         {
             get { return obj.name; }
 
+        }
+
+        public void SetParent(GameObject parentObj, bool posStay)
+        {
+            obj.SetParent(parentObj, posStay);
         }
 
     }

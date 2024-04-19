@@ -1,12 +1,12 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace GameFramework.Runtime
+namespace GameFramework.UI
 {
     public class GComponent : GObject
     {
 
-        internal List<GObject> _children;
+        internal List<GObject> _children = new List<GObject>();
 
         public GComponent()
         {

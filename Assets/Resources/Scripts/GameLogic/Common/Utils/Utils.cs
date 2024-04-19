@@ -8,11 +8,6 @@
             return string.Format("UI/{0}/{1}", pkgName, comName);
         }
 
-        public static string GetUIBundlePath(string pkgName)
-        {
-            return string.Format("UI/{0}.ab", pkgName);
-        }
-
 
         public static string GetMapPath(int mapId)
         {

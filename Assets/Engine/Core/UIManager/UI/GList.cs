@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-namespace GameFramework.Runtime
+﻿namespace GameFramework.UI
 {
     public class GList:GComponent
     {

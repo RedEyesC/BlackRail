@@ -1,11 +1,10 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
+﻿using UnityEngine.UI;
 
-namespace GameFramework.Runtime
+namespace GameFramework.UI
 {
     public class GButton : GComponent
     {
-        public void AddClickEventListener(ClickComponent.EventPosDelegate action)
+        public void AddClickCallback(ClickComponent.EventPosDelegate action)
         {
             if (obj.GetComponent<Graphic>() == null)
             {

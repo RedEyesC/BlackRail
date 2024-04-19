@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using GameFramework.Runtime;
+using GameFramework.Timers;
+using System.Collections.Generic;
 
-namespace GameFramework.Runtime
+namespace GameFramework.UI
 {
-    internal abstract class BaseView : BaseUI
+    public abstract class BaseView : BaseUI
     {
         protected object[] _openParams;
 
@@ -11,6 +13,8 @@ namespace GameFramework.Runtime
         protected UIState _state = UIState.Close;
         private List<AssetRequest> _refPackageReqList = new List<AssetRequest>();
         private int _refPackageReqFinishNum;
+
+        public int uiOrder = (int)UIZOrder.UIZOrder_Common;
 
         public void Open(params object[] paramList)
         {
@@ -83,6 +87,7 @@ namespace GameFramework.Runtime
         protected void ShowLayout()
         {
             SetVisible(true);
+            UIManager.AddViewRoot(this);
         }
 
         private void LoadPackage()
@@ -90,7 +95,7 @@ namespace GameFramework.Runtime
             _refPackageReqList.Clear();
             _refPackageReqFinishNum = 0;
 
-            string bundleName = Utils.GetUIBundlePath(_packageName);
+            string bundleName = GetUIBundlePath(_packageName);
             AssetRequest req  = AssetManager.LoadAllAssetAsync(bundleName, OnLoadResFinish);
             _refPackageReqList.Add(req);
         }
@@ -106,7 +111,8 @@ namespace GameFramework.Runtime
 
             if (_root == null)
             {
-                this.CreateLayout();
+                CreateLayout();
+                UIManager.AddViewRoot(this);
             }
         }
 

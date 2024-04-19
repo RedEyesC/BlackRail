@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace GameFramework.Runtime
+namespace GameFramework.UI
 {
     internal class UIObjectFactory
     {

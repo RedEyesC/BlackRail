@@ -1,16 +1,15 @@
-﻿using UnityEngine;
-
-namespace GameFramework.Runtime
+﻿namespace GameFramework.UI
 {
-    internal abstract class BaseUI
+    public enum UIState
     {
-        protected enum UIState
-        {
-            Open,
-            Close,
-            Caching,
-            Loading
-        }
+        Open,
+        Close,
+        Caching,
+        Loading
+    }
+
+    public abstract class BaseUI
+    {
 
         protected enum Layer
         {
@@ -38,7 +37,7 @@ namespace GameFramework.Runtime
 
             if (_root == null)
             {
-                string bundleName = Utils.GetUIBundlePath(_packageName);
+                string bundleName = GetUIBundlePath(_packageName);
                 _root = UIManager.CreateLayout(bundleName, _comName);
             }
 
@@ -85,6 +84,16 @@ namespace GameFramework.Runtime
             {
                 _root.SetActive(val);
             }
+        }
+
+        public string GetUIBundlePath(string pkgName)
+        {
+            return string.Format("UI/{0}.ab", pkgName);
+        }
+
+        public GComponent GetRoot()
+        {
+            return _root;
         }
 
     }

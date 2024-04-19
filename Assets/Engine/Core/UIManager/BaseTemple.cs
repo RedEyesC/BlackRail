@@ -1,10 +1,7 @@
-﻿
-using UnityEngine;
-
-namespace GameFramework.Runtime
+﻿namespace GameFramework.UI
 {
 
-    internal abstract class BaseTemple : BaseUI
+    public abstract class BaseTemple : BaseUI
     {
         protected object[] _openParams;
         protected UnityEngine.GameObject _parent;
