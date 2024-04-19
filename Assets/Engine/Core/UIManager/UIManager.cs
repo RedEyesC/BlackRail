@@ -5,7 +5,6 @@ using UnityEngine.Rendering.Universal;
 using System;
 using System.Collections.Generic;
 using GameFramework.Runtime;
-using static Autodesk.Fbx.FbxEuler;
 
 namespace GameFramework.UI
 {
