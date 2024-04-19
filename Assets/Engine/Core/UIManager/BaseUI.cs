@@ -49,7 +49,7 @@
         {
             if (_root != null)
             {
-                UIManager.DestroyLayout(_root.obj);
+                _root.Destroy();
                 _root = null;
             }
         }

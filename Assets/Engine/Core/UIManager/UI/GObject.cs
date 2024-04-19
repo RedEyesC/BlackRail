@@ -33,5 +33,10 @@ namespace GameFramework.UI
             obj.SetParent(parentObj, posStay);
         }
 
+        virtual public void Destroy()
+        {
+            UnityEngine.GameObject.Destroy(obj);
+        }
+
     }
 }

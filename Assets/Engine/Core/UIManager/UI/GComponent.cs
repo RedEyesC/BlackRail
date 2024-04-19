@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using GameFramework.Runtime;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace GameFramework.UI
@@ -38,6 +39,24 @@ namespace GameFramework.UI
                     return _children[i];
             }
             return null;
+        }
+
+        override  public void Destroy()
+        {
+            if (_children.Count > 0)
+            {
+                int cnt = _children.Count;
+                for (int i = cnt - 1; i >= 0; --i)
+                {
+                    var obj = _children[i];
+                    //TODO 好像只要释放引用即可
+                    //obj.Destroy();
+                }
+            }
+
+            _children = null;
+
+            base.Destroy();
         }
     }
 }

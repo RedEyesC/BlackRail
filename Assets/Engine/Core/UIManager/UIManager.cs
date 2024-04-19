@@ -173,12 +173,6 @@ namespace GameFramework.UI
         }
 
 
-        public static void DestroyLayout(GameObject go)
-        {
-            UnityEngine.GameObject.Destroy(go);
-        }
-
-
         public void AddToRoot(Transform t, Transform root)
         {
             t.SetParent(root, false);
