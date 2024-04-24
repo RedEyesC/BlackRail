@@ -4,7 +4,9 @@ using UnityEngine.EventSystems;
 using UnityEngine.Rendering.Universal;
 using System;
 using System.Collections.Generic;
-using GameFramework.Runtime;
+using GameFramework.Common;
+using GameFramework.Scene;
+using GameFramework.Asset;
 
 namespace GameFramework.UI
 {
@@ -35,6 +37,7 @@ namespace GameFramework.UI
 
         private static Dictionary<int, GameObject> _orderNodeMap = new Dictionary<int, GameObject>();
 
+        public new int priority = 6;
         public override void Start()
         {
             //创建ui相机
@@ -94,7 +97,7 @@ namespace GameFramework.UI
             cam.useOcclusionCulling = false;
             cam.backgroundColor = new Color(0.0f, 0.0f, 0.0f, 1.0f);
 
-            Camera main = GlobalCenter.GetModule<CameraManager>().GetMainCamera();
+            Camera main = SceneManager.GetMainCamera();
             main.GetUniversalAdditionalCameraData().cameraStack.Add(cam);
 
             return cam;

@@ -1,7 +1,4 @@
-﻿
-using GameFramework.UI;
-
-namespace GameFramework.Runtime
+﻿namespace GameFramework.UI
 {
     internal class LoginView : BaseView
     {

@@ -1,4 +1,4 @@
-﻿using GameFramework.Runtime;
+﻿using GameFramework.Common;
 using System.Collections.Generic;
 
 namespace GameFramework.Timers
@@ -25,6 +25,8 @@ namespace GameFramework.Timers
 
         private static readonly List<TimerEvent> _toRemove = new List<TimerEvent>();
         private static readonly Dictionary<int, TimerEvent> _toAdd = new Dictionary<int, TimerEvent>();
+
+        public new int priority = 10;
 
         public override void Destroy()
         {

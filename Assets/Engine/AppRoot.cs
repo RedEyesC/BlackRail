@@ -1,4 +1,12 @@
 
+using GameFramework.AppLoop;
+using GameFramework.Asset;
+using GameFramework.Common;
+using GameFramework.Event;
+using GameFramework.Moudule;
+using GameFramework.Scene;
+using GameFramework.Timers;
+using GameFramework.UI;
 using UnityEngine;
 
 namespace GameFramework.Runtime
@@ -8,28 +16,26 @@ namespace GameFramework.Runtime
 
         void Awake()
         {
-            //GameObject.DontDestroyOnLoad(this);
+           
         }
-        // Start is called before the first frame update
+
         void Start()
         {
 
             InitInterface();
 
-            GlobalCenter.CreateInstance();
+            InitGameCenter();
 
-            GlobalCenter.Start();
         }
 
-        // Update is called once per frame
         void Update()
         {
-            GlobalCenter.Update(Time.deltaTime, Time.unscaledDeltaTime);
+            GameCenter.Update(Time.deltaTime, Time.unscaledDeltaTime);
         }
 
         void OnDestroy()
         {
-            GlobalCenter.Destroy();
+            GameCenter.Destroy();
         }
 
         void InitInterface()
@@ -37,6 +43,21 @@ namespace GameFramework.Runtime
             AppInterface.StartCoroutine = StartCoroutine;
             AppInterface.StopCoroutine = StopCoroutine;
             AppInterface.AddComponent = gameObject.AddComponent;
+        }
+
+        void InitGameCenter()
+        {
+            GameCenter.CreateInstance();
+
+            GameCenter.CreateModule<TimerManager>();
+            GameCenter.CreateModule<EventManager>();
+            GameCenter.CreateModule<AssetManager>();
+            GameCenter.CreateModule<SceneManager>();
+            GameCenter.CreateModule<UIManager>();
+            GameCenter.CreateModule<ModuleManager>();
+            GameCenter.CreateModule<AppLoopManager>();
+
+            GameCenter.Start();
         }
     }
 }

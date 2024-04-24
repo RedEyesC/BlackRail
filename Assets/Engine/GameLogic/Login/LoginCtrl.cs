@@ -1,6 +1,9 @@
-﻿namespace GameFramework.Runtime
+﻿
+using GameFramework.UI;
+
+namespace GameFramework.Moudule
 {
-    internal class LoginCtrl:BaseCtrl
+    internal class LoginCtrl:BaseModule
     {
         public LoginCtrl()
         {

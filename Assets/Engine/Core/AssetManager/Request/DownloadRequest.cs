@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace GameFramework.Runtime
+namespace GameFramework.Asset
 {
     public sealed class DownloadRequest : LoadRequest
     {

@@ -1,4 +1,4 @@
-namespace GameFramework.Runtime
+namespace GameFramework.Asset
 {
     public abstract class LoadRequest : Request, IRecyclable
     {

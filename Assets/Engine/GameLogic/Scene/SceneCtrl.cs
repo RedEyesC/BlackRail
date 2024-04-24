@@ -1,9 +1,10 @@
-﻿
+﻿using GameFramework.Common;
+using GameFramework.Scene;
 using UnityEngine;
 
-namespace GameFramework.Runtime
+namespace GameFramework.Moudule
 {
-    internal class SceneCtrl : BaseCtrl
+    internal class SceneCtrl : BaseModule
     {
         private int _mapId = 0;
         private int _requestId;

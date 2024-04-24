@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 
-namespace GameFramework.Runtime
+namespace GameFramework.Asset
 {
     public class Request : IEnumerator
     {

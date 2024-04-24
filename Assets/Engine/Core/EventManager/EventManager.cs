@@ -1,4 +1,5 @@
-﻿using GameFramework.Runtime;
+﻿
+using GameFramework.Common;
 
 namespace GameFramework.Event
 {
@@ -7,7 +8,7 @@ namespace GameFramework.Event
     {
 
         private static EventPool _eventPool;
-
+        public new int priority = 10;
         public override void Start()
         {
             _eventPool = new EventPool();

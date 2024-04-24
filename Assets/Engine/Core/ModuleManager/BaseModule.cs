@@ -1,0 +1,32 @@
+﻿using GameFramework.UI;
+using System;
+
+namespace GameFramework.Moudule
+{
+    internal abstract class BaseModule
+    {
+
+        public static void RegisterView(string viewName, Type viewType)
+        {
+            UIManager.RegisterView(viewName, viewType);
+        }
+
+
+        public static void OpenView(string viewName, params object[] paramList)
+        {
+            UIManager.OpenView(viewName, paramList);
+        }
+
+
+        public static BaseView GetView(string name)
+        {
+            return UIManager.GetView(name);
+        }
+
+
+    }
+
+}
+
+
+

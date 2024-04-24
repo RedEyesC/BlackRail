@@ -1,8 +1,12 @@
-﻿namespace GameFramework.Runtime
+﻿using GameFramework.Common;
+
+namespace GameFramework.AppLoop
 {
     public class AppLoopManager : GameModule
     {
         private StateMachine _stateMachine;
+
+        public new int priority = 2;
 
         public override void Start()
         {

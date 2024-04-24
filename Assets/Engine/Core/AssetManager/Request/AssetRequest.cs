@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace GameFramework.Runtime
+namespace GameFramework.Asset
 {
     public class AssetRequest : LoadRequest
     {

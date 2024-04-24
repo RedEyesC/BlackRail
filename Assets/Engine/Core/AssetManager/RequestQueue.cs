@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace GameFramework.Runtime
+namespace GameFramework.Asset
 {
     public class RequestQueue
     {

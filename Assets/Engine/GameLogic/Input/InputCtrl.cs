@@ -1,12 +1,13 @@
-﻿using UnityEngine;
+﻿using GameFramework.Scene;
+using UnityEngine;
 
-namespace GameFramework.Runtime
+namespace GameFramework.Moudule
 {
-    internal class InputCtrl : BaseCtrl
+    internal class InputCtrl : BaseModule
     {
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
-            Role mainRole = GameCenter.GetModule<ModuleCenter>().GetModule<SceneCtrl>().mainRole;
+            Role mainRole = ModuleManager.GetModule<SceneCtrl>().mainRole;
 
             int TempX = 0;
             int TempY = 0;

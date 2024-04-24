@@ -1,10 +1,11 @@
 
 
+using GameFramework.Common;
 using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace GameFramework.Runtime
+namespace GameFramework.Asset
 {
     public enum ResMod
     {
@@ -42,6 +43,8 @@ namespace GameFramework.Runtime
         private static readonly Queue<Object> UnusedAssets = new Queue<Object>();
         private static readonly List<IRecyclable> Recyclables = new List<IRecyclable>();
         private static readonly List<IRecyclable> Progressing = new List<IRecyclable>();
+
+        public new int priority = 8;
 
         public override void Start()
         {
