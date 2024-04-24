@@ -99,7 +99,7 @@ namespace IngameDebugConsole
 				backgroundImage.color = alertColorInfo;
 		}
 
-		private void ResetValues()
+		public void ResetValues()
 		{
 			newInfoCount = 0;
 			newWarningCount = 0;
@@ -143,7 +143,7 @@ namespace IngameDebugConsole
 			IsVisible = true;
 
 			// Reset the counters
-			ResetValues();
+			// ResetValues();
 
 			// Update position in case resolution was changed while the popup was hidden
 			UpdatePosition( true );

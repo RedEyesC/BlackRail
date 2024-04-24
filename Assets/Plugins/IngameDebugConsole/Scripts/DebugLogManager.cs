@@ -811,10 +811,11 @@ namespace IngameDebugConsole
 						}
 					}
 
-					if( popupManager.IsVisible )
-						popupManager.NewLogsArrived( newInfoEntryCount, newWarningEntryCount, newErrorEntryCount );
 				}
-			}
+
+                //Always Record 
+                popupManager.NewLogsArrived(newInfoEntryCount, newWarningEntryCount, newErrorEntryCount);
+            }
 
 			if( isLogWindowVisible )
 			{
@@ -1420,6 +1421,8 @@ namespace IngameDebugConsole
 			collapsedLogEntriesMap.Clear();
 			uncollapsedLogEntries.Clear();
 			logEntriesToShow.Clear();
+
+				popupManager.ResetValues();
 
 			if( collapsedLogEntriesTimestamps != null )
 			{
