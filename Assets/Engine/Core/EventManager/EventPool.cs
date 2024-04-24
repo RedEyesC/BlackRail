@@ -19,7 +19,7 @@ namespace GameFramework.Event
         private readonly Dictionary<int, EventFunc> _funcMap = new Dictionary<int, EventFunc>();
         private readonly Dictionary<int, LinkedList<int>> _eventHandlers = new Dictionary<int, LinkedList<int>>();
 
-        private readonly Dictionary<int, LinkedListNode<int>> _cachedNodes;
+        private readonly Dictionary<int, LinkedListNode<int>> _cachedNodes = new Dictionary<int, LinkedListNode<int>>();
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
