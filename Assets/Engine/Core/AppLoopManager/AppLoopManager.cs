@@ -4,7 +4,7 @@ namespace GameFramework.AppLoop
 {
     public class AppLoopManager : GameModule
     {
-        private StateMachine _stateMachine;
+        private static StateMachine _stateMachine;
 
         public new int priority = 2;
 
@@ -12,8 +12,8 @@ namespace GameFramework.AppLoop
         {
             _stateMachine = new StateMachine();
             _stateMachine.AddState(new AppLoopStart());
-
-            _stateMachine.ChangeState("start");
+            _stateMachine.AddState(new AppLoopLoading());
+            _stateMachine.ChangeState("Start");
         }
 
         public override void Update(float elapseSeconds, float realElapseSeconds)
@@ -24,6 +24,11 @@ namespace GameFramework.AppLoop
         public override void Destroy()
         {
             _stateMachine.Destroy(null);
+        }
+
+        public static void ChangeState(string state)
+        {
+            _stateMachine.ChangeState(state);
         }
     }
 }

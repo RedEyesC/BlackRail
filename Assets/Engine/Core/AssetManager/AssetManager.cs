@@ -2,6 +2,7 @@
 
 using GameFramework.Common;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -163,11 +164,17 @@ namespace GameFramework.Asset
         {
             return AssetRequest.Load(bundleName, null, true, callback);
         }
-
         public static void UnLoadAssetAsync(AssetRequest req)
         {
             req.Release();
         }
+
+
+        public static SceneRequest LoadSceneAsync(string bundleName, string assetName, System.Action<Request> callback = null, bool withAdditive = false)
+        {
+            return SceneRequest.LoadInternal(bundleName, assetName, withAdditive, callback);
+        }
+
 
         #endregion
 
@@ -193,13 +200,13 @@ namespace GameFramework.Asset
 
         #region Asset
 
-        public static Object GetAssetObj(string bundleName, string assetName , bool isAll = false)
+        public static Object GetAssetObj(string bundleName, string assetName, bool isAll = false)
         {
-            return AssetRequest.Get<Object>(bundleName, assetName,isAll);
+            return AssetRequest.Get<Object>(bundleName, assetName, isAll);
         }
 
 
-        public static T GetAssetObjWithType<T>(string bundleName, string assetName,bool isAll = false) where T : Object
+        public static T GetAssetObjWithType<T>(string bundleName, string assetName, bool isAll = false) where T : Object
         {
             return AssetRequest.Get<T>(bundleName, assetName, isAll);
         }

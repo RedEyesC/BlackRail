@@ -1,5 +1,6 @@
 ﻿
 
+using GameFramework.Asset;
 using GameFramework.Common;
 using UnityEngine;
 
@@ -36,6 +37,8 @@ namespace GameFramework.Scene
         //private float _colliderFadeOutSpeed = 2;
 
         public new int priority = 6;
+
+        private static Transform _appRoot;
         public override void Destroy()
         {
 
@@ -43,10 +46,12 @@ namespace GameFramework.Scene
 
         public override void Start()
         {
+            _appRoot = GameObject.Find("_AppRoot").transform;
+
             //创建场景相机
             GameObject camObj = new GameObject("MainCamera");
             _camera = CreateSceneCamera(camObj);
-            camObj.SetParent(GameObject.Find("_AppRoot"), false);
+            camObj.SetParent(_appRoot, false);
 
             UnityEngine.EventSystems.PhysicsRaycaster ray = camObj.AddComponent<UnityEngine.EventSystems.PhysicsRaycaster>();
             ray.eventMask = ~LayerMask.NameToLayer("UI");
@@ -57,8 +62,10 @@ namespace GameFramework.Scene
             _objLayer = new GameObject("ObjLayer");
             _objLayerTrans = _objLayer.transform;
             _objLayerTrans.position = Vector3.zero;
-            _objLayer.SetParent(GameObject.Find("_AppRoot"), false);
-        }
+            _objLayer.SetParent(_appRoot, false);
+
+              
+    }
 
         public override void Update(float elapseSeconds, float realElapseSeconds)
         {
@@ -182,6 +189,31 @@ namespace GameFramework.Scene
         public static Camera GetMainCamera()
         {
             return _camera;
+        }
+
+
+        public static SceneRequest LoadSceneAsync(int mapId)
+        {
+            string bundleName = GetSceneBundlePath(mapId);
+            string assetName = mapId.ToString();
+            return AssetManager.LoadSceneAsync(bundleName, assetName);
+        }
+
+        public static void UnLoadAssetAsync(int mapId)
+        {
+            //TODO
+        }
+
+        public static string GetSceneBundlePath(int mapId)
+        {
+            return string.Format("Map/{0}.ab", mapId);
+        }
+
+        public static float GetHeightByRayCast(float x, float y)
+        {
+            float rst = _appRoot.GetHeightByRaycast(x, y, 1 << LayerMask.NameToLayer("Default"));
+
+            return rst;
         }
 
     }

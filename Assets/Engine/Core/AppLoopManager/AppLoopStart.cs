@@ -9,7 +9,7 @@ namespace GameFramework.AppLoop
     {
         public override string GetID()
         {
-            return "start";
+            return "Start";
         }
 
         public override void StateUpdate(float elapseSeconds, float realElapseSeconds)

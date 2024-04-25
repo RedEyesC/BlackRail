@@ -1,22 +1,20 @@
-﻿using GameFramework.Common;
+﻿using GameFramework.Asset;
 using GameFramework.Scene;
-using UnityEngine;
 
 namespace GameFramework.Moudule
 {
     internal class SceneCtrl : BaseModule
     {
-        private int _mapId = 0;
-        private int _requestId;
+        private static int _mapId = 0;
+        private static SceneRequest _requestId;
 
 
         public Role mainRole;
 
-        private Transform _appRoot;
 
         public SceneCtrl()
         {
-            _appRoot = UnityEngine.GameObject.Find("_AppRoot").transform;
+           
         }
 
 
@@ -25,18 +23,16 @@ namespace GameFramework.Moudule
             if (_mapId != 0)
             {
                 _mapId = 0;
-
-                string path = Utils.GetMapPath(_mapId);
-                //_requestId = GlobalCenter.GetModule<AssetManager>().UnLoadSceneAsync(path);
+                //TODO
+                //_requestId = AssetManager.UnLoadSceneAsync(path);
 
             }
         }
 
-        public void LoadScene(int mapId)
+        public static void LoadScene(int mapId)
         {
             _mapId = mapId;
-            string path = Utils.GetMapPath(mapId);
-            //_requestId = GlobalCenter.GetModule<AssetManager>().LoadSceneAsync(path, OnLoadResFinish);
+            _requestId = SceneManager.LoadSceneAsync(mapId);
 
         }
 
@@ -66,14 +62,8 @@ namespace GameFramework.Moudule
                 mainRole.StateUpdate(elapseSeconds, realElapseSeconds);
             }
 
-
         }
 
-        public float GetHeightByRayCast(float x, float y)
-        {
-            float rst = _appRoot.GetHeightByRaycast(x, y, 1 << LayerMask.NameToLayer("Default"));
 
-            return rst;
-        }
     }
 }

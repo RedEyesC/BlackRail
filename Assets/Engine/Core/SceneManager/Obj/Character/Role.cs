@@ -118,9 +118,7 @@ namespace GameFramework.Scene
 
         public float CalcMapHeight(float x ,float y)
         {
-            return 0;
-            //TODO
-            //return ModuleManager.GetModule<SceneCtrl>().GetHeightByRayCast(x,y);  
+           return SceneManager.GetHeightByRayCast(x,y);  
         }
     }
 }
