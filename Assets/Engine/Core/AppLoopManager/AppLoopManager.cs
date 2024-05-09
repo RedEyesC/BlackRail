@@ -13,6 +13,7 @@ namespace GameFramework.AppLoop
             _stateMachine = new StateMachine();
             _stateMachine.AddState(new AppLoopStart());
             _stateMachine.AddState(new AppLoopLoading());
+            _stateMachine.AddState(new AppLoopPlay());
             _stateMachine.ChangeState("Start");
         }
 

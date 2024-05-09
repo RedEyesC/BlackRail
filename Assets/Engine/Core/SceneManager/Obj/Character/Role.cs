@@ -1,15 +1,10 @@
-﻿
-using GameFramework.Common;
-using System;
-using System.Collections.Generic;
+﻿using System;
 
 namespace GameFramework.Scene
 {
 
     internal class Role : Obj
     {
-
-        private Dictionary<int, ModelObj> _modelList = new Dictionary<int, ModelObj>();
 
         private float _targetX = 0;
         private float _targetY = 0;
@@ -20,48 +15,16 @@ namespace GameFramework.Scene
         public float div = 0.5f;
 
 
-
         public Role()
         {
             Init();
         }
 
-        public void SetModelID(int modelType, int id)
-        {
-
-            if (!_modelList.ContainsKey(modelType))
-            {
-                _modelList.Add(modelType, new ModelObj());
-            }
-
-
-            ModelObj model = _modelList[modelType];
-
-            string path = Utils.GetRoleModelPath(id);
-
-            model.ChangeModel(path, () =>
-            {
-                model.SetParent(_rootObj.transform);
-            });
-
-        }
-
-
-        public void PlayAnim(string name)
-        {
-
-            foreach (KeyValuePair<int, ModelObj> kvp in _modelList)
-            {
-
-                kvp.Value.PlayAnim(name);
-
-            }
-        }
 
         public void DoJoystick(int x, int y)
         {
-            _targetX = _rootObj.transform.position.x + x * div;
-            _targetY = _rootObj.transform.position.z + y * div;
+            _targetX = _drawObj.root.position.x + x * div;
+            _targetY = _drawObj.root.transform.position.z + y * div;
 
             _targetDist = (float)Math.Sqrt(x * x * div * div + y * y * div * div);
             _CurDist = 0;
@@ -77,8 +40,8 @@ namespace GameFramework.Scene
                 float deltaDist = elapseSeconds * speed;
                 _CurDist += deltaDist;
 
-                float x = _rootObj.transform.position.x;
-                float y = _rootObj.transform.position.z;
+                float x = _drawObj.root.position.x;
+                float y = _drawObj.root.position.z;
 
                 if (_CurDist < _targetDist)
                 {
@@ -102,10 +65,10 @@ namespace GameFramework.Scene
                 }
             }
 
-            if (_rootObj.transform)
+            if (_drawObj.root)
             {
-                float x = _rootObj.transform.position.x;
-                float y = _rootObj.transform.position.z;
+                float x = _drawObj.root.position.x;
+                float y = _drawObj.root.position.z;
                 float height = CalcMapHeight(x,y);
 
                 if(height> -999)

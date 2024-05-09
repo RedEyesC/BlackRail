@@ -27,17 +27,19 @@ namespace GameFramework.AppLoop
                     _state = 1;
                     break;
                 case 1:
-
-
+                    if (SceneCtrl.IsLoadedScene())
+                    {
+                        _state = 2;
+                    }
                     break;
                 case 2:
-
+                    SceneCtrl.CreateMainRole();
+                    _state = 3;
                     break;
-
-
-
+                case 3:
+                    AppLoopManager.ChangeState("Play");
+                    break;
             }
-
 
         }
     }

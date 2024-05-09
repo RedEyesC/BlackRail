@@ -49,7 +49,7 @@ namespace GameFramework.UI
                 for (int i = cnt - 1; i >= 0; --i)
                 {
                     var obj = _children[i];
-                    //TODO 好像只要释放引用即可
+                    //TODO 好像只要释放引用即可,但是动态添加的和初始化就存在的怎么区分开，并销毁呢？
                     //obj.Destroy();
                 }
             }

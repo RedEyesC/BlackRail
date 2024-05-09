@@ -5,56 +5,53 @@ namespace GameFramework.Scene
 
     internal class Obj
     {
-        protected UnityEngine.GameObject _rootObj;
+
+        protected DrawObj _drawObj;
 
         protected Vector2 _dir = new Vector2();
-
-        public UnityEngine.Transform root
-        {
-            get
-            {
-                return _rootObj.transform;
-            }
-        }
+        protected Vector3 _pos = new Vector3();
 
 
         public virtual void Init()
         {
-
-            _rootObj = new GameObject();
-            SceneManager.AddToObjRoot(_rootObj.transform);
-
+            _drawObj = new DrawObj();
         }
 
+
+        public void SetModelID(int modelType, int id)
+        {
+            _drawObj.SetModelID(modelType, id);
+        }
+
+
+        public void PlayAnim(string name)
+        {
+            _drawObj.PlayAnim(name);
+        }
 
         protected virtual void Destroy()
         {
-            if (_rootObj)
+            if (_drawObj != null)
             {
-                SceneManager.DestroyLayout(_rootObj);
-                _rootObj = null;
+                _drawObj.Rest();
+                _drawObj = null;
             }
         }
 
+
         public void SetPosition(float x, float y, float z)
         {
-
-            _rootObj.transform.position = new Vector3(x, y, z);
+            _pos.Set(x, y, z);
+            _drawObj.root.position = _pos;
         }
+
 
         public void SetDir(float x, float y)
         {
             if (x != 0 || y != 0)
             {
                 _dir.Set(x, y);
-
-                if (_rootObj && _rootObj.transform)
-                {
-
-                    _rootObj.transform.SetLookDir(_dir.x, 0, _dir.y);
-
-                }
-
+                _drawObj.root.SetLookDir(_dir.x, 0, _dir.y);
             }
 
         }

@@ -7,7 +7,7 @@ namespace GameFramework.Moudule
     {
         public void Update(float elapseSeconds, float realElapseSeconds)
         {
-            Role mainRole = ModuleManager.GetModule<SceneCtrl>().mainRole;
+            Role mainRole = SceneCtrl.mainRole;
 
             int TempX = 0;
             int TempY = 0;

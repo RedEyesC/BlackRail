@@ -6,10 +6,10 @@ namespace GameFramework.Moudule
     internal class SceneCtrl : BaseModule
     {
         private static int _mapId = 0;
-        private static SceneRequest _requestId;
+        private static SceneRequest _request;
 
 
-        public Role mainRole;
+        public static Role mainRole;
 
 
         public SceneCtrl()
@@ -32,27 +32,21 @@ namespace GameFramework.Moudule
         public static void LoadScene(int mapId)
         {
             _mapId = mapId;
-            _requestId = SceneManager.LoadSceneAsync(mapId);
+            _request = SceneManager.LoadSceneAsync(mapId);
 
         }
 
-        private void OnLoadResFinish(int requestID, bool isSuccess)
+        public static bool IsLoadedScene()
         {
-            if (isSuccess)
-            {
-                //Debug.Log(string.Format("map id {0} is Loaded", _mapId));
-            }
-
+            return _request.isDone;
         }
 
-
-        public Role CreateMainRole()
+        public static Role CreateMainRole()
         {
             mainRole = new Role();
-            mainRole.SetModelID(1, 1);
+            mainRole.SetModelID(1, 1001);
             return mainRole;
         }
-
 
 
         public void Update(float elapseSeconds, float realElapseSeconds)

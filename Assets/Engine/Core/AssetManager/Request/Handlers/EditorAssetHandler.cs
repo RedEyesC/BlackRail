@@ -1,55 +1,18 @@
-﻿using GameFramework.Common;
-using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace GameFramework.Asset
 {
-    public class EditorAssetHandler : IAssetHandler
+    public struct EditorAssetHandler : IAssetHandler
     {
-        private enum Step
-        {
-            LoadDependencies,
-            LoadAsset
-        }
-
-        private Step _step;
-
-        public bool loadIsDone;
-        public float resProgress;
-        public Object[] loadAssetObjs;
 
         public void OnStart(AssetRequest request)
         {
-            _step = Step.LoadDependencies;
-            loadIsDone = false;
-            resProgress = 0.0f;
-        }
 
-        public void Update(AssetRequest request)
-        {
-            switch (_step)
-            {
-                case Step.LoadDependencies:
-                    _step = Step.LoadAsset;
-                    AppInterface.StartCoroutine(LoadAssetByResAsync(request));
-                    break;
+            Object[] loadAssetObjs = LoadAssetByRes(request);
 
-                case Step.LoadAsset:
-                    request.progress = 0.5f + resProgress * 0.5f;
-                    if (!loadIsDone) return;
-                    SetResult(request);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        private void SetResult(AssetRequest request)
-        {
             if (request.isAll)
             {
                 Dictionary<string, Object> dict = new Dictionary<string, Object>();
@@ -78,21 +41,24 @@ namespace GameFramework.Asset
             request.SetResult(Request.Result.Success);
         }
 
+        public void Update(AssetRequest request)
+        {
+           
+        }
+
+        private void SetResult(AssetRequest request)
+        {
+            
+        }
+
         public void Dispose(AssetRequest request)
         {
-            loadIsDone = false;
-            resProgress = 0.0f;
-            loadAssetObjs = null;
+
         }
 
         public void WaitForCompletion(AssetRequest request)
         {
-            if (request.result == Request.Result.Failed) return;
-            //  特殊处理，防止异步转同步卡顿。
-            if (resProgress == 0.0f)
-                LoadAssetByRes(request);
-            else
-                SetResult(request);
+
         }
 
 
@@ -123,38 +89,7 @@ namespace GameFramework.Asset
             return objList.ToArray();
         }
 
-        internal IEnumerator LoadAssetByResAsync(AssetRequest request)
-        {
-            string bundleName = request.bundleName;
-            string assetName = request.assetName;
-
-            string resPath = bundleName.Remove(bundleName.LastIndexOf(".")) + "/";
-
-            List<Object> objList = new List<Object>();
-            List<string> fileList = GetFileList(bundleName, assetName);
-
-            yield return null;
-
-            ResourceRequest req = null;
-            for (int i = 0; i < fileList.Count; i++)
-            {
-
-                resProgress = i / fileList.Count;
-
-                req = Resources.LoadAsync(resPath + fileList[i]);
-                yield return req;
-
-                if (req.asset != null)
-                    objList.Add(req.asset);
-
-            }
-
-            loadAssetObjs = objList.ToArray();
-            loadIsDone = true;
-            resProgress = 1.0f;
-
-        }
-
+       
         private List<string> GetFileList(string bundleName, string asstName = null)
         {
             string resPath = bundleName.Remove(bundleName.LastIndexOf(".")) + "/";

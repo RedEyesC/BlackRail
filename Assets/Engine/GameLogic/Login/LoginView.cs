@@ -30,6 +30,7 @@ namespace GameFramework.UI
             GetChild<GButton>("btn_start").AddClickCallback((float x, float y) =>
             {
                 AppLoopManager.ChangeState("Loading");
+                Close();
             });
         }
      

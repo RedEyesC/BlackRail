@@ -57,15 +57,12 @@ namespace GameFramework.Scene
             ray.eventMask = ~LayerMask.NameToLayer("UI");
 
 
-
-
             _objLayer = new GameObject("ObjLayer");
             _objLayerTrans = _objLayer.transform;
             _objLayerTrans.position = Vector3.zero;
             _objLayer.SetParent(_appRoot, false);
 
-              
-    }
+        }
 
         public override void Update(float elapseSeconds, float realElapseSeconds)
         {
@@ -215,6 +212,8 @@ namespace GameFramework.Scene
 
             return rst;
         }
+
+
 
     }
 }

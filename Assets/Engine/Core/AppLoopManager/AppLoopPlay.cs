@@ -2,7 +2,7 @@
 
 namespace GameFramework.AppLoop
 {
-    internal class GameLoopPlay : StateBase
+    internal class AppLoopPlay : StateBase
     {
         public override string GetID()
         {

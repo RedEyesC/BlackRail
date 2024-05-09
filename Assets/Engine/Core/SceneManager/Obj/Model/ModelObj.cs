@@ -1,5 +1,6 @@
 ﻿
 
+using GameFramework.Asset;
 using System;
 using UnityEngine;
 
@@ -8,41 +9,45 @@ namespace GameFramework.Scene
     internal class ModelObj
     {
         private string _path;
+        private string _name;
         private Action _loadCallBack;
-        private int _reqId;
+        private AssetRequest _req;
         private GameObject _obj;
 
 
-        private void OnLoadResFinish(int requestID, bool isSuccess)
+        private void OnLoadResFinish(Request req)
         {
-            if (isSuccess)
+            if (req.isDone)
             {
-                //_obj = GlobalCenter.GetModule<AssetManager>().CreateAsset(_path);
+                GameObject Obj = AssetManager.GetAssetObjWithType<GameObject>(_path, _name);
+                _obj = GameObject.Instantiate<GameObject>(Obj);
             }
 
             if (_loadCallBack != null)
             {
                 _loadCallBack();
             }
+
         }
 
-        public void ChangeModel(string path, System.Action cb = null)
+        public void ChangeModel(string modelPath, string modelName, System.Action cb = null)
         {
-            if (path == _path)
+            if (_path == modelPath && _name == modelName)
             {
                 return;
             }
 
             if (_obj != null)
             {
-                //GlobalCenter.GetModule<AssetManager>().DestoryAsset(_obj);
+                AssetManager.UnLoadAssetAsync(_req);
+                SceneManager.DestroyLayout(_obj);
             }
 
-            _path = path;
-            _loadCallBack = cb;
+            _path = modelPath;
+            _name = modelName;
 
-            //_reqId = GlobalCenter.GetModule<AssetManager>().LoadAssetAsync(path, OnLoadResFinish);
 
+            _req = AssetManager.LoadAssetAsync(_path, _name, OnLoadResFinish);
 
         }
 
@@ -51,6 +56,7 @@ namespace GameFramework.Scene
             parent.AddChild(this._obj.transform);
         }
 
+
         public void PlayAnim(string name)
         {
             if(_obj != null)
@@ -58,5 +64,8 @@ namespace GameFramework.Scene
                 _obj.GetComponent<Animator>().Play(name);
             }
         }
+
+
+
     }
 }
