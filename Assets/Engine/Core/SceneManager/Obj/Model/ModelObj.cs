@@ -46,6 +46,7 @@ namespace GameFramework.Scene
             _path = modelPath;
             _name = modelName;
 
+            _loadCallBack = cb;
 
             _req = AssetManager.LoadAssetAsync(_path, _name, OnLoadResFinish);
 

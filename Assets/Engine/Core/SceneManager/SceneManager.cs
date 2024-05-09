@@ -16,18 +16,18 @@ namespace GameFramework.Scene
 
         private RaycastHit _hitResult;
 
-        public float _distance = 10.0f;
-        public float _minDist = 2;
-        public float _maxDist = 50;
-        public Vector3 _distOffset = new Vector3(0, 0.5f, 0);
+        public static float _distance = 10.0f;
+        public static float _minDist = 2;
+        public static float _maxDist = 50;
+        public static Vector3 _distOffset = new Vector3(0, 0.5f, 0);
+        public static Vector3 _rotation = new Vector3(0, 0, 0);
 
-        public Vector3 _rotation = new Vector3(0, 0, 0);
         public float _minRotX = -7;
         public float _maxRotX = 70;
 
-        private Transform _target = null;
+        private static Transform _target = null;
 
-        private Vector3 _tmpVector = new Vector3();
+        private static Vector3 _tmpVector = new Vector3();
 
         //private bool _colliderCheckEnable = true;
         public Vector3 _colliderOffset = new Vector3(0, 0.5f, 0);
@@ -136,7 +136,7 @@ namespace GameFramework.Scene
             return cam;
         }
 
-        private float GetFieldOfViewScale()
+        private static float GetFieldOfViewScale()
         {
             float screenWidth = Screen.width;
             float screenHeight = Screen.height;
@@ -163,7 +163,7 @@ namespace GameFramework.Scene
         }
 
 
-        public void SetTarget(Transform tran, float dist, float fov, float rx, float ry, float rz)
+        public static void SetTarget(Transform tran, float dist, float fov, float rx, float ry, float rz)
         {
             _tmpVector.Set(rx, ry, rz);
 
@@ -174,7 +174,7 @@ namespace GameFramework.Scene
             SetSceneCameraFov(fov);
         }
 
-        public void SetSceneCameraFov(float fov)
+        public static void SetSceneCameraFov(float fov)
         {
             if (_camera)
             {

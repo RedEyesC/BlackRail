@@ -41,13 +41,17 @@ namespace GameFramework.Moudule
             return _request.isDone;
         }
 
-        public static Role CreateMainRole()
+        public static void CreateMainRole()
         {
             mainRole = new Role();
             mainRole.SetModelID(1, 1001);
-            return mainRole;
         }
 
+
+        public static Role GetMainRole()
+        {
+            return mainRole;
+        } 
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {

@@ -12,6 +12,14 @@ namespace GameFramework.Scene
         protected Vector3 _pos = new Vector3();
 
 
+        public UnityEngine.Transform root
+        {
+            get
+            {
+                return _drawObj.root;
+            }
+        }
+
         public virtual void Init()
         {
             _drawObj = new DrawObj();
@@ -55,5 +63,6 @@ namespace GameFramework.Scene
             }
 
         }
+
     }
 }
