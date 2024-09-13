@@ -1,5 +1,4 @@
-﻿using GameFramework.Runtime;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace GameFramework.UI
