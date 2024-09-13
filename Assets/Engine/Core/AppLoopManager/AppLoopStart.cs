@@ -1,6 +1,7 @@
 ﻿using GameFramework.Asset;
 using GameFramework.Common;
 using GameFramework.Moudule;
+using GameLogic;
 using UnityEngine;
 
 namespace GameFramework.AppLoop

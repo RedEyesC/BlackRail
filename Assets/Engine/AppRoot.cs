@@ -2,6 +2,7 @@
 using GameFramework.AppLoop;
 using GameFramework.Asset;
 using GameFramework.Common;
+using GameFramework.Config;
 using GameFramework.Event;
 using GameFramework.Moudule;
 using GameFramework.Scene;
@@ -52,6 +53,7 @@ namespace GameFramework.Runtime
             GameCenter.CreateModule<TimerManager>();
             GameCenter.CreateModule<EventManager>();
             GameCenter.CreateModule<AssetManager>();
+            GameCenter.CreateModule<ConfigManager>();
             GameCenter.CreateModule<SceneManager>();
             GameCenter.CreateModule<UIManager>();
             GameCenter.CreateModule<ModuleManager>();

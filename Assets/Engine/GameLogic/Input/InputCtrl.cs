@@ -1,7 +1,8 @@
-﻿using GameFramework.Scene;
+﻿using GameFramework.Moudule;
+using GameFramework.Scene;
 using UnityEngine;
 
-namespace GameFramework.Moudule
+namespace GameLogic
 {
     internal class InputCtrl : BaseModule
     {

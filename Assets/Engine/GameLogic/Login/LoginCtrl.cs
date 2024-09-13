@@ -1,7 +1,7 @@
 ﻿
-using GameFramework.UI;
+using GameFramework.Moudule;
 
-namespace GameFramework.Moudule
+namespace GameLogic
 {
     internal class LoginCtrl:BaseModule
     {

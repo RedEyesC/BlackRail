@@ -1,8 +1,8 @@
 ﻿using GameFramework.AppLoop;
-using GameFramework.Asset;
+using GameFramework.UI;
 using UnityEngine;
 
-namespace GameFramework.UI
+namespace GameLogic
 {
     internal class LoginView : BaseView
     {
@@ -26,8 +26,9 @@ namespace GameFramework.UI
                 Application.Quit();
             });
 
-
-            GetChild<GButton>("btn_start").AddClickCallback((float x, float y) =>
+            GButton start = GetChild<GButton>("btn_start");
+            start.text = Utils.Text(2);
+            start.AddClickCallback((float x, float y) =>
             {
                 AppLoopManager.ChangeState("Loading");
                 Close();

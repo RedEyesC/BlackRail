@@ -1,5 +1,5 @@
 ﻿using GameFramework.Common;
-using GameFramework.Moudule;
+using GameLogic;
 
 namespace GameFramework.AppLoop
 {

@@ -1,6 +1,6 @@
 ﻿using GameFramework.Common;
-using GameFramework.Moudule;
 using GameFramework.Scene;
+using GameLogic;
 
 namespace GameFramework.AppLoop
 {

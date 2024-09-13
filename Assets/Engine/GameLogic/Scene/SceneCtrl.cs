@@ -1,7 +1,8 @@
 ﻿using GameFramework.Asset;
+using GameFramework.Moudule;
 using GameFramework.Scene;
 
-namespace GameFramework.Moudule
+namespace GameLogic
 {
     internal class SceneCtrl : BaseModule
     {
