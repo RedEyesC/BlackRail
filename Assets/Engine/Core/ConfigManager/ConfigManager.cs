@@ -12,7 +12,7 @@ namespace GameFramework.Config
 
         private static Dictionary<string, ConfigBase> configMap = new Dictionary<string, ConfigBase>();
 
-        public new int priority = 6;
+        public new int priority = 7;
 
         public static ConfigBase Get(string key)
         {

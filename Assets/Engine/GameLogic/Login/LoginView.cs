@@ -27,7 +27,7 @@ namespace GameLogic
             });
 
             GButton start = GetChild<GButton>("btn_start");
-            start.text = Utils.Text(2);
+            start.text = Utils.Text(1);
             start.AddClickCallback((float x, float y) =>
             {
                 AppLoopManager.ChangeState("Loading");

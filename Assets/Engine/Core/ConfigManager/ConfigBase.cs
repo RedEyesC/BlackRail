@@ -77,6 +77,10 @@ namespace GameFramework.Config
             return (T)item;
         }
 
+
+
+
+
         public T GetBin<T>(int offset)
         {
             int type = _buffer.ReadByteByPos(offset);

@@ -1,9 +1,6 @@
-using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using UnityEngine;
-using UnityEngine.Networking.Types;
+
 
 namespace GameFramework.Scene
 {
@@ -61,6 +58,20 @@ namespace GameFramework.Scene
 
         }
 
+        public void AddModelAnim(int modelType, string clipName)
+        {
+            if (!_modelList.ContainsKey(modelType))
+            {
+                return;
+            }
+
+            ModelObj model = _modelList[modelType];
+
+            string path = GetAnimPath(modelType, clipName);
+
+            model.AddClip(path, clipName);
+        }
+
 
         public void PlayAnim(string name)
         {
@@ -104,5 +115,9 @@ namespace GameFramework.Scene
             return string.Format("Model/Role/{0}.ab", id);
         }
 
+        public static string GetAnimPath(int modelType, string clipName)
+        {
+            return string.Format("Anim/{0}.ab", clipName);
+        }
     }
 }

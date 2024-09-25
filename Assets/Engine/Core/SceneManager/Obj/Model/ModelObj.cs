@@ -2,6 +2,7 @@
 
 using GameFramework.Asset;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace GameFramework.Scene
@@ -11,6 +12,7 @@ namespace GameFramework.Scene
         private string _path;
         private string _name;
         private Action _loadCallBack;
+        private List<AssetRequest> _reqAnimList = new List<AssetRequest>();
         private AssetRequest _req;
         private GameObject _obj;
 
@@ -28,6 +30,21 @@ namespace GameFramework.Scene
                 _loadCallBack();
             }
 
+        }
+
+        private void OnLoadAnimFinish(Request req)
+        {
+            AssetRequest assetRequest = req as AssetRequest;
+            if (req.isDone)
+            {
+                AnimationClip clip = AssetManager.GetAssetObjWithType<AnimationClip>(assetRequest.bundleName, assetRequest.assetName);
+
+                if (_obj != null)
+                {
+                    _obj.GetComponent<AnimPlayableComponent>().AddClip(clip, clip.name);
+                }
+
+            }
         }
 
         public void ChangeModel(string modelPath, string modelName, System.Action cb = null)
@@ -60,13 +77,17 @@ namespace GameFramework.Scene
 
         public void PlayAnim(string name)
         {
-            if(_obj != null)
+            if (_obj != null)
             {
-                _obj.GetComponent<Animator>().Play(name);
+                _obj.GetComponent<AnimPlayableComponent>().Play(name);
             }
         }
 
-
+        public void AddClip(string clipPath, string clipName)
+        {
+            AssetRequest _reqAnim = AssetManager.LoadAssetAsync(clipPath, clipName, OnLoadAnimFinish);
+            _reqAnimList.Add(_reqAnim);
+        }
 
     }
 }
