@@ -16,7 +16,6 @@ namespace GameFramework.Moudule
         {
             typeof(LoginCtrl),
             typeof(SceneCtrl),
-            typeof(InputCtrl),
         };
 
 
