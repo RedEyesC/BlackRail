@@ -4,15 +4,14 @@ using GameFramework.Asset;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using static TreeEditor.TreeEditorHelper;
 
 namespace GameFramework.Scene
 {
     internal class ModelObj
     {
-        private string _path;
+        private int _id;
         private int _modelType;
-        private string _name;
+
         private Action _loadCallBack;
         private Dictionary<string,AssetRequest> _reqAnimDict = new Dictionary<string,AssetRequest>();
         private AssetRequest _req;
@@ -26,9 +25,10 @@ namespace GameFramework.Scene
 
         private void OnLoadResFinish(Request req)
         {
+            AssetRequest assetRequest = req as AssetRequest;
             if (req.isDone)
             {
-                GameObject Obj = AssetManager.GetAssetObjWithType<GameObject>(_path, _name);
+                GameObject Obj = AssetManager.GetAssetObjWithType<GameObject>(assetRequest.bundleName, assetRequest.assetName);
                 _obj = GameObject.Instantiate<GameObject>(Obj);
             }
 
@@ -56,10 +56,9 @@ namespace GameFramework.Scene
 
         public void ChangeModel(int id, System.Action cb = null)
         {
-            string modelPath = GetModelPath(_modelType, id);
-            string modelName = id.ToString();
 
-            if (_path == modelPath && _name == modelName)
+
+            if (_id == id)
             {
                 return;
             }
@@ -70,12 +69,12 @@ namespace GameFramework.Scene
                 SceneManager.DestroyLayout(_obj);
             }
 
-            _path = modelPath;
-            _name = modelName;
+            string modelPath = GetModelPath(_modelType, id);
+            string modelName = id.ToString();
 
             _loadCallBack = cb;
 
-            _req = AssetManager.LoadAssetAsync(_path, _name, OnLoadResFinish);
+            _req = AssetManager.LoadAssetAsync(modelPath, modelName, OnLoadResFinish);
 
         }
 
