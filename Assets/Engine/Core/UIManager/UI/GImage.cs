@@ -2,6 +2,9 @@
 {
     public class GImage:GObject
     {
-       
+        override public void Destroy()
+        {
+
+        }
     }
 }

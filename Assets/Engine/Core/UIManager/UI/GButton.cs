@@ -48,5 +48,10 @@ namespace GameFramework.UI
                 this._titleObject.text = txt;
             }
         }
+
+        override public void Destroy()
+        {
+
+        }
     }
 }

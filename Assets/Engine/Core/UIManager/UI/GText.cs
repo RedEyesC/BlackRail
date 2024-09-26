@@ -20,5 +20,10 @@ namespace GameFramework.UI
         {
             obj.GetComponent<Text>().text = _text;
         }
+
+        override public void Destroy()
+        {
+
+        }
     }
 }
