@@ -19,6 +19,7 @@ namespace GameFramework.AppLoop
             SceneManager.SetTarget(mainRole.root, 10f, 35, 20, 0, 0);
 
             mainRole.SetPosition(-66,499);
+            mainRole.PlayAnim("Idle");
         }
     }
 }

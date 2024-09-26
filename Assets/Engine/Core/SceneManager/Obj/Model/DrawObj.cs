@@ -42,34 +42,16 @@ namespace GameFramework.Scene
 
             if (!_modelList.ContainsKey(modelType))
             {
-                _modelList.Add(modelType, new ModelObj());
+                _modelList.Add(modelType, new ModelObj(modelType));
             }
-
 
             ModelObj model = _modelList[modelType];
 
-            string path = GetModelPath(modelType, id);
-            string name = id.ToString();
-
-            model.ChangeModel(path, name, () =>
+            model.ChangeModel(id, () =>
             {
                 model.SetParent(_rootObj.transform);
             });
 
-        }
-
-        public void AddModelAnim(int modelType, string clipName)
-        {
-            if (!_modelList.ContainsKey(modelType))
-            {
-                return;
-            }
-
-            ModelObj model = _modelList[modelType];
-
-            string path = GetAnimPath(modelType, clipName);
-
-            model.AddClip(path, clipName);
         }
 
 
@@ -131,14 +113,6 @@ namespace GameFramework.Scene
 
         }
 
-        public static string GetModelPath(int modelType, int id)
-        {
-            return string.Format("Model/Role/{0}.ab", id);
-        }
 
-        public static string GetAnimPath(int modelType, string clipName)
-        {
-            return string.Format("Anim/{0}.ab", clipName);
-        }
     }
 }

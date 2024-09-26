@@ -31,12 +31,6 @@ namespace GameFramework.Scene
             _drawObj.SetModelID(modelType, id);
         }
 
-        public void AddModelAnim(int modelType, string clipName)
-        {
-            _drawObj.AddModelAnim(modelType, clipName);
-        }
-
-
         public void PlayAnim(string name)
         {
             _drawObj.PlayAnim(name);

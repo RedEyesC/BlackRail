@@ -46,8 +46,6 @@ namespace GameLogic
         {
             mainRole = new Role();
             mainRole.SetModelID(1, 1001);
-            mainRole.AddModelAnim(1, "run");
-            mainRole.AddModelAnim(1, "idle");
         }
 
 

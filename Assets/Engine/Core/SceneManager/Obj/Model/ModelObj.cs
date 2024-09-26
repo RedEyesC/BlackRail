@@ -4,18 +4,25 @@ using GameFramework.Asset;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using static TreeEditor.TreeEditorHelper;
 
 namespace GameFramework.Scene
 {
     internal class ModelObj
     {
         private string _path;
+        private int _modelType;
         private string _name;
         private Action _loadCallBack;
-        private List<AssetRequest> _reqAnimList = new List<AssetRequest>();
+        private Dictionary<string,AssetRequest> _reqAnimDict = new Dictionary<string,AssetRequest>();
         private AssetRequest _req;
         private GameObject _obj;
 
+
+        public ModelObj(int modelType )
+        {
+            _modelType = modelType;
+        }
 
         private void OnLoadResFinish(Request req)
         {
@@ -41,14 +48,17 @@ namespace GameFramework.Scene
 
                 if (_obj != null)
                 {
-                    _obj.GetComponent<AnimPlayableComponent>().AddClip(clip, clip.name);
+                    _obj.GetComponent<AnimPlayableComponent>().Play(clip, clip.name);
                 }
 
             }
         }
 
-        public void ChangeModel(string modelPath, string modelName, System.Action cb = null)
+        public void ChangeModel(int id, System.Action cb = null)
         {
+            string modelPath = GetModelPath(_modelType, id);
+            string modelName = id.ToString();
+
             if (_path == modelPath && _name == modelName)
             {
                 return;
@@ -75,28 +85,40 @@ namespace GameFramework.Scene
         }
 
 
-        public void PlayAnim(string name)
+        public void PlayAnim(string clipName)
         {
-            if (_obj != null)
-            {
-                _obj.GetComponent<AnimPlayableComponent>().Play(name);
-            }
-        }
 
-        public void AddClip(string clipPath, string clipName)
-        {
-            AssetRequest _reqAnim = AssetManager.LoadAssetAsync(clipPath, clipName, OnLoadAnimFinish);
-            _reqAnimList.Add(_reqAnim);
+            if (_reqAnimDict.TryGetValue(clipName,out AssetRequest _reqAnim))
+            {
+                if (_reqAnim.isDone)
+                {
+                    if (_obj != null)
+                    {
+                        _obj.GetComponent<AnimPlayableComponent>().Play(clipName);
+                    }
+                }
+            }
+            else
+            {
+                string clipPath = GetAnimPath(_modelType, clipName);
+                _reqAnim = AssetManager.LoadAssetAsync(clipPath, clipName, OnLoadAnimFinish);
+                _reqAnimDict[clipName] = _reqAnim;
+            }
         }
 
         public bool IsLoade()
         {
-            if (_req != null)
-            {
-                return _req.isDone;
-            }
+            return _obj != null;
+        }
 
-            return false;
+        public static string GetModelPath(int modelType, int id)
+        {
+            return string.Format("Model/Role/{0}.ab", id);
+        }
+
+        public static string GetAnimPath(int modelType, string clipName)
+        {
+            return string.Format("Anim.ab", clipName);
         }
     }
 }
