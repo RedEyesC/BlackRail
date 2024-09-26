@@ -8,6 +8,8 @@ namespace GameFramework.Scene
 {
     public class SceneManager : GameModule
     {
+        static Vector3 tempVec3 = new Vector3();
+
         private static GameObject _objLayer = null;
         private static Transform _objLayerTrans = null;
         private static Camera _camera = null;
@@ -208,9 +210,15 @@ namespace GameFramework.Scene
 
         public static float GetHeightByRayCast(float x, float z)
         {
-            float rst = _appRoot.GetHeightByRaycast(x, z, 1 << LayerMask.NameToLayer("Default"));
+            int layerMask =  1 << LayerMask.NameToLayer("Default");
 
-            return rst;
+            tempVec3.Set(x, 1000, z);
+            Ray ray = new Ray(tempVec3, Vector3.down);
+            if (Physics.Raycast(ray, out RaycastHit hit, 1500f, layerMask))
+            {
+                return hit.point.y;
+            }
+            return -9999f;
         }
 
     }

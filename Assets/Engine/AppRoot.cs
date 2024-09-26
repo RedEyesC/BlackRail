@@ -53,12 +53,15 @@ namespace GameFramework.Runtime
 
             GameCenter.CreateModule<TimerManager>();
             GameCenter.CreateModule<EventManager>();
+
             GameCenter.CreateModule<AssetManager>();
+
             GameCenter.CreateModule<ConfigManager>();
             GameCenter.CreateModule<SceneManager>();
             GameCenter.CreateModule<UIManager>();
             GameCenter.CreateModule<InputManager>();
             GameCenter.CreateModule<ModuleManager>();
+
             GameCenter.CreateModule<AppLoopManager>();
 
             GameCenter.Start();
