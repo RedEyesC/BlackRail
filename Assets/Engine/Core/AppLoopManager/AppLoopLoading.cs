@@ -1,4 +1,5 @@
 ﻿using GameFramework.Common;
+using GameFramework.Scene;
 using GameLogic;
 
 namespace GameFramework.AppLoop
@@ -37,6 +38,13 @@ namespace GameFramework.AppLoop
                     _state = 3;
                     break;
                 case 3:
+                    Role role = SceneCtrl.GetMainRole();
+                    if (role.IsLoade())
+                    {
+                        _state = 4;
+                    }
+                    break;
+                case 4:
                     AppLoopManager.ChangeState("Play");
                     break;
             }

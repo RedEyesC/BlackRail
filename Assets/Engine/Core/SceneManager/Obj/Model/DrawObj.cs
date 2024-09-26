@@ -80,12 +80,33 @@ namespace GameFramework.Scene
             {
                 foreach (KeyValuePair<int, ModelObj> kvp in _modelList)
                 {
-
                     kvp.Value.PlayAnim(name);
-
                 }
             }
 
+        }
+
+        public bool IsLoade()
+        {
+
+            if (_rootObj != null)
+            {
+                foreach (ModelObj model in _modelList.Values)
+                {
+
+                    if (!model.IsLoade())
+                    {
+                        return false;
+                    }
+                }
+            }
+            else
+            {
+                return false;
+            }
+
+            return true;
+       
         }
 
 

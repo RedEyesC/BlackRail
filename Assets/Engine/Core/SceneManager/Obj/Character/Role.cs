@@ -68,20 +68,17 @@ namespace GameFramework.Scene
             if (_drawObj.root)
             {
                 float x = _drawObj.root.position.x;
-                float y = _drawObj.root.position.z;
-                float height = CalcMapHeight(x,y);
+                float z = _drawObj.root.position.z;
+                float height = CalcMapHeight(x,z);
 
                 if(height> -999)
                 {
-                    SetPosition(x, height, y);
+                    SetPosition(x, height, z);
                 }
                
             }
         }
 
-        public float CalcMapHeight(float x ,float y)
-        {
-           return SceneManager.GetHeightByRayCast(x,y);  
-        }
+
     }
 }

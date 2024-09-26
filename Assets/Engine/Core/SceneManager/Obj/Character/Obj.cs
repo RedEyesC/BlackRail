@@ -42,6 +42,11 @@ namespace GameFramework.Scene
             _drawObj.PlayAnim(name);
         }
 
+        public bool IsLoade()
+        {
+            return _drawObj.IsLoade();
+        }
+
         protected virtual void Destroy()
         {
             if (_drawObj != null)
@@ -58,6 +63,12 @@ namespace GameFramework.Scene
             _drawObj.root.position = _pos;
         }
 
+        public void SetPosition(float x, float z)
+        {
+            float height = CalcMapHeight(x, z);
+            _pos.Set(x, height, z);
+            _drawObj.root.position = _pos;
+        }
 
         public void SetDir(float x, float y)
         {
@@ -67,6 +78,11 @@ namespace GameFramework.Scene
                 _drawObj.root.SetLookDir(_dir.x, 0, _dir.y);
             }
 
+        }
+
+        public float CalcMapHeight(float x, float z)
+        {
+            return SceneManager.GetHeightByRayCast(x, z);
         }
 
     }

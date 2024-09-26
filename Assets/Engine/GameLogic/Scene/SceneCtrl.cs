@@ -15,7 +15,7 @@ namespace GameLogic
 
         public SceneCtrl()
         {
-           
+
         }
 
 
@@ -54,7 +54,7 @@ namespace GameLogic
         public static Role GetMainRole()
         {
             return mainRole;
-        } 
+        }
 
         public void Update(float elapseSeconds, float realElapseSeconds)
         {

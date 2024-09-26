@@ -206,14 +206,12 @@ namespace GameFramework.Scene
             return string.Format("Map/{0}.ab", mapId);
         }
 
-        public static float GetHeightByRayCast(float x, float y)
+        public static float GetHeightByRayCast(float x, float z)
         {
-            float rst = _appRoot.GetHeightByRaycast(x, y, 1 << LayerMask.NameToLayer("Default"));
+            float rst = _appRoot.GetHeightByRaycast(x, z, 1 << LayerMask.NameToLayer("Default"));
 
             return rst;
         }
-
-
 
     }
 }

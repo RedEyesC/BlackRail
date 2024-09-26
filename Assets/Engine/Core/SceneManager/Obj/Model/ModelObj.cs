@@ -89,5 +89,14 @@ namespace GameFramework.Scene
             _reqAnimList.Add(_reqAnim);
         }
 
+        public bool IsLoade()
+        {
+            if (_req != null)
+            {
+                return _req.isDone;
+            }
+
+            return false;
+        }
     }
 }
