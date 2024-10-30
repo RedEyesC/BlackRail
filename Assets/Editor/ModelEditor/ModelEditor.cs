@@ -11,10 +11,8 @@ namespace GameEditor.ModelEditor
     public class ModelEditor
     {
 
-        static readonly string ModelRawPath = "Assets/RawData/model/";
-        static readonly string ModelResPath = "Assets/Resources/model/";
-        static readonly string AnimRawPath = "Assets/RawData/anim/";
-        static readonly string AnimResPath = "Assets/Resources/anim/";
+        static readonly string ModelRawPath = "Assets/RawData/Model/";
+        static readonly string ModelResPath = "Assets/Resources/Model/";
         static readonly string ModelDefaultShader = "Character/Default/Default";
 
         [MenuItem("Assets/Game Editor/导出模型", false, 900)]
@@ -62,16 +60,23 @@ namespace GameEditor.ModelEditor
             foreach (var obj in Selection.objects)
             {
                 string path = AssetDatabase.GetAssetPath(obj);
-                if (path.Contains(AnimRawPath) && AssetDatabase.IsValidFolder(path))
+                if (AssetDatabase.IsValidFolder(path))
                 {
-                    continue;
+                    DirectoryInfo dirInfo = new DirectoryInfo(path);
+                    foreach (var file in dirInfo.GetFiles())
+                    {
+                        if (file.Extension.ToLower() == ".fbx")
+                        {
+                            return true;
+                        }
+                    }
                 }
                 else
                 {
-                    return false;
+                    continue;
                 }
             }
-            return true;
+            return false;
         }
 
         public static void ExportModelAnim(string path)
@@ -83,8 +88,8 @@ namespace GameEditor.ModelEditor
                 if (file.Extension.ToLower() == ".fbx")
                 {
                     string rawPath = path + "/" + file.Name;
-                    string savePath = AnimResPath;
-                    ExportAnim(rawPath,savePath );
+                    string savePath = path.Replace("RawData", "Resources") + "/Anim/";
+                    ExportAnim(rawPath, savePath);
                 }
             }
 
@@ -105,17 +110,18 @@ namespace GameEditor.ModelEditor
                 {
                     GameObject pref = AssetDatabase.LoadAssetAtPath<GameObject>(path + "/" + file.Name);
                     go = GameObject.Instantiate(pref);
+                    go.name = file.Name;
                     break;
                 }
             }
             string modelName = GetModelName(path);
-            string avatarResPath = ModelResPath + modelName + "/avatar/";
+            string avatarResPath = ModelResPath + modelName + "/Avatar/";
             ExportAvatar(go, avatarResPath);
 
-            string meshResPath = ModelResPath + modelName + "/mesh/";
+            string meshResPath = ModelResPath + modelName + "/Mesh/";
             ExportMesh(go, meshResPath);
 
-            string textureResPath = ModelResPath + modelName + "/materials/";
+            string textureResPath = ModelResPath + modelName + "/Materials/";
             ExportMaterial(go, path, ModelResPath, textureResPath);
 
             string resPrefabPath = ModelResPath + modelName + "/";
@@ -205,9 +211,7 @@ namespace GameEditor.ModelEditor
                 {
 
                     Material mat;
-                    mat = new Material(Shader.Find(ModelDefaultShader))
-                    { name = mats[j].name, };
-
+                    mat = new Material(Shader.Find(ModelDefaultShader)) { name = mats[j].name+"_"+k, };
 
                     string newMatPath = textureResPath + mat.name + ".mat";
                     CommonUtility.CreateFolder(newMatPath.Remove(newMatPath.LastIndexOf("/")));
@@ -237,14 +241,19 @@ namespace GameEditor.ModelEditor
 
             }
 
+
+            go.AddComponent<AnimPlayableComponent>();
+
             Animator anim = go.GetComponent<Animator>();
-            if (anim)
+            if (!anim)
             {
-                string avatarPath = ModelResPath + modelName + "/" + anim.avatar.name + ".asset";
-                if (File.Exists(avatarPath))
-                {
-                    anim.avatar = AssetDatabase.LoadAssetAtPath<Avatar>(avatarPath);
-                }
+               go.AddComponent<Animator>();
+            }
+
+            string avatarPath = ModelResPath + modelName + "/" + anim.avatar.name + ".asset";
+            if (File.Exists(avatarPath))
+            {
+                anim.avatar = AssetDatabase.LoadAssetAtPath<Avatar>(avatarPath);
             }
 
             string modelPath = savePath;
@@ -259,7 +268,7 @@ namespace GameEditor.ModelEditor
             {
                 if (o is AnimationClip)
                 {
-                   
+
                     //fbx内存在一部分不会在unity显示的，需要剔除
                     if (o.name.Contains("_preview"))
                     {
@@ -275,7 +284,7 @@ namespace GameEditor.ModelEditor
                     CommonUtility.CreateAsset(newClip, resAnimPath);
                 }
             }
-                  
+
         }
     }
 }
