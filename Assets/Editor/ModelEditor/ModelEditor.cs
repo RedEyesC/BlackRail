@@ -110,7 +110,7 @@ namespace GameEditor.ModelEditor
                 {
                     GameObject pref = AssetDatabase.LoadAssetAtPath<GameObject>(path + "/" + file.Name);
                     go = GameObject.Instantiate(pref);
-                    go.name = file.Name;
+                    go.name = Path.GetFileNameWithoutExtension(file.Name);
                     break;
                 }
             }
