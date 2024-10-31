@@ -14,9 +14,9 @@ namespace GameFramework.Moudule
 
         private static List<Type> _ctrlList = new List<Type>
         {
+            typeof(GamePoolCtrl),
             typeof(LoginCtrl),
             typeof(SceneCtrl),
-            typeof(GamePoolCtrl),
         };
 
 
