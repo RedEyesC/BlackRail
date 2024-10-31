@@ -33,6 +33,7 @@ namespace GameFramework.Scene
 
         public void InitAI()
         {
+            //一个简单的基于状态机的ai
             if (_stateMachine == null)
             {
                 _stateMachine = new StateMachine();
@@ -42,15 +43,15 @@ namespace GameFramework.Scene
         }
 
 
-        public void UpdateAI(float elapseSeconds, float realElapseSeconds)
+        public void UpdateAI(float nowTime, float elapseSeconds)
         {
-            _stateMachine?.Update(elapseSeconds, realElapseSeconds);
+            _stateMachine?.Update(nowTime, elapseSeconds);
         }
 
 
-        public override void StateUpdate(float elapseSeconds, float realElapseSeconds)
+        public override void StateUpdate(float nowTime, float elapseSeconds)
         {
-            UpdateAI(elapseSeconds, realElapseSeconds);
+            UpdateAI(nowTime, elapseSeconds);
         }
     }
 }
