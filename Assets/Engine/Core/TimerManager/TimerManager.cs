@@ -56,7 +56,7 @@ namespace GameFramework.Timers
                         continue;
                     }
 
-                    i.elapsed += nowTime;
+                    i.elapsed += elapseSeconds;
                     if (i.elapsed < i.interval)
                         continue;
 
