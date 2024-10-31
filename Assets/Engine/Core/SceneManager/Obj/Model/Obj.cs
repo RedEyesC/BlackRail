@@ -26,6 +26,18 @@ namespace GameFramework.Scene
         }
 
 
+        public virtual void Rest()
+        {
+
+
+        }
+
+        public virtual void StateUpdate(float elapseSeconds, float realElapseSeconds)
+        {
+
+        }
+
+
         public void SetModelID(int modelType, int id)
         {
             _drawObj.SetModelID(modelType, id);
@@ -41,7 +53,7 @@ namespace GameFramework.Scene
             return _drawObj.IsLoade();
         }
 
-        protected virtual void Destroy()
+        public virtual void Destroy()
         {
             if (_drawObj != null)
             {
@@ -78,6 +90,7 @@ namespace GameFramework.Scene
         {
             return SceneManager.GetHeightByRayCast(x, z);
         }
+
 
     }
 }

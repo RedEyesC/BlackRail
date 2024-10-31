@@ -38,7 +38,7 @@ namespace GameFramework.Timers
 
         }
 
-        public override void Update(float elapseSeconds, float realElapseSeconds)
+        public override void Update(float nowTime, float elapseSeconds)
         {
 
             Dictionary<int, TimerEvent>.Enumerator iter;
@@ -56,7 +56,7 @@ namespace GameFramework.Timers
                         continue;
                     }
 
-                    i.elapsed += elapseSeconds;
+                    i.elapsed += nowTime;
                     if (i.elapsed < i.interval)
                         continue;
 

@@ -32,7 +32,7 @@ namespace GameFramework.Runtime
 
         void Update()
         {
-            GameCenter.Update(Time.deltaTime, Time.unscaledDeltaTime);
+            GameCenter.Update(Time.time, Time.deltaTime);
         }
 
         void OnDestroy()

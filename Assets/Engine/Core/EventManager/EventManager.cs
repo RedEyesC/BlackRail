@@ -21,9 +21,9 @@ namespace GameFramework.Event
         }
 
 
-        public override void Update(float elapseSeconds, float realElapseSeconds)
+        public override void Update(float nowTime, float elapseSeconds)
         {
-            _eventPool.Update(elapseSeconds, realElapseSeconds);
+            _eventPool.Update(nowTime, elapseSeconds);
         
         }
 

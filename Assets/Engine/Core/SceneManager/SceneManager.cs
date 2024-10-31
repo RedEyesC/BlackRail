@@ -66,7 +66,7 @@ namespace GameFramework.Scene
 
         }
 
-        public override void Update(float elapseSeconds, float realElapseSeconds)
+        public override void Update(float nowTime, float elapseSeconds)
         {
             if (_target == null)
                 return;

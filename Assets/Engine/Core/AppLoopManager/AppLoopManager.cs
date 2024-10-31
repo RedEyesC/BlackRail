@@ -17,9 +17,9 @@ namespace GameFramework.AppLoop
             _stateMachine.ChangeState("Start");
         }
 
-        public override void Update(float elapseSeconds, float realElapseSeconds)
+        public override void Update(float nowTime, float elapseSeconds)
         {
-            _stateMachine.Update(elapseSeconds, realElapseSeconds);
+            _stateMachine.Update(nowTime, elapseSeconds);
         }
 
         public override void Destroy()

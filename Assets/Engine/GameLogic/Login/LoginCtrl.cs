@@ -3,7 +3,7 @@ using GameFramework.Moudule;
 
 namespace GameLogic
 {
-    internal class LoginCtrl:BaseModule
+    internal  class LoginCtrl:BaseModule
     {
         public LoginCtrl()
         {
@@ -11,7 +11,7 @@ namespace GameLogic
         }
 
 
-        public void OpenLoginView()
+        public static void OpenLoginView()
         {
             OpenView("loginView", "test");
         }

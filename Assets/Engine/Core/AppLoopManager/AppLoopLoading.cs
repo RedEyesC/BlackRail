@@ -18,7 +18,7 @@ namespace GameFramework.AppLoop
             _state = 0;
         }
 
-        public override void StateUpdate(float elapseSeconds, float realElapseSeconds)
+        public override void StateUpdate(float nowTime, float elapseSeconds)
         {
 
             switch (_state)

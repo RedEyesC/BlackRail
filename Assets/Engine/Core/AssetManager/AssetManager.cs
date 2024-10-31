@@ -30,6 +30,7 @@ namespace GameFramework.Asset
         private static readonly Queue<RequestQueue> _append = new Queue<RequestQueue>();
 
         private static float _elapseSeconds;
+        private static float _nowTime;
 
         private static byte _updateMaxRequests = maxRequests;
         public static bool autoslicing { get; set; } = true;
@@ -52,9 +53,10 @@ namespace GameFramework.Asset
 
         }
 
-        public override void Update(float elapseSeconds, float realElapseSeconds)
+        public override void Update(float nowTime, float elapseSeconds)
         {
-            _elapseSeconds = Time.realtimeSinceStartup;
+            _elapseSeconds = nowTime - _nowTime;
+            _nowTime = nowTime;
 
             if (_append.Count > 0)
             {

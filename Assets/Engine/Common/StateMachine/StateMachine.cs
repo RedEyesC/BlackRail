@@ -13,12 +13,9 @@ namespace GameFramework.Common
 
         }
 
-        public void Update(float elapseSeconds, float realElapseSeconds)
+        public void Update(float nowTime, float elapseSeconds)
         {
-            if (_curState != null)
-            {
-                _curState.StateUpdate(elapseSeconds, realElapseSeconds);
-            }
+            _curState?.StateUpdate(nowTime, elapseSeconds);
         }
 
         public void AddState(StateBase state)
@@ -32,10 +29,7 @@ namespace GameFramework.Common
             StateBase newState = _stateMap[id];
             if (newState != null)
             {
-                if (_curState != null)
-                {
-                    _curState.StateQuit(paramList);
-                }
+                _curState?.StateQuit(paramList);
 
                 _curState = newState;
                 _curState.StateEnter(paramList);
@@ -44,10 +38,7 @@ namespace GameFramework.Common
 
         public void Destroy(object[] paramList)
         {
-            if(_curState != null)
-            {
-                _curState.StateQuit(paramList);
-            }
+            _curState?.StateQuit(paramList);
             _stateMap.Clear();
             _curState = null;
         }

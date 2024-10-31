@@ -14,7 +14,7 @@
         public abstract void Start();
 
 
-        public abstract void Update(float elapseSeconds, float realElapseSeconds);
+        public abstract void Update(float nowTime, float elapseSeconds);
 
 
         public abstract void Destroy();

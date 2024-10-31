@@ -54,7 +54,7 @@ namespace GameFramework.UI
 
         }
 
-        public override void Update(float elapseSeconds, float realElapseSeconds)
+        public override void Update(float nowTime, float elapseSeconds)
         {
 
         }

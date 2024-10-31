@@ -1,6 +1,5 @@
 ﻿using GameFramework.Asset;
 using GameFramework.Common;
-using GameFramework.Moudule;
 using GameLogic;
 using UnityEngine;
 
@@ -13,7 +12,7 @@ namespace GameFramework.AppLoop
             return "Start";
         }
 
-        public override void StateUpdate(float elapseSeconds, float realElapseSeconds)
+        public override void StateUpdate(float nowTime, float elapseSeconds)
         {
             
         }
@@ -22,7 +21,7 @@ namespace GameFramework.AppLoop
         {
             InitInGameDebugConsole();
 
-            ModuleManager.GetModule<LoginCtrl>().OpenLoginView();
+            LoginCtrl.OpenLoginView();
         }
 
         public void InitInGameDebugConsole()

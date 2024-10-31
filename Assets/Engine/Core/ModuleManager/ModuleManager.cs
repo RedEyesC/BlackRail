@@ -16,6 +16,7 @@ namespace GameFramework.Moudule
         {
             typeof(LoginCtrl),
             typeof(SceneCtrl),
+            typeof(GamePoolCtrl),
         };
 
 
@@ -26,11 +27,11 @@ namespace GameFramework.Moudule
 
         public override void Start()
         {
-            
-            foreach ( Type ctrl in _ctrlList)
+
+            foreach (Type ctrl in _ctrlList)
             {
-         
-                BaseModule Cls = (BaseModule)Activator.CreateInstance(ctrl);      
+
+                BaseModule Cls = (BaseModule)Activator.CreateInstance(ctrl);
                 _ctrlMap[ctrl.Name] = Cls;
 
             }
@@ -48,9 +49,12 @@ namespace GameFramework.Moudule
             return null;
         }
 
-        public override void Update(float elapseSeconds, float realElapseSeconds)
+        public override void Update(float nowTime, float elapseSeconds)
         {
-
+            foreach (var kv in _ctrlMap)
+            {
+                kv.Value.Update(nowTime, elapseSeconds);
+            }
         }
 
 

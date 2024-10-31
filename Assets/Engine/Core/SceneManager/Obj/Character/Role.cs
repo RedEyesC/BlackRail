@@ -32,7 +32,7 @@ namespace GameFramework.Scene
             this.SetDir(x, y);
         }
 
-        public void StateUpdate(float elapseSeconds, float realElapseSeconds)
+        public override void StateUpdate(float elapseSeconds, float realElapseSeconds)
         {
 
             if (_targetDist > 0)

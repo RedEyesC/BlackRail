@@ -20,7 +20,7 @@ namespace GameFramework.Input
             
         }
 
-        public override void Update(float elapseSeconds, float realElapseSeconds)
+        public override void Update(float nowTime, float elapseSeconds)
         {
             //TODO 先临时用这个，等空重构整个输入控制类
             Role mainRole = SceneCtrl.mainRole;

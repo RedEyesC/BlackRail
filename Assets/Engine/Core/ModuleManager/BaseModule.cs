@@ -3,8 +3,14 @@ using System;
 
 namespace GameFramework.Moudule
 {
-    internal abstract class BaseModule
+    internal class BaseModule
     {
+
+        public virtual void Update(float nowTime, float elapseSeconds)
+        {
+
+        }
+
 
         public static void RegisterView(string viewName, Type viewType)
         {

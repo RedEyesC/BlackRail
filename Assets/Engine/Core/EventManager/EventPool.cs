@@ -21,7 +21,7 @@ namespace GameFramework.Event
 
         private readonly Dictionary<int, LinkedListNode<int>> _cachedNodes = new Dictionary<int, LinkedListNode<int>>();
 
-        public void Update(float elapseSeconds, float realElapseSeconds)
+        public void Update(float nowTime, float elapseSeconds)
         {
 
             while (_events.Count > 0)

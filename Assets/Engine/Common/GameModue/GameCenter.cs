@@ -17,11 +17,11 @@ namespace GameFramework.Common
             }
         }
 
-        public static void Update(float elapseSeconds, float realElapseSeconds)
+        public static void Update(float nowTime, float elapseSeconds)
         {
             foreach (GameModule module in _gameModules)
             {
-                module.Update(elapseSeconds, realElapseSeconds);
+                module.Update(nowTime, elapseSeconds);
             }
         }
 
