@@ -5,6 +5,12 @@ using System.Collections.Generic;
 
 namespace GameLogic
 {
+    public enum BodyType
+    {
+        Role,
+        Monster
+    }
+
     internal class SceneCtrl : BaseModule
     {
         private static int _mapId = 0;
@@ -13,7 +19,7 @@ namespace GameLogic
         public static Role mainRole;
 
         private static int _objID = 0;
-        private static List<Obj> _objList = new List<Obj>() ;
+        private static List<Obj> _objList = new List<Obj>();
 
         public SceneCtrl()
         {
@@ -44,21 +50,24 @@ namespace GameLogic
             return _request.isDone;
         }
 
+
         public static void CreateMainRole()
         {
             mainRole.SetModelID(1, 1001);
         }
 
 
-        public static void CreateMonster(int monsterId)
+        public static Monster CreateMonster(int monsterId)
         {
             Monster monster = GamePoolCtrl.monsterPool.Create();
 
-            monster.Init(monsterId);
+            monster.InitModel(monsterId);
 
             AddObj(monster);
+
+            return monster;
         }
-          
+
 
         private static void AddObj(Obj obj)
         {

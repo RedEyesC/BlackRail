@@ -1,10 +1,9 @@
 ﻿using GameFramework.Scene;
-using System;
 using UnityEngine;
 
 
 namespace GameLogic
-{ 
+{
     internal class Obj
     {
         protected DrawObj _drawObj;
@@ -12,8 +11,6 @@ namespace GameLogic
         protected Vector2 _dir = new Vector2();
         protected Vector3 _pos = new Vector3();
 
-        private float _targetX = 0;
-        private float _targetY = 0;
         private float _targetDist = 0;
         private float _CurDist = 0;
 
@@ -27,14 +24,14 @@ namespace GameLogic
             }
         }
 
-        public Obj()
+        public Obj(BodyType bodyType)
         {
-            Init();
+            Init(bodyType);
         }
 
-        public virtual void Init()
+        public virtual void Init(BodyType bodyType)
         {
-            _drawObj = new DrawObj();
+            _drawObj = new DrawObj(bodyType);
         }
 
         public virtual void Rest()
@@ -90,6 +87,7 @@ namespace GameLogic
             if (x != 0 || y != 0)
             {
                 _dir.Set(x, y);
+                _dir.Normalize();
                 _drawObj.root.SetLookDir(_dir.x, 0, _dir.y);
             }
 
@@ -97,10 +95,8 @@ namespace GameLogic
 
         public void DoMove(float x, float y, float div)
         {
-            _targetX = _drawObj.root.position.x + x * div;
-            _targetY = _drawObj.root.transform.position.z + y * div;
 
-            _targetDist = (float)Math.Sqrt(x * x * div * div + y * y * div * div);
+            _targetDist = div;
             _CurDist = 0;
 
             SetDir(x, y);
@@ -112,31 +108,30 @@ namespace GameLogic
             if (_targetDist > 0 && _drawObj.root)
             {
                 float deltaDist = elapseSeconds * speed;
-                _CurDist += deltaDist;
+
+                if (_CurDist + deltaDist > _targetDist)
+                {
+                    _targetDist = 0;
+                    _CurDist = 0;
+                    deltaDist = _targetDist - _CurDist;
+                    PlayAnim("Idle");
+                }
+                else
+                {
+                    _CurDist += deltaDist;
+                    PlayAnim("RunFwd");
+                }
+
 
                 float x = _drawObj.root.position.x;
                 float y = _drawObj.root.position.z;
 
-                if (_CurDist < _targetDist)
-                {
-                    x += deltaDist * _dir.x;
-                    y += deltaDist * _dir.y;
 
-                    SetPosition(x, y);
+                x += deltaDist * _dir.x;
+                y += deltaDist * _dir.y;
 
-                    PlayAnim("RunFwd");
-                }
-                else
-                {
-                    SetPosition(_targetX, _targetY);
+                SetPosition(x, y);
 
-                    _targetDist = 0;
-                    _targetX = 0;
-                    _targetY = 0;
-                    _CurDist = 0;
-
-                    PlayAnim("Idle");
-                }
             }
         }
 

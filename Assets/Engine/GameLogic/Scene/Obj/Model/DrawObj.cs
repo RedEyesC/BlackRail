@@ -11,6 +11,7 @@ namespace GameLogic
         private Dictionary<int, ModelObj> _modelList = new Dictionary<int, ModelObj>();
         private GameObject _rootObj;
 
+        private BodyType _bodyType;
 
         public UnityEngine.Transform root
         {
@@ -20,14 +21,16 @@ namespace GameLogic
             }
         }
 
-        public DrawObj()
+        public DrawObj(BodyType bodyType)
         {
-            Init();
+            Init(bodyType);
         }
 
-        protected void Init()
+        protected void Init(BodyType bodyType)
         {
             InitRootObj();
+
+            _bodyType = bodyType;
         }
 
 
@@ -43,7 +46,7 @@ namespace GameLogic
 
             if (!_modelList.ContainsKey(modelType))
             {
-                _modelList.Add(modelType, new ModelObj(modelType));
+                _modelList.Add(modelType, new ModelObj(_bodyType,modelType));
             }
 
             ModelObj model = _modelList[modelType];

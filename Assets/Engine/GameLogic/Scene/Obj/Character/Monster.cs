@@ -22,13 +22,17 @@ namespace GameLogic
         }
 
 
-        public void Init(int monsterId)
+        public Monster() : base(BodyType.Monster)
         {
+
+        }
+
+
+        public void InitModel(int monsterId)
+        {
+            speed = 2;
             _monsterId = monsterId;
-
-            InitAI();
-
-            base.Init();
+            SetModelID(1, 1001);
         }
 
 
@@ -40,13 +44,12 @@ namespace GameLogic
 
         public void UpdateAI(float nowTime, float elapseSeconds)
         {
-            if (nowTime < nextTime)
+            if (nowTime > nextTime)
             {
                 nextTime = nowTime + cd;
 
                 Role role  =  SceneCtrl.GetMainRole();
 
-                // = this.root.position - role.root.position;
                 _tempVector.Set( role.root.position.x - root.position.x,role.root.position.z - root.position.z);
 
                 if(_tempVector.magnitude > attackRange)

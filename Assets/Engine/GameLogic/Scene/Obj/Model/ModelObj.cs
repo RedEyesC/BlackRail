@@ -4,25 +4,31 @@ using GameFramework.Asset;
 using GameFramework.Scene;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace GameLogic
 {
     internal class ModelObj
     {
-        private int _id;
+        private BodyType _bodyType;
         private int _modelType;
 
+        private int _id;
+
+
         private Action _loadCallBack;
-        private Dictionary<string,AssetRequest> _reqAnimDict = new Dictionary<string,AssetRequest>();
+        private Dictionary<string, AssetRequest> _reqAnimDict = new Dictionary<string, AssetRequest>();
         private AssetRequest _req;
         private GameObject _obj;
 
 
-        public ModelObj(int modelType )
+        public ModelObj(BodyType bodyType, int modelType)
         {
+            _bodyType = bodyType;
             _modelType = modelType;
         }
+
 
         private void OnLoadResFinish(Request req)
         {
@@ -64,13 +70,15 @@ namespace GameLogic
                 return;
             }
 
+            _id = id;
+
             if (_obj != null)
             {
                 AssetManager.UnLoadAssetAsync(_req);
                 SceneManager.DestroyLayout(_obj);
             }
 
-            string modelPath = GetModelPath(_modelType, id);
+            string modelPath = GetModelPath(_bodyType, _modelType, id);
             string modelName = id.ToString();
 
             _loadCallBack = cb;
@@ -88,7 +96,7 @@ namespace GameLogic
         public void PlayAnim(string clipName)
         {
 
-            if (_reqAnimDict.TryGetValue(clipName,out AssetRequest _reqAnim))
+            if (_reqAnimDict.TryGetValue(clipName, out AssetRequest _reqAnim))
             {
                 if (_reqAnim.isDone)
                 {
@@ -100,7 +108,7 @@ namespace GameLogic
             }
             else
             {
-                string clipPath = GetAnimPath(_modelType, clipName);
+                string clipPath = GetAnimPath(_bodyType, _modelType, _id, clipName);
                 _reqAnim = AssetManager.LoadAssetAsync(clipPath, clipName, OnLoadAnimFinish);
                 _reqAnimDict[clipName] = _reqAnim;
             }
@@ -111,14 +119,36 @@ namespace GameLogic
             return _obj != null;
         }
 
-        public static string GetModelPath(int modelType, int id)
+        public static string GetModelPath(BodyType bodyType, int modelType, int id)
         {
-            return string.Format("Model/Role/{0}.ab", id);
+            string path = "";
+            switch (bodyType)
+            {
+                case BodyType.Role:
+                    path = string.Format("Model/Role/{0}.ab", id);
+                    break;
+                case BodyType.Monster:
+                    path = string.Format("Model/Monster/{0}.ab", id);
+                    break;
+            }
+
+            return path;
         }
 
-        public static string GetAnimPath(int modelType, string clipName)
+        public static string GetAnimPath(BodyType bodyType, int modelType,int id, string clipName)
         {
-            return string.Format("Anim.ab", clipName);
+            string path = "";
+            switch (bodyType)
+            {
+                case BodyType.Role:
+                    path = string.Format("Anim.ab", clipName); ;
+                    break;
+                case BodyType.Monster:
+                    path = string.Format("Model/Monster/{0}.ab", id);
+                    break;
+            }
+
+            return path;
         }
     }
 }
