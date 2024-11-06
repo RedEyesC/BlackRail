@@ -1,11 +1,12 @@
 ﻿
 
 using GameFramework.Asset;
+using GameFramework.Scene;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace GameFramework.Scene
+namespace GameLogic
 {
     internal class ModelObj
     {

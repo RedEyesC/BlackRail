@@ -1,8 +1,9 @@
+using GameFramework.Scene;
 using System.Collections.Generic;
 using UnityEngine;
 
 
-namespace GameFramework.Scene
+namespace GameLogic
 {
     internal class DrawObj
     {

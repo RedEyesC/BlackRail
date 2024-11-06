@@ -12,12 +12,12 @@ namespace GameFramework.Input
 
         public override void Destroy()
         {
-            
+
         }
 
         public override void Start()
         {
-            
+
         }
 
         public override void Update(float nowTime, float elapseSeconds)
@@ -49,7 +49,7 @@ namespace GameFramework.Input
 
             if (TempX != 0 || TempY != 0)
             {
-                mainRole.DoJoystick(TempX, TempY);
+                mainRole.DoMove(TempX, TempY, 0.5f);
             }
         }
     }

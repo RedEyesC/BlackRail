@@ -1,6 +1,5 @@
 ﻿using GameFramework.Common;
 using GameFramework.Moudule;
-using GameFramework.Scene;
 
 
 namespace GameLogic
