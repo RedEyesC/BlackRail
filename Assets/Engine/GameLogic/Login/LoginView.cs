@@ -26,11 +26,13 @@ namespace GameLogic
                 Application.Quit();
             });
 
-            GButton start = GetChild<GButton>("btn_start");
-            start.text = Utils.Text(1);
-            start.AddClickCallback((float x, float y) =>
+            //GButton start = GetChild<GButton>("btn_start");
+            //start.text = Utils.Text(1);
+
+            GetChild<GButton>("btn_start").AddClickCallback((float x, float y) =>
             {
-                AppLoopManager.ChangeState("Loading");
+                MainCtrl.OpenMainView();
+                //AppLoopManager.ChangeState("Loading");
                 Close();
             });
         }

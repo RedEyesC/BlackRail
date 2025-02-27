@@ -222,7 +222,7 @@ namespace GameFramework.UI
 
         public static void AddViewRoot(BaseView view)
         {
-            int uiOrder = view.uiOrder;
+            int uiOrder = (int)view.uiOrder;
             int orderIndex = uiOrder - (uiOrder % 1000);
             GameObject orderNode;
             if (_orderNodeMap.TryGetValue(orderIndex, out orderNode))

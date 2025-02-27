@@ -6,15 +6,15 @@ namespace GameFramework.UI
 {
     public abstract class BaseView : BaseUI
     {
-        protected object[] _openParams;
+        private object[] _openParams;
 
-        protected int _cacheTime = 10;
+        private int _cacheTime = 10;
         private int _cacheTimeID = 0;
-        protected UIState _state = UIState.Close;
+        private UIState _state = UIState.Close;
         private List<AssetRequest> _refPackageReqList = new List<AssetRequest>();
         private int _refPackageReqFinishNum;
 
-        public int uiOrder = (int)UIZOrder.UIZOrder_Common;
+        public UIZOrder uiOrder = UIZOrder.UIZOrder_Common;
 
         public void Open(params object[] paramList)
         {
