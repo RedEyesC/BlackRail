@@ -4,19 +4,19 @@ using System.Collections.Generic;
 
 namespace GameFramework.UI
 {
-    public abstract class BaseView : BaseUI
+    public abstract class BaseView : BaseTemple
     {
-        private object[] _openParams;
+
 
         private int _cacheTime = 10;
         private int _cacheTimeID = 0;
-        private UIState _state = UIState.Close;
+
         private List<AssetRequest> _refPackageReqList = new List<AssetRequest>();
         private int _refPackageReqFinishNum;
 
         public UIZOrder uiOrder = UIZOrder.UIZOrder_Common;
 
-        public void Open(params object[] paramList)
+        public new void Open(params object[] paramList)
         {
             if (isOpen)
             {
@@ -42,9 +42,7 @@ namespace GameFramework.UI
 
         }
 
-        protected abstract void OnOpen(params object[] paramList);
-
-        protected void Close(bool immediately = false)
+        protected new void Close(bool immediately = false)
         {
 
             if (_state == UIState.Open)
@@ -81,8 +79,6 @@ namespace GameFramework.UI
                 _state = UIState.Close;
             }
         }
-
-        protected abstract void OnClose();
 
         protected void ShowLayout()
         {
@@ -146,25 +142,5 @@ namespace GameFramework.UI
                 _cacheTimeID = 0;
             }
         }
-
-        protected override void OnLayoutCreated()
-        {
-            base.OnLayoutCreated();
-
-            _state = UIState.Open;
-
-            OnOpen(_openParams);
-
-        }
-
-
-        protected bool isOpen
-        {
-            get
-            {
-                return _state == UIState.Open;
-            }
-        }
-
     }
 }
