@@ -32,7 +32,6 @@ namespace GameLogic
             GetChild<GButton>("btn_start").AddClickCallback((float x, float y) =>
             {
                 MainCtrl.OpenMainView();
-                //AppLoopManager.ChangeState("Loading");
                 Close();
             });
         }

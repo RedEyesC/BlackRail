@@ -1,4 +1,6 @@
-﻿namespace GameFramework.UI
+﻿using System.Collections.Generic;
+
+namespace GameFramework.UI
 {
     public enum UIState
     {
@@ -24,6 +26,10 @@
 
         protected object[] _openParams;
         protected UIState _state = UIState.Close;
+
+        private bool _isVirtual = false;
+
+        protected Dictionary<int, BaseTemple> _templateList;
 
         protected bool isOpen
         {
@@ -86,9 +92,16 @@
 
         protected void DestroyLayout()
         {
+
+            ClearTemplates();
+
             if (_root != null)
             {
-                _root.Destroy();
+                if (!_isVirtual)
+                {
+                    _root.Destroy();
+                }
+
                 _root = null;
             }
         }
@@ -138,5 +151,61 @@
             return _root;
         }
 
+        public void SetVirtual(GComponent obj)
+        {
+            _isVirtual = true;
+            _root = obj;
+        }
+
+
+        public T GetTemplate<T>(string objPath, params object[] paramList) where T : BaseTemple, new()
+        {
+            GComponent obj = GetChild<GComponent>(objPath);
+            return GetTemplateByObj<T>(obj, paramList);
+
+        }
+
+        public T GetTemplateByObj<T>(GComponent obj, params object[] paramList) where T : BaseTemple, new()
+        {
+
+            if (_templateList == null)
+            {
+                _templateList = new Dictionary<int, BaseTemple>();
+            }
+
+            if (obj != null)
+            {
+                int hashCode = obj.GetHashCode();
+                if (!_templateList.ContainsKey(hashCode))
+                {
+                    var template = new T();
+                    template.SetVirtual(obj);
+                    template.Open(paramList);
+
+                    _templateList.Add(hashCode, template);
+                }
+                return _templateList[hashCode] as T;
+            }
+
+            return null;
+
+        }
+
+
+        public void ClearTemplates()
+        {
+            if (_templateList != null)
+            {
+                foreach (KeyValuePair<int, BaseTemple> kvp in _templateList)
+                {
+                    kvp.Value.Close();
+
+                }
+
+                _templateList = null;
+        }
+        }
+
     }
+
 }

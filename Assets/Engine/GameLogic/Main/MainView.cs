@@ -19,6 +19,8 @@ namespace GameLogic
         protected override void OnOpen(params object[] paramList)
         {
 
+            var temp = GetTemplate<RoleTemplate>("RoleTemple", this);
+
         }
      
     }
