@@ -100,7 +100,7 @@ namespace GameEditor.PackageEditor
 
 #if UNITY_EDITOR && UNITY_STANDALONE_WIN
 
-        [MenuItem("Assets/Import Package/Import Packages")]
+        [MenuItem("Assets/Import Packages",false,20)]
         static void ImportPackage()
         {
             var path = DllExpand.OpenFilePanel("Import package", "unitypackage");
@@ -133,7 +133,7 @@ namespace GameEditor.PackageEditor
 
 
 
-        [MenuItem("Assets/Export Packages")]
+        [MenuItem("Assets/Export Packages",false,20)]
         static void ExportPackage()
         {
 
