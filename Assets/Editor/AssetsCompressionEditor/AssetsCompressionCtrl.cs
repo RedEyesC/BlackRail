@@ -138,7 +138,7 @@ namespace GameEditor.AssetsCompressionEditor
                 //计算ab包占用
                 bundleSizeMap = CalculateStoreSize(objPaths);
 
-                //shanc
+                //删除temp文件
                 if (Directory.Exists(tempMeshRootDir))
                 {
                     Directory.Delete(tempMeshRootDir, true);
@@ -358,6 +358,12 @@ namespace GameEditor.AssetsCompressionEditor
                 var bundleSize = (int)(new FileInfo(assetBundlePath).Length) * 1.0f;
                 bundleSize /= (1024f * 1024f);
                 StoreSizeMap.Add(objPaths[int.Parse(bundleName)], bundleSize);
+            }
+
+            //删除temp文件
+            if (Directory.Exists(assetBundleDirectory))
+            {
+                Directory.Delete(assetBundleDirectory, true);
             }
 
             return StoreSizeMap;
