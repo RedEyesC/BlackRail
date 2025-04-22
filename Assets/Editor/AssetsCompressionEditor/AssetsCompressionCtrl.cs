@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -6,6 +7,7 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
+
 
 namespace GameEditor.AssetsCompressionEditor
 {
@@ -17,7 +19,7 @@ namespace GameEditor.AssetsCompressionEditor
     }
 
 
-    public class ModelPerformance
+    public class CostInfo
     {
         public string name = "";
         public float bundleSize = 0;
@@ -29,16 +31,14 @@ namespace GameEditor.AssetsCompressionEditor
         public int triangleCount = 0;
         public int textureSize = 0;
 
-        public ModelPerformance()
+        public CostInfo()
         {
         }
-        public ModelPerformance(string name)
+        public CostInfo(string name)
         {
             this.name = name;
         }
     }
-
-
 
 
     public class AssetsCompressionCtrl
@@ -46,153 +46,118 @@ namespace GameEditor.AssetsCompressionEditor
 
         public static void ExportData(DefaultAsset folder, PerformanceType type, string exportPath)
         {
-            List<ModelPerformance> prefabPerformance = new List<ModelPerformance>();
+          
+
+            //遍历文件夹下所有的prefab
+            string path = AssetDatabase.GetAssetPath(folder);
+
+
+            if (path == "")
+            {
+                EditorUtility.DisplayDialog("error", "未选择文件夹", "确认");
+                return;
+            }
+
 
             if (type == PerformanceType.Model)
             {
 
-                //遍历文件夹下所有的prefab
-                string path = AssetDatabase.GetAssetPath(folder);
-
-
-                if (path == "")
-                {
-                    EditorUtility.DisplayDialog("error", "未选择文件夹", "确认");
-                    return;
-                }
-
-
                 string[] guids = AssetDatabase.FindAssets("t:Prefab", new string[] { path });
+                ExportDataSceneAndModel(guids, type, exportPath, path);
 
-                HashSet<Mesh> meshHash = new HashSet<Mesh>();
-                HashSet<Texture> textureHash = new HashSet<Texture>();
-                Dictionary<string, float> bundleSizeMap = new Dictionary<string, float>();
+            }
+            else if (type == PerformanceType.Scene)
+            {
 
-                Dictionary<GameObject, List<Mesh>> prefabMesh = new Dictionary<GameObject, List<Mesh>>();
-                Dictionary<GameObject, List<Texture>> prefabTexture = new Dictionary<GameObject, List<Texture>>();
+                List<string> allScenePaths = new List<string>();
+                string[] guids = AssetDatabase.FindAssets("t:scene", new string[] { path });
 
-                foreach (var guid in guids)
-                {
-
-                    string prefabPath = AssetDatabase.GUIDToAssetPath(guid);
-                    GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-                    //mesh
-                    var meshes = GetAllMeshes(prefab);
-                    //贴图
-                    var textures = GetAllTextures(prefab);
-
-
-                    prefabMesh.Add(prefab, meshes);
-                    prefabTexture.Add(prefab, textures);
-
-                    meshHash.UnionWith(meshes);
-                    textureHash.UnionWith(textures);
-
-                }
-
-
-                var objPaths = new List<string>();
-
-                //复制Mesh到临时目录
-                List<Mesh> meshList = meshHash.ToList();
-
-                string tempMeshRootDir = "Assets/TempMesh";
-                if (Directory.Exists(tempMeshRootDir))
-                {
-                    Directory.Delete(tempMeshRootDir, true);
-                }
-
-                Directory.CreateDirectory(tempMeshRootDir);
-
-                var meshToCopyMesh = new Dictionary<string, string>();
-                try
-                {
-                    AssetDatabase.StartAssetEditing();
-                    for (int i = 0; i < meshList.Count; i++)
-                    {
-                        var mesh = meshList[i];
-                        var cloneMesh = UnityEngine.Object.Instantiate(mesh);
-                        cloneMesh.name = i.ToString();
-                        var cloneMeshPath = tempMeshRootDir + "/" + i.ToString() + ".asset";
-                        AssetDatabase.CreateAsset(cloneMesh, cloneMeshPath);
-                        objPaths.Add(cloneMeshPath);
-                        var meshPath = AssetDatabase.GetAssetPath(mesh);
-                        meshToCopyMesh.Add(cloneMeshPath, meshPath);
-                    }
-                }
-                finally
-                {
-                    AssetDatabase.StopAssetEditing();
-                }
-
-                AssetDatabase.Refresh();
-
-
-                List<Texture> textureList = textureHash.ToList();
-
-                foreach (var texture in textureList)
-                {
-                    objPaths.Add(AssetDatabase.GetAssetPath(texture));
-                }
-
-                //计算ab包占用
-                bundleSizeMap = CalculateStoreSize(objPaths);
-
-                //删除temp文件
-                if (Directory.Exists(tempMeshRootDir))
-                {
-                    Directory.Delete(tempMeshRootDir, true);
-                }
-
-
-                //替换到实际路径
-                foreach (var kv in meshToCopyMesh)
-                {
-                    var bundleSize = bundleSizeMap[kv.Key];
-                    bundleSizeMap.Remove(kv.Key);
-
-                    bundleSizeMap.Add(kv.Value, bundleSize);
-                }
-
-                //统计信息
-                foreach (var kv in prefabMesh)
-                {
-                    GameObject obj = kv.Key;
-                    ModelPerformance modelPerformance = new ModelPerformance(AssetDatabase.GetAssetPath(obj));
-                    List<Mesh> meshs = kv.Value;
-                    List<Texture> textures = prefabTexture[kv.Key];
-
-                    foreach (Mesh mesh in meshs)
-                    {
-                        float bundleSize = bundleSizeMap[AssetDatabase.GetAssetPath(mesh)];
-
-                        modelPerformance.bundleSize_mesh += bundleSize;
-                        modelPerformance.memorySize_mesh = GetMeshRuntimeMemory(mesh);
-                        modelPerformance.triangleCount = mesh.triangles.Length;
-                    }
-
-
-                    foreach (Texture texture in textures)
-                    {
-                        float bundleSize = bundleSizeMap[AssetDatabase.GetAssetPath(texture)];
-
-                        modelPerformance.bundleSize_texture += bundleSize;
-                        modelPerformance.memorySize_texture += GetTextureRuntimeMemory(texture);
-                        modelPerformance.textureSize += texture.width * texture.height;
-                    }
-
-                    modelPerformance.bundleSize = modelPerformance.bundleSize_mesh + modelPerformance.bundleSize_texture;
-                    modelPerformance.memorySize = modelPerformance.memorySize_mesh + modelPerformance.bundleSize_texture;
-
-                    prefabPerformance.Add(modelPerformance);
-                }
-
-
-                //导出xml
-                XmlEditor.XmlDataWriter.SaveListToXml(prefabPerformance, exportPath + "/" + path.Replace("/", "_") + "_OutFile.xml");
+                ExportDataSceneAndModel(guids, type, exportPath, path);
 
             }
 
+
+        }
+
+
+        public static void ExportDataSceneAndModel(string[] guids, PerformanceType type, string exportPath,string folderPath)
+        {
+            List<CostInfo> costInfoList = new List<CostInfo>();
+            HashSet<string> depHash = new HashSet<string>();
+            Dictionary<string, float> bundleSizeMap = new Dictionary<string, float>();
+
+            Dictionary<string, List<string>> assetMesh = new Dictionary<string, List<string>>();
+            Dictionary<string, List<string>> assetTexture = new Dictionary<string, List<string>>();
+
+            foreach (var guid in guids)
+            {
+
+                string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+                //mesh
+                var meshes = GetAllMeshes(assetPath);
+                //贴图
+                var textures = GetAllTextures(assetPath);
+
+
+                assetMesh.Add(assetPath, meshes);
+                assetTexture.Add(assetPath, textures);
+
+                depHash.UnionWith(meshes);
+                depHash.UnionWith(textures);
+
+            }
+
+            var depPaths = depHash.ToList();
+
+            //计算ab包占用
+            bundleSizeMap = CalculateStoreSize(depPaths);
+
+            //统计信息
+            foreach (var kv in assetMesh)
+            {
+                CostInfo CostInfo = new CostInfo(kv.Key);
+                List<string> meshs = kv.Value;
+                List<string> textures = assetTexture[kv.Key];
+
+                foreach (string meshPath in meshs)
+                {
+                    var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+
+                    float bundleSize = bundleSizeMap[meshPath];
+                    CostInfo.bundleSize_mesh += bundleSize;
+                    CostInfo.memorySize_mesh += GetMeshRuntimeMemory(mesh);
+                    CostInfo.triangleCount += mesh.triangles.Length / 3;
+                }
+
+
+                foreach (string texturePath in textures)
+                {
+                    var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+
+                    float bundleSize = bundleSizeMap[texturePath];
+                    CostInfo.bundleSize_texture += bundleSize;
+                    CostInfo.memorySize_texture += GetTextureRuntimeMemory(texture);
+                    CostInfo.textureSize += texture.width * texture.height;
+                }
+
+                CostInfo.bundleSize = CostInfo.bundleSize_mesh + CostInfo.bundleSize_texture;
+                CostInfo.memorySize = CostInfo.memorySize_mesh + CostInfo.bundleSize_texture;
+
+                costInfoList.Add(CostInfo);
+            }
+
+            //导出xml
+            XmlEditor.XmlDataWriter.SaveListToXml(costInfoList, exportPath + "/" + folderPath.Replace("/", "_") + "_OutFile.xml");
+
+        }
+
+
+
+
+        public static float GetTextureRuntimeMemory(string texturePath)
+        {
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
+            return GetTextureRuntimeMemory(texture);
 
         }
 
@@ -208,6 +173,13 @@ namespace GameEditor.AssetsCompressionEditor
         }
 
 
+        public static float GetMeshRuntimeMemory(string meshPath)
+        {
+            var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+            return GetMeshRuntimeMemory(mesh);
+
+        }
+          
         public static float GetMeshRuntimeMemory(Mesh mesh)
         {
             //由于attributes只会得到已经拥有的属性，所以这里不需要担心mesh的属性会变化
@@ -237,82 +209,63 @@ namespace GameEditor.AssetsCompressionEditor
             return size / 1024 / 1024;
         }
 
-
-        public static List<Mesh> GetAllMeshes(GameObject prefab)
+        public static List<string> GetAllMeshes(string assetPath)
         {
-            var meshes = new List<Mesh>();
-            var meshFilters = prefab.GetComponentsInChildren<MeshFilter>();
-            var skinnedMeshRenderers = prefab.GetComponentsInChildren<SkinnedMeshRenderer>();
-            foreach (var meshFilter in meshFilters)
-            {
-                var sharedMesh = meshFilter.sharedMesh;
-                if (sharedMesh == null) continue;
-                var mesh = sharedMesh;
-                meshes.Add(mesh);
-            }
+            return GetAllMeshes(new List<string> { assetPath });
+        }
 
-            foreach (var skinnedMeshRenderer in skinnedMeshRenderers)
+
+        public static List<string> GetAllMeshes(List<string> assetPaths)
+        {
+            //要求是依赖mesh这个类型的资源，假如是通过fbx引用的mesh在这里是无法统计到的，正常设计的时候在res资源里不应该直接引用fbx
+            var meshes = GetCloneableDependencies(assetPaths, (path, type) =>
             {
-                var sharedMesh = skinnedMeshRenderer.sharedMesh;
-                if (sharedMesh == null) continue;
-                var mesh = sharedMesh;
-                meshes.Add(mesh);
-            }
+                if (type == typeof(Mesh)) return true;
+                return false;
+            });
 
             return meshes;
         }
 
-        public static List<Texture> GetAllTextures(GameObject prefab)
+        public static List<string> GetAllTextures(string assetPath)
         {
-            var textures = new List<Texture>();
-            var renderers = prefab.GetComponentsInChildren<Renderer>();
+            return GetAllTextures(new List<string> { assetPath });
+        }
 
-            foreach (var renderer in renderers)
+
+        public static List<string> GetAllTextures(List<string> assetPaths)
+        {
+            var textures = GetCloneableDependencies(assetPaths, (path, type) =>
             {
-                foreach (var texture in GetTexturesByMaterialList(renderer.sharedMaterials))
-                {
-                    if (texture != null && !textures.Contains(texture))
-                    {
-                        textures.Add(texture);
-                    }
-                }
-            }
+                if (type == typeof(Texture) || type == typeof(Texture2D)) return true;
+                return false;
+            });
 
             return textures;
         }
 
-        public static List<Texture> GetTexturesByMaterialList(Material[] materials)
-        {
-            List<Texture> textures = new List<Texture>();
-            foreach (var material in materials)
-            {
-                if (material == null)
-                {
-                    continue;
-                }
-                if (material.shader == null)
-                {
-                    Debug.Log($"Material {material.name} has no shader", material);
-                    return textures;
-                }
 
-                var count = material.shader.GetPropertyCount();
-                for (int i = 0; i < count; i++)
-                {
-                    var type = material.shader.GetPropertyType(i);
-                    if (type == ShaderPropertyType.Texture)
-                    {
-                        var propertyName = material.shader.GetPropertyName(i);
-                        Texture texture = material.GetTexture(propertyName);
-                        if (texture != null && !textures.Contains(texture))
-                        {
-                            textures.Add(texture);
-                        }
-                    }
-                }
+        public static List<string> GetCloneableDependencies(List<string> assetPaths, Func<string, System.Type, bool> filterFunc = null)
+        {
+            var dependencies = new List<string>();
+            var allDependencies = AssetDatabase.GetDependencies(assetPaths.ToArray(), true);
+
+            HashSet<string> assetPathSet = new HashSet<string>();
+            foreach (var assetPath in assetPaths)
+            {
+                assetPathSet.Add(assetPath);
             }
 
-            return textures;
+            foreach (var dependency in allDependencies)
+            {
+                var mainAssetTypeAtPath = AssetDatabase.GetMainAssetTypeAtPath(dependency);
+                if (mainAssetTypeAtPath == null) continue;
+                if (assetPathSet.Contains(dependency)) continue;
+                if (filterFunc != null && !filterFunc(dependency, mainAssetTypeAtPath)) continue;
+                dependencies.Add(dependency);
+            }
+
+            return dependencies;
         }
 
 
