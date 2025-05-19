@@ -33,9 +33,11 @@ namespace GameFramework.Asset
                 _loadAsync.allowSceneActivation = value;
             }
         }
-
-        public static Func<ISceneHandler> CreateHandler { get; set; } =
-            EditorSceneHandler.CreateInstance;
+#if UNITY_EDITOR
+        public static Func<ISceneHandler> CreateHandler { get; set; } = EditorSceneHandler.CreateInstance;
+#else
+        public static Func<ISceneHandler> CreateHandler { get; set; } = RuntimeSceneHandler.CreateInstance;
+#endif
 
         // ReSharper disable once MemberCanBePrivate.Global
         public static SceneRequest main { get; private set; }

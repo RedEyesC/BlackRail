@@ -5,8 +5,10 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 
 
 namespace GameEditor.AssetsCompressionEditor
@@ -19,40 +21,79 @@ namespace GameEditor.AssetsCompressionEditor
     }
 
 
+    public class EffectCostInfo
+    {
+        public string path = "";
+        public int maxParticleCount = 0;
+        public int maxDrawCall = 0;
+        public float memorySizeTexture = 0;
+        public float bundleSizeTexture = 0;
+        public int textureSize = 0;
+
+        public EffectCostInfo()
+        {
+
+        }
+
+        public EffectCostInfo(string path)
+        {
+            this.path = path;
+        }
+    }
+
+
     public class CostInfo
     {
-        public string name = "";
+        public string path = "";
         public float bundleSize = 0;
-        public float bundleSize_mesh = 0;
-        public float bundleSize_texture = 0;
+        public float bundleSizeMesh = 0;
+        public float bundleSizeTexture = 0;
         public float memorySize = 0;
-        public float memorySize_mesh = 0;
-        public float memorySize_texture = 0;
+        public float memorySizeMesh = 0;
+        public float memorySizeTexture = 0;
         public int triangleCount = 0;
         public int textureSize = 0;
 
         public CostInfo()
         {
+
         }
-        public CostInfo(string name)
+
+        public CostInfo(string path)
         {
-            this.name = name;
+            this.path = path;
         }
     }
 
 
     public class AssetsCompressionCtrl
     {
+        private static Scene _checkScene;
+        private static string _checkPath;
+        private static string _checkExportPath;
+        private static string[] _effectFileList;
+        private static GameObject _effectObj;
+        private static ParticleSystem[] _particleSystems;
+        private static int _maxParticleCount = 0;
+        private static int _maxDrawCall = 0;
+        private static float _timeStamp = 0;
+        private static int _effectIndex = 0;
+        private static List<EffectCostInfo> _effectInfoList = new List<EffectCostInfo>();
+        private static MethodInfo _calculateEffectUIDataMethod;
+
+        private static int _checkDeltaTime = 3;
+
+        private const string _particleScenePath = "Assets/Editor/AssetsCompressionEditor/Scene/CheckParticle.unity";
 
         public static void ExportData(DefaultAsset folder, PerformanceType type, string exportPath)
         {
-          
+
 
             //遍历文件夹下所有的prefab
-            string path = AssetDatabase.GetAssetPath(folder);
+            string folderPath = AssetDatabase.GetAssetPath(folder);
 
 
-            if (path == "")
+            if (folderPath == "")
             {
                 EditorUtility.DisplayDialog("error", "未选择文件夹", "确认");
                 return;
@@ -62,25 +103,39 @@ namespace GameEditor.AssetsCompressionEditor
             if (type == PerformanceType.Model)
             {
 
-                string[] guids = AssetDatabase.FindAssets("t:Prefab", new string[] { path });
-                ExportDataSceneAndModel(guids, type, exportPath, path);
+                string[] guids = AssetDatabase.FindAssets("t:Prefab", new string[] { folderPath });
+                ExportDataSceneAndModel(guids, type, exportPath, folderPath);
 
             }
             else if (type == PerformanceType.Scene)
             {
 
                 List<string> allScenePaths = new List<string>();
-                string[] guids = AssetDatabase.FindAssets("t:scene", new string[] { path });
+                string[] guids = AssetDatabase.FindAssets("t:scene", new string[] { folderPath });
 
-                ExportDataSceneAndModel(guids, type, exportPath, path);
+                ExportDataSceneAndModel(guids, type, exportPath, folderPath);
+            }
+            else if (type == PerformanceType.Effect)
+            {
+                //https://networm.me/2019/07/28/unity-particle-effect-profiler/#drawcall-%E6%95%B0%E5%80%BC%E4%B8%BA%E4%BB%80%E4%B9%88%E6%AF%94%E5%AE%9E%E9%99%85%E5%A4%A7-2-%E5%80%8D
+                var fullPath = Application.dataPath + _particleScenePath.Replace("Assets/", "/");
 
+                _checkScene = EditorSceneManager.OpenScene(_particleScenePath, OpenSceneMode.Single);
+                List<string> allScenePaths = new List<string>();
+                _effectFileList = AssetDatabase.FindAssets("t:Prefab", new string[] { folderPath });
+                _calculateEffectUIDataMethod = typeof(ParticleSystem).GetMethod("CalculateEffectUIData", BindingFlags.Instance | BindingFlags.NonPublic);
+                _checkPath = folderPath;
+                _checkExportPath = exportPath;
+                _timeStamp = 0;
+                _effectIndex = 0;
+                EditorApplication.update += ParticleUpdateFunc;
             }
 
-
+            Debug.Log("ExportData Success");
         }
 
-
-        public static void ExportDataSceneAndModel(string[] guids, PerformanceType type, string exportPath,string folderPath)
+        #region model scene
+        public static void ExportDataSceneAndModel(string[] guids, PerformanceType type, string exportPath, string folderPath)
         {
             List<CostInfo> costInfoList = new List<CostInfo>();
             HashSet<string> depHash = new HashSet<string>();
@@ -124,8 +179,8 @@ namespace GameEditor.AssetsCompressionEditor
                     var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
 
                     float bundleSize = bundleSizeMap[meshPath];
-                    CostInfo.bundleSize_mesh += bundleSize;
-                    CostInfo.memorySize_mesh += GetMeshRuntimeMemory(mesh);
+                    CostInfo.bundleSizeMesh += bundleSize;
+                    CostInfo.memorySizeMesh += GetMeshRuntimeMemory(mesh);
                     CostInfo.triangleCount += mesh.triangles.Length / 3;
                 }
 
@@ -135,13 +190,13 @@ namespace GameEditor.AssetsCompressionEditor
                     var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
 
                     float bundleSize = bundleSizeMap[texturePath];
-                    CostInfo.bundleSize_texture += bundleSize;
-                    CostInfo.memorySize_texture += GetTextureRuntimeMemory(texture);
+                    CostInfo.bundleSizeTexture += bundleSize;
+                    CostInfo.memorySizeTexture += GetTextureRuntimeMemory(texture);
                     CostInfo.textureSize += texture.width * texture.height;
                 }
 
-                CostInfo.bundleSize = CostInfo.bundleSize_mesh + CostInfo.bundleSize_texture;
-                CostInfo.memorySize = CostInfo.memorySize_mesh + CostInfo.bundleSize_texture;
+                CostInfo.bundleSize = CostInfo.bundleSizeMesh + CostInfo.bundleSizeTexture;
+                CostInfo.memorySize = CostInfo.memorySizeMesh + CostInfo.bundleSizeTexture;
 
                 costInfoList.Add(CostInfo);
             }
@@ -179,7 +234,7 @@ namespace GameEditor.AssetsCompressionEditor
             return GetMeshRuntimeMemory(mesh);
 
         }
-          
+
         public static float GetMeshRuntimeMemory(Mesh mesh)
         {
             //由于attributes只会得到已经拥有的属性，所以这里不需要担心mesh的属性会变化
@@ -322,8 +377,123 @@ namespace GameEditor.AssetsCompressionEditor
             return StoreSizeMap;
         }
 
+        #endregion
 
 
+        #region effect
+        private static void ParticleUpdateFunc()
+        {
+
+            if (_checkScene.isLoaded)
+            {
+
+                if (EditorApplication.isPlaying)
+                {
+                    EditorApplication.EnterPlaymode();
+                }
+
+                UpdateParticleEffecDrawCall();
+                UpdateParticleCount();
+
+
+                if (Time.realtimeSinceStartup > _timeStamp)
+                {
+
+
+                    if (_effectObj != null)
+                    {
+                        GameObject.Destroy(_effectObj);
+                    }
+
+                    var effectCount = _effectFileList.Length;
+                    if (_effectIndex >= effectCount)
+                    {
+                        // 检测完成
+                        ExportDataEffect();
+                        EditorApplication.update -= ParticleUpdateFunc;
+                        EditorApplication.isPlaying = false;
+
+                        return;
+                    }
+
+                    //先记录一下之前的特效信息
+                    RecordParticeInfo(_effectIndex);
+
+                    //初始化下一个特效
+                    var filePath = _effectFileList[_effectIndex++];
+
+                    GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(filePath);
+                    if (prefab != null)
+                    {
+                        GameObject eff = GameObject.Instantiate<GameObject>(prefab);
+                        _particleSystems = eff.GetComponentsInChildren<ParticleSystem>();
+                        _timeStamp = Time.realtimeSinceStartup + _checkDeltaTime;
+                        _maxDrawCall = 0;
+                        _maxParticleCount = 0;
+                    }
+
+                }
+            }
+        }
+
+        public static void ExportDataEffect()
+        {
+
+        }
+
+        public static void UpdateParticleEffecDrawCall()
+        {
+            //因为Camera 实际上渲染了两次，一次用作取样，一次用作显示。 狂飙这里给出了详细的说明：https://networm.me/2019/07/28/unity-particle-effect-profiler/#drawcall-%E6%95%B0%E5%80%BC%E4%B8%BA%E4%BB%80%E4%B9%88%E6%AF%94%E5%AE%9E%E9%99%85%E5%A4%A7-2-%E5%80%8D
+            int drawCall = UnityEditor.UnityStats.batches / 2;
+            if (_maxDrawCall < drawCall)
+            {
+                _maxDrawCall = drawCall;
+            }
+        }
+
+
+        public static void UpdateParticleCount()
+        {
+            int _particleCount = 0;
+            if (_particleSystems != null)
+            {
+                foreach (var ps in _particleSystems)
+                {
+                    int count = 0;
+                    object[] invokeArgs = { count, 0.0f, Mathf.Infinity };
+                    _calculateEffectUIDataMethod.Invoke(ps, invokeArgs);
+                    count = (int)invokeArgs[0];
+
+                    _particleCount += count;
+                }
+                if (_maxParticleCount < _particleCount)
+                {
+                    _maxParticleCount = _particleCount;
+                }
+            }
+
+        }
+
+
+
+        public static void RecordParticeInfo(int index)
+        {
+            //上一个特效的index
+            index = index - 1;
+
+            if(index >= 0)
+            {
+                string path = _effectFileList[index];
+
+                EffectCostInfo effectInfo = new EffectCostInfo(path);
+                effectInfo.maxDrawCall = _maxDrawCall;
+                effectInfo.maxParticleCount = _maxParticleCount;
+
+                _effectInfoList.Add(effectInfo);
+
+            }
+        }
+        #endregion
 
     }
 }

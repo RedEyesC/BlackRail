@@ -14,15 +14,19 @@ namespace GameFramework.Asset
         public string bundleName;
         public string assetName;
 
-        public IAssetHandler handler { get;} = CreateHandler();
+        public IAssetHandler handler { get; } = CreateHandler();
 
         public Object asset { get; set; }
-        public Dictionary<string,Object> assets { get; set; }
+        public Dictionary<string, Object> assets { get; set; }
         public bool isAll { get; private set; }
         public override int priority => 1;
 
+#if UNITY_EDITOR
         public static Func<IAssetHandler> CreateHandler { get; set; } = EditorAssetHandler.CreateInstance;
- 
+#else
+        public static Func<IAssetHandler> CreateHandler { get; set; } = RuntimeAssetHandler.CreateInstance;
+#endif
+
         protected override void OnStart()
         {
             handler.OnStart(this);

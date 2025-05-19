@@ -14,7 +14,7 @@ namespace GameEditor.AssetsCompressionEditor
 
         public static string exportPath;
 
-        [MenuItem("Tool/AssetsCompressionWin")]
+        [MenuItem("Tools/AssetsCompressionWin")]
         private static void Open()
         {
             exportPath = Application.dataPath.Substring(0, Application.dataPath.Length - 6); ;

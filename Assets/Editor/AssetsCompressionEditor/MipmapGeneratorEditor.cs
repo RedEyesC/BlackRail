@@ -16,7 +16,7 @@ namespace GameEditor.AssetsCompressionEditor
 
         //²Î¿¼https://www.lfzxb.top/projects-texel-density/
 
-        [MenuItem("Tool/CreateMipmapGenerator", false)]
+        [MenuItem("Tools/CreateMipmapGenerator", false)]
         public static void CreateMipmapGenerator()
         {
 

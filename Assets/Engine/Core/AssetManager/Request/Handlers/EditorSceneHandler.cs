@@ -1,3 +1,5 @@
+#if UNITY_EDITOR
+
 using UnityEngine;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
@@ -23,6 +25,7 @@ namespace GameFramework.Asset
             string path = "Assets/Resources/" + request.bundName.Remove(request.bundName.LastIndexOf(".")) + "/" + request.assetName+".unity";
             var parameters = new LoadSceneParameters { loadSceneMode = LoadSceneMode.Additive };
             return EditorSceneManager.LoadSceneAsyncInPlayMode(path, parameters);
+            
         }
 
         public bool IsReady(SceneRequest request1)
@@ -46,3 +49,5 @@ namespace GameFramework.Asset
         }
     }
 }
+
+#endif
