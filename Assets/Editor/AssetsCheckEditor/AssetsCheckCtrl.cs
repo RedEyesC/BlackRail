@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 
 
-namespace GameEditor.AssetsCompressionEditor
+namespace GameEditor.AssetsCheckEditor
 {
     public enum PerformanceType
     {
@@ -42,7 +42,7 @@ namespace GameEditor.AssetsCompressionEditor
     }
 
 
-    public class AssetsCompressionCtrl
+    public class AssetsCheckCtrl
     {
 
         public static void ExportData(DefaultAsset folder, PerformanceType type, string exportPath)

@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEditor;
 
-namespace GameEditor.AssetsCompressionEditor
+namespace GameEditor.AssetsCheckEditor
 {
     public class MipmapGeneratorEditor
     {

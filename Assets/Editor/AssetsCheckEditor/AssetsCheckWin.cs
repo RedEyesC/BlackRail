@@ -2,11 +2,11 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace GameEditor.AssetsCompressionEditor
+namespace GameEditor.AssetsCheckEditor
 {
 
 
-    public class AssetsCompressionWin : EditorWindow
+    public class AssetsCheckWin : EditorWindow
     {
 
         public PerformanceType type = PerformanceType.Model;
@@ -18,8 +18,8 @@ namespace GameEditor.AssetsCompressionEditor
         private static void Open()
         {
             exportPath = Application.dataPath.Substring(0, Application.dataPath.Length - 6); ;
-            GetWindow<AssetsCompressionWin>().Close();
-            GetWindow<AssetsCompressionWin>().Show();
+            GetWindow<AssetsCheckWin>().Close();
+            GetWindow<AssetsCheckWin>().Show();
         }
 
         public void OnGUI()
@@ -61,7 +61,7 @@ namespace GameEditor.AssetsCompressionEditor
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("导出开销数据"))
             {
-                AssetsCompressionCtrl.ExportData(folderValue, type, exportPath);
+                AssetsCheckCtrl.ExportData(folderValue, type, exportPath);
             }
             GUILayout.EndHorizontal();
 
