@@ -1,4 +1,4 @@
-﻿Shader "Character/Face/Face_Default"
+﻿Shader "BRShader/Character/Face/Face_Default"
 {
     Properties
     {

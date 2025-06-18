@@ -1,4 +1,4 @@
-Shader "Character/Avatar/Avatar_DualFace"
+Shader "BRShader/Character/Avatar/Avatar_DualFace"
 {
     Properties
     {

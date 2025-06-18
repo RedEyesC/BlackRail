@@ -2,7 +2,7 @@
 //MJQStudioWorks
 //2023
 
-Shader "Common/Default/Default"
+Shader "BRShader/Common/Default/Default"
 {
     Properties
     {

@@ -1,4 +1,4 @@
-﻿Shader "Character/Default/Default"
+﻿Shader "BRShader/Character/Default/Default"
 {
     Properties
     {
