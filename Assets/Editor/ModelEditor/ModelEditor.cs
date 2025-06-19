@@ -13,7 +13,7 @@ namespace GameEditor.ModelEditor
 
         static readonly string ModelRawPath = "Assets/RawData/Model/";
         static readonly string ModelResPath = "Assets/Resources/Model/";
-        static readonly string ModelDefaultShader = "Character/Default/Default";
+        static readonly string ModelDefaultShader = "BRShader/Character/Default/Default";
 
         [MenuItem("Assets/Game Editor/导出模型", false, 900)]
         static void ExportModelInfo()
