@@ -22,9 +22,8 @@ namespace GameFramework.AppLoop
             mainRole.PlayAnim("Idle");
 
             //创建怪物
-            Monster monster = SceneCtrl.CreateMonster(1001);
-
-            monster.SetPosition(-66, 550);
+            //Monster monster = SceneCtrl.CreateMonster(1001);
+            //monster.SetPosition(-66, 550);
         }
     }
 }
