@@ -79,7 +79,7 @@ namespace GameLogic
             }
 
             string modelPath = GetModelPath(_bodyType, _modelType, id);
-            string modelName = id.ToString();
+            string modelName = GetModelName(id);
 
             _loadCallBack = cb;
 
@@ -125,14 +125,18 @@ namespace GameLogic
             switch (bodyType)
             {
                 case BodyType.Role:
-                    path = string.Format("Model/Role/{0}.ab", id);
+                    path = string.Format("Model/Role/{0}", id);
                     break;
                 case BodyType.Monster:
-                    path = string.Format("Model/Monster/{0}.ab", id);
+                    path = string.Format("Model/Monster/{0}", id);
                     break;
             }
 
             return path;
+        }
+        public static string GetModelName(int id)
+        {
+            return string.Format("{0}", id);
         }
 
         public static string GetAnimPath(BodyType bodyType, int modelType,int id, string clipName)
@@ -141,10 +145,10 @@ namespace GameLogic
             switch (bodyType)
             {
                 case BodyType.Role:
-                    path = string.Format("Anim.ab", clipName); ;
+                    path = string.Format("Anim", clipName); ;
                     break;
                 case BodyType.Monster:
-                    path = string.Format("Model/Monster/{0}.ab", id);
+                    path = string.Format("Model/Monster/{0}", id);
                     break;
             }
 

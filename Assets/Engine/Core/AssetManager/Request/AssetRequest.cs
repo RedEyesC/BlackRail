@@ -21,11 +21,8 @@ namespace GameFramework.Asset
         public bool isAll { get; private set; }
         public override int priority => 1;
 
-#if UNITY_EDITOR
-        public static Func<IAssetHandler> CreateHandler { get; set; } = EditorAssetHandler.CreateInstance;
-#else
         public static Func<IAssetHandler> CreateHandler { get; set; } = RuntimeAssetHandler.CreateInstance;
-#endif
+
 
         protected override void OnStart()
         {

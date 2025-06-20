@@ -8,7 +8,7 @@ namespace GameFramework.Config
     public class ConfigManager : GameModule
     {
 
-        private static readonly string bundName = "Config.ab";
+        private static readonly string bundName = "Config";
 
         private static Dictionary<string, ConfigBase> configMap = new Dictionary<string, ConfigBase>();
 

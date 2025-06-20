@@ -54,8 +54,10 @@ namespace GameFramework.Runtime
             GameCenter.CreateModule<TimerManager>();
             GameCenter.CreateModule<EventManager>();
 
-            GameCenter.CreateModule<AssetManager>();
+            GameCenter.CreateModule<SaveDataManger>();
 
+            GameCenter.CreateModule<AssetManager>();
+           
             GameCenter.CreateModule<ConfigManager>();
             GameCenter.CreateModule<SceneManager>();
             GameCenter.CreateModule<UIManager>();

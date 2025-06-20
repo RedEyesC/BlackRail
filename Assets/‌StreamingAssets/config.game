@@ -1,0 +1,7 @@
+{
+    "ResRawMode": true,
+    "ResPath": "../ResCache/",
+    "ConfigRawMode": true,
+    "ConfigPath": "../ResCache/",
+    "GameMode": "dev"
+}

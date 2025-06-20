@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using UnityEngine;
+using UnityEditor;
 using Object = UnityEngine.Object;
 
 namespace GameFramework.Asset
@@ -43,12 +43,12 @@ namespace GameFramework.Asset
 
         public void Update(AssetRequest request)
         {
-           
+
         }
 
         private void SetResult(AssetRequest request)
         {
-            
+
         }
 
         public void Dispose(AssetRequest request)
@@ -73,15 +73,15 @@ namespace GameFramework.Asset
             string bundleName = request.bundleName;
             string assetName = request.assetName;
 
-            string resPath = bundleName.Remove(bundleName.LastIndexOf(".")) + "/";
+            string filePath = "Assets/Asset/" + bundleName + "/";
 
             List<Object> objList = new List<Object>();
-            List<string> fileList = GetFileList(bundleName, assetName);
+            List<string> fileList = GetFileList(filePath, assetName);
 
 
             for (int i = 0; i < fileList.Count; i++)
             {
-                Object obj = Resources.Load(resPath + fileList[i]);
+                Object obj = AssetDatabase.LoadAssetAtPath<Object>(filePath + fileList[i]);
                 if (obj != null)
                     objList.Add(obj);
             }
@@ -89,14 +89,12 @@ namespace GameFramework.Asset
             return objList.ToArray();
         }
 
-       
+
         private List<string> GetFileList(string bundleName, string asstName = null)
         {
-            string resPath = bundleName.Remove(bundleName.LastIndexOf(".")) + "/";
-            string filePath = "Assets/Resources/" + resPath;
 
             List<string> fileList = new List<string>();
-            DirectoryInfo dirInfo = new DirectoryInfo(filePath);
+            DirectoryInfo dirInfo = new DirectoryInfo(bundleName);
             foreach (var item in dirInfo.GetFiles())
             {
                 if (item.Extension == ".meta")
@@ -104,18 +102,19 @@ namespace GameFramework.Asset
                     continue;
                 }
 
+
                 string name = Path.GetFileNameWithoutExtension(item.Name);
                 if (asstName != null)
                 {
                     if (name == asstName)
                     {
-                        fileList.Add(name);
+                        fileList.Add(item.Name);
                         break;
                     }
                 }
                 else
                 {
-                    fileList.Add(name);
+                    fileList.Add(item.Name);
                 }
             }
 

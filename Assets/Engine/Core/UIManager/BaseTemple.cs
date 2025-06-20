@@ -143,7 +143,7 @@ namespace GameFramework.UI
 
         public string GetUIBundlePath(string pkgName)
         {
-            return string.Format("UI/{0}.ab", pkgName);
+            return string.Format("UI/{0}", pkgName);
         }
 
         public GComponent GetRoot()
