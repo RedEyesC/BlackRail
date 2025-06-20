@@ -6,6 +6,8 @@ namespace GameFramework.UI
     {
         public GameObject obj;
 
+        public GComponent parent;
+
         virtual public string text
         {
             get { return null; }
@@ -23,6 +25,11 @@ namespace GameFramework.UI
 
         }
 
+        internal void SetParent(GComponent value)
+        {
+            parent = value;
+        }
+
         public void SetActive(bool var)
         {
             obj.SetActive(var);
@@ -33,15 +40,33 @@ namespace GameFramework.UI
             obj.layer = layer;
         }
 
+
         public void SetParent(GameObject parentObj, bool posStay)
         {
             obj.SetParent(parentObj, posStay);
         }
 
-        virtual public void Destroy()
+        public void RemoveFromParent()
         {
-            UnityEngine.GameObject.Destroy(obj);
+            if (parent != null)
+                parent.RemoveChild(this);
         }
 
+        virtual public void Destroy()
+        {
+            if (obj != null)
+            {
+                UnityEngine.GameObject.Destroy(obj);
+            }
+           
+        }
+
+
+        virtual public void Dispose()
+        {
+            RemoveFromParent();
+            Destroy();
+            
+        }
     }
 }
