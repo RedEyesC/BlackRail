@@ -39,6 +39,7 @@ namespace GameFramework.Asset
         public static bool busy =>
             autoslicing && _elapseSeconds > autoslicingTimestep;
 
+        //注意假如长期处于这个标准的帧率以下反而会造成卡顿，此时建议下调标准
         public static float autoslicingTimestep { get; set; } = 1f / 60f;
         public static byte maxRequests { get; set; } = 10;
 
