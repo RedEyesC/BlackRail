@@ -14,4 +14,12 @@ Init 游戏入口场景
 RawData 原始资源  
 Asset 游戏运行资源
 ‌StreamingAssets 用于editor下调试的配置文件
+
+
+#### 参考项目
+
+[InputManager](https://github.com/daemon3000/InputManager)
+
+[xasset](https://github.com/xasset/xasset)
+
  
