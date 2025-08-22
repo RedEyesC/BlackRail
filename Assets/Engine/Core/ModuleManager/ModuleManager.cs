@@ -16,6 +16,7 @@ namespace GameFramework.Moudule
         {
             typeof(GamePoolCtrl),
             typeof(LoginCtrl),
+            typeof(SysSettingCtrl),
             typeof(MainCtrl),
             typeof(SceneCtrl),
 
