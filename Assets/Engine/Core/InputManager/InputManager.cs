@@ -10,16 +10,15 @@ namespace GameFramework.Input
         public new int priority = 6;
 
         private bool _ignoreTimescale = true;
-        private ControlScheme _playerScheme;
 
+        private static ControlScheme _playerScheme;
         private static Dictionary<Type, IInputService> _services;
         private static Dictionary<string, ControlScheme> _schemeLookup;
-        private static Dictionary<string, Dictionary<string, InputAction>> _actionLookup;
 
         public override void Destroy()
         {
 
-;
+            ;
             foreach (var entry in _services)
                 entry.Value.Shutdown();
 
@@ -30,7 +29,6 @@ namespace GameFramework.Input
         {
             _services = new Dictionary<Type, IInputService>();
             _schemeLookup = new Dictionary<string, ControlScheme>();
-            _actionLookup = new Dictionary<string, Dictionary<string, InputAction>>();
 
             AddDefaultServices();
         }
@@ -59,6 +57,14 @@ namespace GameFramework.Input
 
             foreach (var item in _services.Values)
                 item.OnAfterUpdate();
+        }
+
+
+        public static void SetPlayerScheme(string controlSchemeName)
+        {
+            ControlScheme scheme = GetControlScheme(controlSchemeName);
+
+            _playerScheme = scheme;
         }
 
 
@@ -94,17 +100,6 @@ namespace GameFramework.Input
                                                         KeyCode altPositive, KeyCode altNegative, float gravity, float sensitivity)
         {
             ControlScheme scheme = GetControlScheme(controlSchemeName);
-            if (scheme == null)
-            {
-                Debug.LogError(string.Format("A control scheme named \'{0}\' does not exist", controlSchemeName));
-                return null;
-            }
-            if (_actionLookup[controlSchemeName].ContainsKey(axisName))
-            {
-                Debug.LogError(string.Format("The control scheme named {0} already contains an action named {1}", controlSchemeName, axisName));
-                return null;
-            }
-
             InputAction action = scheme.CreateNewAction(axisName);
             InputBinding primary = action.CreateNewBinding();
             primary.Type = InputType.DigitalAxis;
@@ -118,7 +113,6 @@ namespace GameFramework.Input
             secondary.Negative = altNegative;
 
             action.Initialize();
-            _actionLookup[controlSchemeName][axisName] = action;
 
             return action;
         }
@@ -127,10 +121,41 @@ namespace GameFramework.Input
         public static ControlScheme GetControlScheme(string name)
         {
             ControlScheme scheme = null;
-            if (_schemeLookup.TryGetValue(name, out scheme))
-                return scheme;
+            if (!_schemeLookup.TryGetValue(name, out scheme))
+            {
+                scheme = new ControlScheme(name);
+                _schemeLookup.Add(name, scheme);
+            }
 
-            return null;
+            return scheme;
+
+        }
+
+
+        public static float GetAxis(string controlSchemeName, string name)
+        {
+            InputAction action = GetAction(controlSchemeName, name);
+            if (action != null)
+            {
+                return action.GetAxis();
+            }
+            else
+            {
+                Debug.LogError(string.Format("An axis named \'{0}\' does not exist in the active input configuration for player {1}", name, controlSchemeName));
+                return 0.0f;
+            }
+        }
+
+
+        public static InputAction GetAction(string controlSchemeName, string actionName)
+        {
+            ControlScheme scheme = null;
+            if (!_schemeLookup.TryGetValue(controlSchemeName, out scheme))
+            {
+                return null;
+            }
+
+            return scheme.GetAction(actionName);
         }
 
     }

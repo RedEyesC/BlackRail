@@ -1,7 +1,9 @@
 ﻿using GameFramework.Asset;
+using GameFramework.Input;
 using GameFramework.Moudule;
 using GameFramework.Scene;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace GameLogic
 {
@@ -84,6 +86,15 @@ namespace GameLogic
 
         public override void Update(float nowTime, float elapseSeconds)
         {
+
+            Vector3 directionVector = new Vector3(InputManager.GetAxis("Action", "Horizontal"), 0, InputManager.GetAxis("Action", "Vertical"));
+
+
+            if(directionVector.x != 0 || directionVector.z != 0)
+            {
+                Debug.Log("x: " + directionVector.x + "z: " + directionVector.z);
+            }
+
             if (mainRole != null)
             {
                 mainRole.StateUpdate(nowTime, elapseSeconds);
