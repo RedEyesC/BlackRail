@@ -1,11 +1,10 @@
 ﻿using GameFramework.Common;
 using System.Collections.Generic;
-using System.IO;
 using UnityEngine;
 
 namespace GameFramework.Moudule
 {
-    internal class SaveDataManger : GameModule
+    internal class UserRecordManger : GameModule
     {
 
 
