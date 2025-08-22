@@ -93,12 +93,6 @@ namespace GameFramework.Input
 
         public static InputAction CreateDigitalAxis(string controlSchemeName, string axisName, KeyCode positive, KeyCode negative, float gravity, float sensitivity)
         {
-            return CreateDigitalAxis(controlSchemeName, axisName, positive, negative, KeyCode.None, KeyCode.None, gravity, sensitivity);
-        }
-
-        public static InputAction CreateDigitalAxis(string controlSchemeName, string axisName, KeyCode positive, KeyCode negative,
-                                                        KeyCode altPositive, KeyCode altNegative, float gravity, float sensitivity)
-        {
             ControlScheme scheme = GetControlScheme(controlSchemeName);
             InputAction action = scheme.CreateNewAction(axisName);
             InputBinding primary = action.CreateNewBinding();
@@ -107,10 +101,6 @@ namespace GameFramework.Input
             primary.Negative = negative;
             primary.Gravity = gravity;
             primary.Sensitivity = sensitivity;
-
-            InputBinding secondary = action.CreateNewBinding(primary);
-            secondary.Positive = altPositive;
-            secondary.Negative = altNegative;
 
             action.Initialize();
 
