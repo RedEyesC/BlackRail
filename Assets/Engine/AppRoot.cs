@@ -5,6 +5,7 @@ using GameFramework.Common;
 using GameFramework.Config;
 using GameFramework.Event;
 using GameFramework.Input;
+using GameFramework.Logger;
 using GameFramework.Moudule;
 using GameFramework.Scene;
 using GameFramework.Timers;
@@ -54,10 +55,12 @@ namespace GameFramework.Runtime
             GameCenter.CreateModule<TimerManager>();
             GameCenter.CreateModule<EventManager>();
 
-            GameCenter.CreateModule<SaveDataManger>();
+            GameCenter.CreateModule<UserRecordManger>();
 
             GameCenter.CreateModule<AssetManager>();
-           
+
+            GameCenter.CreateModule<LoggerManager>();
+
             GameCenter.CreateModule<ConfigManager>();
             GameCenter.CreateModule<SceneManager>();
             GameCenter.CreateModule<UIManager>();
