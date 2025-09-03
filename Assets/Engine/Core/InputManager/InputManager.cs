@@ -91,7 +91,22 @@ namespace GameFramework.Input
             return null;
         }
 
-        public static InputAction CreateDigitalAxis(string controlSchemeName, string axisName, KeyCode positive, KeyCode negative, float gravity, float sensitivity)
+        public static InputAction CreateButton(string controlSchemeName, string buttonName, KeyCode primaryKey)
+        {
+
+            ControlScheme scheme = GetControlScheme(controlSchemeName);
+            InputAction action = scheme.CreateNewAction(buttonName);
+            InputBinding primary = action.CreateNewBinding();
+            primary.Type = InputType.Button;
+            primary.Positive = primaryKey;
+
+            action.Initialize();
+
+            return action;
+        }
+
+
+        public static InputAction CreateDigitalAxis(string controlSchemeName, string axisName, KeyCode positive, KeyCode negative, float gravity, float sensitivity, bool snap)
         {
             ControlScheme scheme = GetControlScheme(controlSchemeName);
             InputAction action = scheme.CreateNewAction(axisName);
@@ -101,6 +116,7 @@ namespace GameFramework.Input
             primary.Negative = negative;
             primary.Gravity = gravity;
             primary.Sensitivity = sensitivity;
+            primary.Snap = snap;
 
             action.Initialize();
 
@@ -136,6 +152,47 @@ namespace GameFramework.Input
             }
         }
 
+        public static bool GetButton(string controlSchemeName, string name)
+        {
+            InputAction action = GetAction(controlSchemeName, name);
+            if (action != null)
+            {
+                return action.GetButton();
+            }
+            else
+            {
+                Debug.LogError(string.Format("An button named \'{0}\' does not exist in the active input configuration for player {1}", name, controlSchemeName));
+                return false;
+            }
+        }
+
+        public static bool GetButtonDown(string controlSchemeName, string name)
+        {
+            InputAction action = GetAction(controlSchemeName, name);
+            if (action != null)
+            {
+                return action.GetButtonDown();
+            }
+            else
+            {
+                Debug.LogError(string.Format("An button named \'{0}\' does not exist in the active input configuration for player {1}", name, controlSchemeName));
+                return false;
+            }
+        }
+
+        public static bool GetButtonUp(string controlSchemeName, string name)
+        {
+            InputAction action = GetAction(controlSchemeName, name);
+            if (action != null)
+            {
+                return action.GetButtonUp();
+            }
+            else
+            {
+                Debug.LogError(string.Format("An button named \'{0}\' does not exist in the active input configuration for player {1}", name, controlSchemeName));
+                return false;
+            }
+        }
 
         public static InputAction GetAction(string controlSchemeName, string actionName)
         {

@@ -3,6 +3,7 @@ using GameFramework.Input;
 using GameFramework.Moudule;
 using GameFramework.Scene;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 
 namespace GameLogic
@@ -25,7 +26,7 @@ namespace GameLogic
 
         public SceneCtrl()
         {
-            mainRole = new Role();
+           
         }
 
 
@@ -53,9 +54,15 @@ namespace GameLogic
         }
 
 
-        public static void CreateMainRole()
+        public static Role CreateMainRole()
         {
+            mainRole = new Role();
+
             mainRole.SetModelID(1, 1001);
+
+            AddObj(mainRole);
+
+            return mainRole;
         }
 
 
@@ -84,22 +91,9 @@ namespace GameLogic
             return mainRole;
         }
 
+
         public override void Update(float nowTime, float elapseSeconds)
         {
-
-            Vector3 directionVector = new Vector3(InputManager.GetAxis("Action", "Horizontal"), 0, InputManager.GetAxis("Action", "Vertical"));
-
-
-            if(directionVector.x != 0 || directionVector.z != 0)
-            {
-                Debug.Log("x: " + directionVector.x + "z: " + directionVector.z);
-            }
-
-            if (mainRole != null)
-            {
-                mainRole.StateUpdate(nowTime, elapseSeconds);
-            }
-
 
             //更新场景里的物体
             foreach (var obj in _objList)

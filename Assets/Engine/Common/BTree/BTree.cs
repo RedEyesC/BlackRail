@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace GameFramework.Common
+﻿namespace GameFramework.Common
 {
 
     public abstract class BTreeNode
@@ -75,7 +73,7 @@ namespace GameFramework.Common
 
                 node.SortNode(nodes, imin, imax);
 
-                int isplit = imin + (int)Math.Floor((double)(inum / 2));
+                int isplit = imin + (int)System.Math.Floor((double)(inum / 2));
 
                 // 左侧
                 curNode = SubDivide(nodes, imin, isplit, outNodes, curNode);

@@ -105,6 +105,8 @@ namespace GameLogic
 
         public virtual void UpdateMove(float nowTime, float elapseSeconds)
         {
+
+
             if (_targetDist > 0 && _drawObj.root)
             {
                 float deltaDist = elapseSeconds * speed;
