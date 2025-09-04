@@ -1,8 +1,9 @@
-﻿using System;
+﻿using GameFramework.Common;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace GameFramework.Common
+namespace GameFramework
 {
     public class GameCenter : Singleton<GameCenter>
     {

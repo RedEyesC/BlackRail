@@ -1,7 +1,6 @@
 ﻿
 
 using GameFramework.Asset;
-using GameFramework.Common;
 using Unity.Mathematics;
 using UnityEngine;
 

@@ -1,5 +1,4 @@
-﻿using GameFramework.Common;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace GameFramework.Timers
 {

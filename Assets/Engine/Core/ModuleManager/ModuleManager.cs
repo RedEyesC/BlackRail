@@ -1,5 +1,4 @@
-﻿using GameFramework.Common;
-using GameLogic;
+﻿using GameLogic;
 using System;
 using System.Collections.Generic;
 

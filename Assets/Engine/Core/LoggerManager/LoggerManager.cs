@@ -1,6 +1,5 @@
 ﻿
 using GameFramework.Asset;
-using GameFramework.Common;
 using UnityEngine;
 
 namespace GameFramework.Logger

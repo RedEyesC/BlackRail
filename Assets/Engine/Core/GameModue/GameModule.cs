@@ -1,4 +1,4 @@
-﻿namespace GameFramework.Common
+﻿namespace GameFramework
 {
 
     public abstract class GameModule
