@@ -92,10 +92,20 @@ namespace GameLogic
         }
 
 
+        public override void EarlyUpdate()
+        {
+
+            foreach (var obj in _objList)
+            {
+                obj.EarlyUpdate();
+            }
+
+        }
+
+
         public override void Update(float nowTime, float elapseSeconds)
         {
 
-            //更新场景里的物体
             foreach (var obj in _objList)
             {
                 obj.StateUpdate(nowTime, elapseSeconds);

@@ -54,11 +54,6 @@ namespace GameFramework.UI
 
         }
 
-        public override void Update(float nowTime, float elapseSeconds)
-        {
-
-        }
-
         public override void Destroy()
         {
 

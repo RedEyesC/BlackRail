@@ -6,11 +6,16 @@ namespace GameFramework.Moudule
     internal class BaseModule
     {
 
+        public virtual void EarlyUpdate() { }
+
+
         public virtual void Update(float nowTime, float elapseSeconds)
         {
 
         }
 
+
+        public virtual void PostLateUpdate() { }
 
         public static void RegisterView(string viewName, Type viewType)
         {

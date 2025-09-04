@@ -2,6 +2,7 @@
 
 using GameFramework.Asset;
 using GameFramework.Common;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace GameFramework.Scene
@@ -188,6 +189,11 @@ namespace GameFramework.Scene
         public static Camera GetMainCamera()
         {
             return _camera;
+        }
+
+        public static float3 GetMainCameraForward()
+        {
+            return _camera.transform.forward;
         }
 
 

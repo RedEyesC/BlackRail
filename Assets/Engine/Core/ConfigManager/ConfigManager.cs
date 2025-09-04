@@ -37,10 +37,6 @@ namespace GameFramework.Config
             AssetManager.LoadAllAssetAsync(bundName);
         }
 
-        public override void Update(float nowTime, float elapseSeconds)
-        {
-
-        }
 
         public static void LoadConfig()
         {

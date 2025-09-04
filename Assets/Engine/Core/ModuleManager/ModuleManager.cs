@@ -52,6 +52,16 @@ namespace GameFramework.Moudule
             return null;
         }
 
+
+        public override void EarlyUpdate()
+        {
+            foreach (var kv in _ctrlMap)
+            {
+                kv.Value.EarlyUpdate();
+            }
+        }
+
+
         public override void Update(float nowTime, float elapseSeconds)
         {
             foreach (var kv in _ctrlMap)
@@ -59,6 +69,7 @@ namespace GameFramework.Moudule
                 kv.Value.Update(nowTime, elapseSeconds);
             }
         }
+
 
 
 

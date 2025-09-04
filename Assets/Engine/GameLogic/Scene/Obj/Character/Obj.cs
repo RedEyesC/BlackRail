@@ -40,6 +40,12 @@ namespace GameLogic
 
         }
 
+        public virtual void EarlyUpdate()
+        {
+
+        }
+
+
         public virtual void StateUpdate(float nowTime, float elapseSeconds)
         {
             UpdateMove(nowTime, elapseSeconds);

@@ -17,11 +17,27 @@ namespace GameFramework.Common
             }
         }
 
+        public static void EarlyUpdate()
+        {
+            foreach (GameModule module in _gameModules)
+            {
+                module.EarlyUpdate();
+            }
+        }
+
         public static void Update(float nowTime, float elapseSeconds)
         {
             foreach (GameModule module in _gameModules)
             {
                 module.Update(nowTime, elapseSeconds);
+            }
+        }
+
+        public static void PostLateUpdate()
+        {
+            foreach (GameModule module in _gameModules)
+            {
+                module.PostLateUpdate();
             }
         }
 

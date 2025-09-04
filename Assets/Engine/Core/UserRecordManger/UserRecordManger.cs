@@ -25,11 +25,6 @@ namespace GameFramework.Moudule
 
         }
 
-        public override void Update(float nowTime, float elapseSeconds)
-        {
-
-        }
-
 
         public static string GetClientConfig(string key, string defaultValue = "")
         {

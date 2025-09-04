@@ -14,13 +14,9 @@ namespace GameFramework.Logger
 
         public override void Start()
         {
-           
-        }
-
-        public override void Update(float nowTime, float elapseSeconds)
-        {
             InitInGameDebugConsole();
         }
+
 
         public void InitInGameDebugConsole()
         {
