@@ -1,4 +1,6 @@
-﻿namespace Unity.Mathematics
+﻿using MotionMatching;
+
+namespace Unity.Mathematics
 {
     public static class MathEx
     {
@@ -6,10 +8,7 @@
 
         public static float3 forward
         {
-            get
-            {
-                return new float3(0.0f, 0.0f, 1.0f);
-            }
+            get { return new float3(0.0f, 0.0f, 1.0f); }
         }
 
         public static float3 rotateVector(quaternion q, float3 v)
@@ -64,5 +63,45 @@
             }
         }
 
+        public static int truncToInt(float value)
+        {
+            return (int)value;
+        }
+
+        public static quaternion conjugate(quaternion q)
+        {
+            return new quaternion(-q.value.x, -q.value.y, -q.value.z, q.value.w);
+        }
+
+        internal static quaternion negate(quaternion q)
+        {
+            return new quaternion(-q.value.x, -q.value.y, -q.value.z, -q.value.w);
+        }
+
+        internal static float squared(float value)
+        {
+            return value * value;
+        }
+
+        public static float3 axisAngle(quaternion q, out float angle)
+        {
+            float3 v = new float3(q.value.x, q.value.y, q.value.z);
+            float sinHalfAngle = math.length(v);
+            if (sinHalfAngle < epsilon)
+            {
+                angle = 0.0f;
+                return new float3(1.0f, 0.0f, 0.0f);
+            }
+            else
+            {
+                angle = 2.0f * math.atan2(sinHalfAngle, q.value.w);
+                return v * (1.0f / sinHalfAngle);
+            }
+        }
+
+        public static AffineTransform lerp(AffineTransform lhs, AffineTransform rhs, float theta)
+        {
+            return new AffineTransform(math.lerp(lhs.t, rhs.t, theta), math.slerp(lhs.q, rhs.q, theta));
+        }
     }
 }
