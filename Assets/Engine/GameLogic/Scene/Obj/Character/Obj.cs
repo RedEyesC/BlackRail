@@ -1,6 +1,7 @@
-﻿using GameFramework.Scene;
+﻿using System;
+using GameFramework.Scene;
+using Unity.Jobs;
 using UnityEngine;
-
 
 namespace GameLogic
 {
@@ -18,10 +19,7 @@ namespace GameLogic
 
         public UnityEngine.Transform root
         {
-            get
-            {
-                return _drawObj.root;
-            }
+            get { return _drawObj.root; }
         }
 
         public Obj(BodyType bodyType)
@@ -34,17 +32,9 @@ namespace GameLogic
             _drawObj = new DrawObj(bodyType);
         }
 
-        public virtual void Rest()
-        {
+        public virtual void Rest() { }
 
-
-        }
-
-        public virtual void EarlyUpdate()
-        {
-
-        }
-
+        public virtual void EarlyUpdate() { }
 
         public virtual void StateUpdate(float nowTime, float elapseSeconds)
         {
@@ -54,6 +44,21 @@ namespace GameLogic
         public void SetModelID(int modelType, int id)
         {
             _drawObj.SetModelID(modelType, id);
+        }
+
+        public void GetModelByType(int modelType)
+        {
+            _drawObj.GetModelByType(modelType);
+        }
+
+        public void SetModelChangeCallback(Action<ModelObj> callback)
+        {
+            _drawObj.SetModelChangeCallback(callback);
+        }
+
+        public void AddJobDependency(int modelType, JobHandle jobHandle)
+        {
+            _drawObj.AddJobDependency(modelType, jobHandle);
         }
 
         public void PlayAnim(string name)
@@ -96,23 +101,18 @@ namespace GameLogic
                 _dir.Normalize();
                 _drawObj.root.SetLookDir(_dir.x, 0, _dir.y);
             }
-
         }
 
         public void DoMove(float x, float y, float div)
         {
-
             _targetDist = div;
             _CurDist = 0;
 
             SetDir(x, y);
         }
 
-
         public virtual void UpdateMove(float nowTime, float elapseSeconds)
         {
-
-
             if (_targetDist > 0 && _drawObj.root)
             {
                 float deltaDist = elapseSeconds * speed;
@@ -130,16 +130,13 @@ namespace GameLogic
                     PlayAnim("RunFwd");
                 }
 
-
                 float x = _drawObj.root.position.x;
                 float y = _drawObj.root.position.z;
-
 
                 x += deltaDist * _dir.x;
                 y += deltaDist * _dir.y;
 
                 SetPosition(x, y);
-
             }
         }
 
@@ -147,7 +144,5 @@ namespace GameLogic
         {
             return SceneManager.GetHeightByRayCast(x, z);
         }
-
-
     }
 }

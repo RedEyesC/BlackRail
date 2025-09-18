@@ -1,11 +1,11 @@
-﻿
-
+﻿using System;
+using System.Collections.Generic;
 using GameFramework.Asset;
 using GameFramework.Scene;
-using System;
-using System.Collections.Generic;
-using System.IO;
+using Unity.Jobs;
 using UnityEngine;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 
 namespace GameLogic
 {
@@ -13,22 +13,25 @@ namespace GameLogic
     {
         private BodyType _bodyType;
         private int _modelType;
+        private int _modelID;
 
-        private int _id;
-
-
-        private Action _loadCallBack;
+        private Action<ModelObj> _loadCallBack;
         private Dictionary<string, AssetRequest> _reqAnimDict = new Dictionary<string, AssetRequest>();
         private AssetRequest _req;
         private GameObject _obj;
 
+        private Animator _animator;
+        private PlayableGraph _graph;
+        private AnimationPlayableOutput _animationOutput;
+
+        public int modelType => _modelType;
+        public Animator animator => _animator;
 
         public ModelObj(BodyType bodyType, int modelType)
         {
             _bodyType = bodyType;
             _modelType = modelType;
         }
-
 
         private void OnLoadResFinish(Request req)
         {
@@ -41,9 +44,8 @@ namespace GameLogic
 
             if (_loadCallBack != null)
             {
-                _loadCallBack();
+                _loadCallBack(this);
             }
-
         }
 
         private void OnLoadAnimFinish(Request req)
@@ -57,20 +59,17 @@ namespace GameLogic
                 {
                     _obj.GetComponent<AnimPlayableComponent>().Play(clip, clip.name);
                 }
-
             }
         }
 
-        public void ChangeModel(int id, System.Action cb = null)
+        public void ChangeModel(int id, Action<ModelObj> cb = null)
         {
-
-
-            if (_id == id)
+            if (_modelID == id)
             {
                 return;
             }
 
-            _id = id;
+            _modelID = id;
 
             if (_obj != null)
             {
@@ -78,13 +77,12 @@ namespace GameLogic
                 SceneManager.DestroyLayout(_obj);
             }
 
-            string modelPath = GetModelPath(_bodyType, _modelType, id);
-            string modelName = GetModelName(id);
+            string modelPath = GetModelPath(_bodyType, _modelType, _modelID);
+            string modelName = GetModelName(_modelID);
 
             _loadCallBack = cb;
 
             _req = AssetManager.LoadAssetAsync(modelPath, modelName, OnLoadResFinish);
-
         }
 
         public void SetParent(Transform parent)
@@ -92,10 +90,30 @@ namespace GameLogic
             parent.AddChild(this._obj.transform);
         }
 
+        public Transform[] GetComponentsInChildrenTransform()
+        {
+            return _obj.GetComponentsInChildren<Transform>();
+        }
+
+        public void CreatePlayableGraph<T>(T job)
+            where T : struct, IAnimationJob
+        {
+            if (_graph.IsValid())
+            {
+                return;
+            }
+
+            _animator = _obj.GetComponent<Animator>();
+
+            _graph = PlayableGraph.Create("PlayableGraph");
+            _animationOutput = AnimationPlayableOutput.Create(_graph, "AnimationOutput", _animator);
+
+            var playable = AnimationScriptPlayable.Create(_graph, job);
+            _animationOutput.SetSourcePlayable(playable);
+        }
 
         public void PlayAnim(string clipName)
         {
-
             if (_reqAnimDict.TryGetValue(clipName, out AssetRequest _reqAnim))
             {
                 if (_reqAnim.isDone)
@@ -108,9 +126,17 @@ namespace GameLogic
             }
             else
             {
-                string clipPath = GetAnimPath(_bodyType, _modelType, _id, clipName);
+                string clipPath = GetAnimPath(_bodyType, _modelType, _modelID, clipName);
                 _reqAnim = AssetManager.LoadAssetAsync(clipPath, clipName, OnLoadAnimFinish);
                 _reqAnimDict[clipName] = _reqAnim;
+            }
+        }
+
+        public void AddJobDependency(JobHandle jobHandle)
+        {
+            if (_obj != null)
+            {
+                _obj.GetComponent<Animator>().AddJobDependency(jobHandle);
             }
         }
 
@@ -134,18 +160,20 @@ namespace GameLogic
 
             return path;
         }
+
         public static string GetModelName(int id)
         {
             return string.Format("{0}", id);
         }
 
-        public static string GetAnimPath(BodyType bodyType, int modelType,int id, string clipName)
+        public static string GetAnimPath(BodyType bodyType, int modelType, int id, string clipName)
         {
             string path = "";
             switch (bodyType)
             {
                 case BodyType.Role:
-                    path = string.Format("Anim", clipName); ;
+                    path = string.Format("Anim", clipName);
+                    ;
                     break;
                 case BodyType.Monster:
                     path = string.Format("Model/Monster/{0}", id);
