@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace MotionMatching
 {
+    [Serializable]
     public class MotionAsset : Asset
     {
         [Range(0.0f, 5.0f), Header("Base Settings")]
@@ -23,6 +24,8 @@ namespace MotionMatching
         [Range(0, 1)]
         public float poseSampleRatio;
 
+        //TODO œ» ÷–¥∞…
+        [SerializeField]
         public List<string> joints;
 
         [Range(0, 1)]
