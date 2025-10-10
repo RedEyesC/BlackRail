@@ -147,8 +147,7 @@ namespace TrackEditor
 
             if (GUILayout.Button(new GUIContent(Styles.plusIcon, Lan.GroupAdd), EditorStyles.toolbarButton, GUILayout.Width(26)))
             {
-                var newGroup = asset.AddGroup<Group>();
-                DirectorUtility.selectedObject = newGroup;
+                DrawGroupContextMenu();
             }
 
             Prefs.magnetSnapping = GUILayout.Toggle(

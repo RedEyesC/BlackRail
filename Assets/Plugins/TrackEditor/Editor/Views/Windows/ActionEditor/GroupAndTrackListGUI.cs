@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using TrackEditor.Draws;
 using UnityEditor;
 using UnityEngine;
@@ -82,8 +83,7 @@ namespace TrackEditor
             GUI.color = Color.white.WithAlpha(0.5f);
             if (GUI.Button(addRect, Lan.GroupAdd))
             {
-                var newGroup = asset.AddGroup<Group>();
-                DirectorUtility.selectedObject = newGroup;
+                DrawGroupContextMenu();
             }
 
             //clear picks
@@ -95,6 +95,47 @@ namespace TrackEditor
 
             GUI.enabled = true;
             GUI.color = Color.white;
+        }
+
+        private void DrawGroupContextMenu()
+        {
+            var attachableTypeInfos = new List<EditorTools.TypeMetaInfo>();
+
+            foreach (var group in EditorTools.GetTypeMetaDerivedFrom(typeof(Group)))
+            {
+                if (!group.attachableTypes.Contains(asset.GetType()))
+                {
+                    continue;
+                }
+
+                attachableTypeInfos.Add(group);
+            }
+
+            if (attachableTypeInfos.Count > 1)
+            {
+                var menu = new GenericMenu();
+                foreach (var _info in attachableTypeInfos)
+                {
+                    var info = _info;
+                    var category = string.IsNullOrEmpty(info.category) ? string.Empty : (info.category + "/");
+                    var tName = info.name;
+                    menu.AddItem(
+                        new GUIContent(category + tName),
+                        false,
+                        () =>
+                        {
+                            asset.AddGroup(info.type);
+                        }
+                    );
+                }
+
+                menu.ShowAsContext();
+            }
+            else if (attachableTypeInfos.Count > 0)
+            {
+                var info = attachableTypeInfos[0];
+                asset.AddGroup(info.type);
+            }
         }
 
         private void ShowListGroups(Event e, ref float nextYPos)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -8,6 +9,7 @@ namespace TrackEditor
     [Serializable]
     public abstract partial class Asset : DirectableAsset, IDirector
     {
+        [HideInInspector]
         public List<Group> groups = new List<Group>();
 
         [SerializeField]
@@ -58,6 +60,23 @@ namespace TrackEditor
             groups.Add(newGroup);
             CreateUtilities.SaveAssetIntoObject(newGroup, this);
             DirectorUtility.selectedObject = newGroup;
+
+            return newGroup;
+        }
+
+        public Group AddGroup(Type type)
+        {
+            var catAtt = type.GetCustomAttributes(typeof(CategoryAttribute), true).FirstOrDefault() as CategoryAttribute;
+            var newGroup = CreateInstance(type) as Group;
+
+            if (newGroup != null)
+            {
+                newGroup.Name = "New Group";
+                newGroup.Parent = this;
+                groups.Add(newGroup);
+                CreateUtilities.SaveAssetIntoObject(newGroup, this);
+                DirectorUtility.selectedObject = newGroup;
+            }
 
             return newGroup;
         }

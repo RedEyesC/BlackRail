@@ -6,13 +6,20 @@ using UnityEngine;
 namespace TrackEditor
 {
     [Serializable]
+    [Attachable(typeof(Asset))]
     public class Group : DirectableAsset
     {
-        [SerializeField, HideInInspector] private List<Track> tracks = new List<Track>();
-        [SerializeField, HideInInspector] private bool isCollapsed = false;
-        [SerializeField, HideInInspector] private bool active = true;
-        [SerializeField, HideInInspector] private bool isLocked = false;
+        [SerializeField, HideInInspector]
+        private List<Track> tracks = new List<Track>();
 
+        [SerializeField, HideInInspector]
+        private bool isCollapsed = false;
+
+        [SerializeField, HideInInspector]
+        private bool active = true;
+
+        [SerializeField, HideInInspector]
+        private bool isLocked = false;
 
         public virtual Asset Parent
         {
@@ -59,7 +66,6 @@ namespace TrackEditor
             set => isLocked = value;
         }
 
-
         #region 增删
 
         public bool CanAddTrack(Track track)
@@ -74,8 +80,7 @@ namespace TrackEditor
                 return false;
             }
 
-            if (type.IsDefined(typeof(UniqueAttribute), true) &&
-                Tracks.FirstOrDefault(t => t.GetType() == type) != null)
+            if (type.IsDefined(typeof(UniqueAttribute), true) && Tracks.FirstOrDefault(t => t.GetType() == type) != null)
             {
                 return false;
             }
@@ -89,7 +94,8 @@ namespace TrackEditor
             return true;
         }
 
-        public T AddTrack<T>(string _name = null) where T : Track
+        public T AddTrack<T>(string _name = null)
+            where T : Track
         {
             return (T)AddTrack(typeof(T), _name);
         }
@@ -126,7 +132,6 @@ namespace TrackEditor
             // root?.Validate();
             // root?.SaveToAssets();
         }
-
 
         public Track PasteTrack(Track track)
         {
