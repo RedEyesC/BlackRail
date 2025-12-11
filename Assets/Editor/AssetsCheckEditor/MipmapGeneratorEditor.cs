@@ -1,6 +1,5 @@
-
-using UnityEngine;
 using UnityEditor;
+using UnityEngine;
 
 namespace GameEditor.AssetsCheckEditor
 {
@@ -10,8 +9,8 @@ namespace GameEditor.AssetsCheckEditor
         public static Color[] fillrateSourceColors;
 
         public const int maxMipLimit = 7;
-        public const string sampleTexturePath = "Assets/Editor/AssetsCompressionEditor/Atlas/";
-        public const string exportTexturePath = "Assets/Editor/AssetsCompressionEditor/Generated/";
+        public const string sampleTexturePath = "Assets/Editor/AssetsCheckEditor/Atlas/";
+        public const string exportTexturePath = "Assets/Editor/AssetsCheckEditor/Generated/";
         public const string exportTextureName = "MipmapForCheck";
 
         //参考https://www.lfzxb.top/projects-texel-density/
@@ -19,7 +18,6 @@ namespace GameEditor.AssetsCheckEditor
         [MenuItem("Tools/CreateMipmapGenerator", false)]
         public static void CreateMipmapGenerator()
         {
-
             //"mipmin为64，mipmax为8192，对应值为0-7"
             int maxMipLevel = 4;
 
@@ -51,7 +49,6 @@ namespace GameEditor.AssetsCheckEditor
                 fillrateSourceColors[7] = Color.white;
             }
 
-
             int resolution = Mathf.FloorToInt(Mathf.Pow(2, maxMipLevel)) * 64;
 
             Texture2D texture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, levelCount, true);
@@ -67,8 +64,7 @@ namespace GameEditor.AssetsCheckEditor
                 int sourcePatternTextureHeight = sourcePatternTexture.height;
                 Color fillColor = fillrateSourceColors[i + maxMipLimit - maxMipLevel];
 
-                Color[] texCol =
-                    sourcePatternTexture.GetPixels(0, 0, sourcePatternTextureWidth, sourcePatternTextureHeight);
+                Color[] texCol = sourcePatternTexture.GetPixels(0, 0, sourcePatternTextureWidth, sourcePatternTextureHeight);
 
                 for (int p = 0; p < texCol.Length; ++p)
                 {
@@ -84,8 +80,14 @@ namespace GameEditor.AssetsCheckEditor
                 {
                     for (int y = 0; y < copyStepY; ++y)
                     {
-                        texture.SetPixels(x * sourcePatternTextureWidth, y * sourcePatternTextureHeight,
-                            sourcePatternTextureWidth, sourcePatternTextureHeight, texCol, i);
+                        texture.SetPixels(
+                            x * sourcePatternTextureWidth,
+                            y * sourcePatternTextureHeight,
+                            sourcePatternTextureWidth,
+                            sourcePatternTextureHeight,
+                            texCol,
+                            i
+                        );
                     }
                 }
             }
@@ -97,7 +99,6 @@ namespace GameEditor.AssetsCheckEditor
             AssetDatabase.CreateAsset(texture, exportTexturePath + textureName);
 
             AssetDatabase.Refresh();
-
         }
     }
 }
