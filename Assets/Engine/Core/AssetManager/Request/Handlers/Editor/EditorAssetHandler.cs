@@ -7,10 +7,8 @@ namespace GameFramework.Asset
 {
     public struct EditorAssetHandler : IAssetHandler
     {
-
         public void OnStart(AssetRequest request)
         {
-
             Object[] loadAssetObjs = LoadAssetByRes(request);
 
             if (request.isAll)
@@ -41,43 +39,28 @@ namespace GameFramework.Asset
             request.SetResult(Request.Result.Success);
         }
 
-        public void Update(AssetRequest request)
-        {
+        public void Update(AssetRequest request) { }
 
-        }
+        private void SetResult(AssetRequest request) { }
 
-        private void SetResult(AssetRequest request)
-        {
+        public void Dispose(AssetRequest request) { }
 
-        }
-
-        public void Dispose(AssetRequest request)
-        {
-
-        }
-
-        public void WaitForCompletion(AssetRequest request)
-        {
-
-        }
-
+        public void WaitForCompletion(AssetRequest request) { }
 
         public static IAssetHandler CreateInstance()
         {
             return new EditorAssetHandler();
         }
 
-
         internal Object[] LoadAssetByRes(AssetRequest request)
         {
             string bundleName = request.bundleName;
             string assetName = request.assetName;
 
-            string filePath = "Assets/Asset/" + bundleName + "/";
+            string filePath = "Assets/Resource/" + bundleName + "/";
 
             List<Object> objList = new List<Object>();
             List<string> fileList = GetFileList(filePath, assetName);
-
 
             for (int i = 0; i < fileList.Count; i++)
             {
@@ -89,10 +72,8 @@ namespace GameFramework.Asset
             return objList.ToArray();
         }
 
-
         private List<string> GetFileList(string bundleName, string asstName = null)
         {
-
             List<string> fileList = new List<string>();
             DirectoryInfo dirInfo = new DirectoryInfo(bundleName);
             foreach (var item in dirInfo.GetFiles())
@@ -101,7 +82,6 @@ namespace GameFramework.Asset
                 {
                     continue;
                 }
-
 
                 string name = Path.GetFileNameWithoutExtension(item.Name);
                 if (asstName != null)

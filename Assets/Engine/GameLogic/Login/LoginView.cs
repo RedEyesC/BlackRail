@@ -6,35 +6,35 @@ namespace GameLogic
 {
     internal class LoginView : BaseView
     {
-
         public LoginView()
         {
             _packageName = "Login";
             _comName = "LoginView";
         }
 
-        protected override void OnClose()
-        {
-            
-        }
+        protected override void OnClose() { }
 
         protected override void OnOpen(params object[] paramList)
         {
+            GetChild<GButton>("btn_close")
+                .AddClickCallback(
+                    (float x, float y) =>
+                    {
+                        Application.Quit();
+                    }
+                );
 
-            GetChild<GButton>("btn_close").AddClickCallback((float x, float y) =>
-            {
-                Application.Quit();
-            });
+            GButton start = GetChild<GButton>("btn_start");
+            start.text = Utils.Text(1);
 
-            //GButton start = GetChild<GButton>("btn_start");
-            //start.text = Utils.Text(1);
-
-            GetChild<GButton>("btn_start").AddClickCallback((float x, float y) =>
-            {
-                MainCtrl.OpenMainView();
-                Close();
-            });
+            GetChild<GButton>("btn_start")
+                .AddClickCallback(
+                    (float x, float y) =>
+                    {
+                        MainCtrl.OpenMainView();
+                        Close();
+                    }
+                );
         }
-     
     }
 }

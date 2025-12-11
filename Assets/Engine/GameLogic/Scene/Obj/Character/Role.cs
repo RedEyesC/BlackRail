@@ -16,7 +16,7 @@ namespace GameLogic
         public override void Init(BodyType bodyType)
         {
             speed = 2f;
-            _motionMatcher = new MotionMatcher(root.transform, new BinaryReference());
+            //_motionMatcher = new MotionMatcher(root.transform, new BinaryReference());
             base.Init(bodyType);
 
             SetModelChangeCallback(
@@ -24,10 +24,10 @@ namespace GameLogic
                 {
                     if (modelObj.modelType == 1)
                     {
-                        job = new UpdateAnimationPoseJob();
-                        job.Setup(modelObj.animator, modelObj.GetComponentsInChildrenTransform(), ref _motionMatcher.Synthesizer.Ref);
+                        //job = new UpdateAnimationPoseJob();
+                        //job.Setup(modelObj.animator, modelObj.GetComponentsInChildrenTransform(), ref _motionMatcher.Synthesizer.Ref);
 
-                        modelObj.CreatePlayableGraph(job);
+                        //modelObj.CreatePlayableGraph(job);
                     }
                 }
             );
@@ -35,17 +35,17 @@ namespace GameLogic
 
         public override void EarlyUpdate()
         {
-            _motionMatcher.UpdateInputMove(
-                InputManager.GetAxis("Action", "Horizontal"),
-                InputManager.GetAxis("Action", "Vertical"),
-                SceneManager.GetMainCameraForward()
-            );
+            //_motionMatcher.UpdateInputMove(
+            //    InputManager.GetAxis("Action", "Horizontal"),
+            //    InputManager.GetAxis("Action", "Vertical"),
+            //    SceneManager.GetMainCameraForward()
+            //);
         }
 
         public override void StateUpdate(float nowTime, float elapseSeconds)
         {
-            _motionMatcher.Update();
-            AddJobDependency(1, _motionMatcher.GetMotionMatchingJob().Schedule());
+            //_motionMatcher.Update();
+            //AddJobDependency(1, _motionMatcher.GetMotionMatchingJob().Schedule());
         }
     }
 }

@@ -38,7 +38,7 @@ namespace GameLogic
 
         public virtual void StateUpdate(float nowTime, float elapseSeconds)
         {
-            UpdateMove(nowTime, elapseSeconds);
+            //UpdateMove(nowTime, elapseSeconds);
         }
 
         public void SetModelID(int modelType, int id)

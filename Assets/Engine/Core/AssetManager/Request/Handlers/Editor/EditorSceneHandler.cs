@@ -1,29 +1,23 @@
-using UnityEngine;
 using UnityEditor.SceneManagement;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace GameFramework.Asset
 {
     public struct EditorSceneHandler : ISceneHandler
     {
-        public void OnStart(SceneRequest request)
-        {
-        }
+        public void OnStart(SceneRequest request) { }
 
-        public void Update(SceneRequest request)
-        {
-        }
+        public void Update(SceneRequest request) { }
 
-        public void Release(SceneRequest request)
-        {
-        }
+        public void Release(SceneRequest request) { }
 
         public AsyncOperation LoadSceneAsync(SceneRequest request)
         {
-            string path = "Assets/Asset/" + request.bundName.Remove(request.bundName.LastIndexOf(".")) + "/" + request.assetName+".unity";
+            string path =
+                "Assets/Resource/" + request.bundName.Remove(request.bundName.LastIndexOf(".")) + "/" + request.assetName + ".unity";
             var parameters = new LoadSceneParameters { loadSceneMode = LoadSceneMode.Additive };
             return EditorSceneManager.LoadSceneAsyncInPlayMode(path, parameters);
-            
         }
 
         public bool IsReady(SceneRequest request1)
