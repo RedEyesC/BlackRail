@@ -9,7 +9,8 @@ namespace Assets.Editor.AssetBuilder
         public BuildPlatform buildPlatform = BuildPlatform.Win;
         public AppPlatform appPlatform = AppPlatform.Debug;
         public AppResSource appResSource = AppResSource._dev;
-        public AppResMode appResMode = AppResMode.small;
+        public AppResMode appResMode = AppResMode.Small;
+        public AssetSetting assetSetting = AssetSetting.Defalut;
 
         public DefaultAsset folderValue;
 
@@ -27,13 +28,32 @@ namespace Assets.Editor.AssetBuilder
         public void OnGUI()
         {
             GUILayout.BeginVertical("GroupBox");
-            GUILayout.Label("设置", EditorStyles.boldLabel);
+            GUILayout.Label("通用设置", EditorStyles.boldLabel);
 
             GUILayout.Space(10);
 
             GUILayout.BeginHorizontal();
             GUILayout.Label("Build Platform:");
             buildPlatform = (BuildPlatform)EditorGUILayout.EnumPopup(buildPlatform);
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Res Source:");
+            appResSource = (AppResSource)EditorGUILayout.EnumPopup(appResSource);
+            GUILayout.EndHorizontal();
+
+            GUILayout.EndVertical();
+
+            GUILayout.BeginVertical("GroupBox");
+            GUILayout.Label("App", EditorStyles.boldLabel);
+
+            GUILayout.Space(10);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("App Res Mode:");
+            appResMode = (AppResMode)EditorGUILayout.EnumPopup(appResMode);
             GUILayout.EndHorizontal();
 
             GUILayout.Space(10);
@@ -46,37 +66,44 @@ namespace Assets.Editor.AssetBuilder
             GUILayout.Space(10);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("App Res Source:");
-            appResSource = (AppResSource)EditorGUILayout.EnumPopup(appResSource);
-            GUILayout.EndHorizontal();
-
-            GUILayout.Space(10);
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("App Res Mode:");
-            appResMode = (AppResMode)EditorGUILayout.EnumPopup(appResMode);
+            if (GUILayout.Button("Build App"))
+            {
+                AssetAppBuildCtrl.BuildAssetApp(buildPlatform, appPlatform, appResSource, appResMode);
+            }
             GUILayout.EndHorizontal();
 
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical("GroupBox");
-            GUILayout.Label("功能", EditorStyles.boldLabel);
+            GUILayout.Label("Bundle", EditorStyles.boldLabel);
+
+            GUILayout.Space(10);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("AssetSetting Name:");
+            assetSetting = (AssetSetting)EditorGUILayout.EnumPopup(assetSetting);
+            GUILayout.EndHorizontal();
 
             GUILayout.Space(10);
 
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Generate AssetBundle"))
             {
-                AssetBuilderCtrl.BuildAssetBundles(buildPlatform, appResSource);
+                AssetBundleBuildCtrl.BuildAssetBundles(buildPlatform, appResSource, assetSetting);
             }
             GUILayout.EndHorizontal();
+
+            GUILayout.EndVertical();
+
+            GUILayout.BeginVertical("GroupBox");
+            GUILayout.Label("其他", EditorStyles.boldLabel);
 
             GUILayout.Space(10);
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Build App"))
+            if (GUILayout.Button("Create AssetSetting"))
             {
-                AssetBuilderCtrl.BuildAssetApp(buildPlatform, appPlatform, appResSource, appResMode);
+                AssetBundleBuildCtrl.CreateAssetSetting();
             }
             GUILayout.EndHorizontal();
 

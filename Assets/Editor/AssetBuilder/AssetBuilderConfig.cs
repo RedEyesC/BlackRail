@@ -9,23 +9,28 @@ namespace GameEditor.AssetBuidler
         IOS,
     };
 
-    public enum AppPlatform
-    {
-        Debug,
-        Release,
-    };
-
     public enum AppResSource
     {
         _dev,
         _base,
     };
 
+    public enum AppPlatform
+    {
+        Debug,
+        Release,
+    };
+
     public enum AppResMode
     {
-        small,
-        major,
-        all,
+        Small,
+        Major,
+        All,
+    };
+
+    public enum AssetSetting
+    {
+        Defalut,
     };
 
     public class BuildPlatformConfig
@@ -68,11 +73,6 @@ namespace GameEditor.AssetBuidler
         public static BuildPlatformConfig GetConfig(BuildPlatform platform)
         {
             return mBuildConfig[(int)platform];
-        }
-
-        public static string GetResPath(AppResSource src, BuildPlatform platform)
-        {
-            return string.Format("../_assets/{0}/res/{1}/", src.ToString(), platform.ToString() + "_origin");
         }
     }
 }
