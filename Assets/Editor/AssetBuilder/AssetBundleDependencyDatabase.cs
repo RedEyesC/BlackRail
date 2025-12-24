@@ -32,6 +32,16 @@ namespace GameEditor.AssetBuidler
         private string _databaseFilePath;
         private readonly Dictionary<string, DependencyInfo> _database = new Dictionary<string, DependencyInfo>(100000);
 
+        public AssetDependencyDatabase(bool useAssetDependencyDB, string databaseFilePath)
+        {
+            CreateDatabase(useAssetDependencyDB, databaseFilePath);
+
+            if (useAssetDependencyDB)
+            {
+                SaveDatabase();
+            }
+        }
+
         /// <summary>
         /// 创建缓存数据库
         /// </summary>
@@ -95,7 +105,8 @@ namespace GameEditor.AssetBuidler
                     stream.Close();
             }
 
-            // 查找新增或变动资源
+            // 可以考虑把这个移到查找的时候来做
+            // 查找新增或变动资源，
             var allAssetPaths = AssetDatabase.GetAllAssetPaths();
             foreach (var assetPath in allAssetPaths)
             {

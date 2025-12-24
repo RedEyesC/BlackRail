@@ -28,8 +28,6 @@ namespace GameEditor.AssetBuidler
         public string AppResSource = "_dev";
         public string BuildOutputRoot = "../_assets/res/";
 
-        public string[] IgnoreFileExtensions = new string[] { ".so", ".cs", ".js", ".boo", ".meta", ".cginc", ".hlsl" };
-
         public BuildAssetBundleOptions Options =
             BuildAssetBundleOptions.ChunkBasedCompression
             | BuildAssetBundleOptions.DisableLoadAssetByFileName

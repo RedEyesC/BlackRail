@@ -9,6 +9,8 @@ namespace GameEditor.AssetBuidler
 {
     public static class AssetBundleBuildCtrl
     {
+        public static AssetDependencyDatabase AssetDependencyDatabase;
+
         public static void CreateAssetSetting()
         {
             AssetBundleCollectorSetting asset = ScriptableObject.CreateInstance<AssetBundleCollectorSetting>();
@@ -30,7 +32,9 @@ namespace GameEditor.AssetBuidler
             //开始构建流程
             BuildTaskPrepare(assetColloectorSetting);
 
-            CreateBuildMap(assetColloectorSetting);
+            Dictionary<string, BuildBundleInfo> bundleInfoDic = CreateBuildMap(assetColloectorSetting);
+
+            BuildingTask(bundleInfoDic);
         }
 
         public static void BuildTaskPrepare(AssetBundleCollectorSetting assetColloectorSetting)
@@ -44,9 +48,62 @@ namespace GameEditor.AssetBuidler
 
             if (!Directory.Exists(savePath))
                 Directory.CreateDirectory(savePath);
+
+            AssetDependencyDatabase = new AssetDependencyDatabase(true, savePath);
         }
 
-        public static void CreateBuildMap(AssetBundleCollectorSetting assetColloectorSetting)
+        public static Dictionary<string, BuildBundleInfo> CreateBuildMap(AssetBundleCollectorSetting assetColloectorSetting)
+        {
+            Dictionary<string, CollectAssetInfo> allBuildAssetInfos = new Dictionary<string, CollectAssetInfo>(1000);
+
+            List<CollectAssetInfo> allCollectAssets = BeginCollect(assetColloectorSetting);
+
+            //录入所有收集器主动收集的资源
+            foreach (var collectAssetInfo in allCollectAssets)
+            {
+                allBuildAssetInfos.Add(collectAssetInfo.AssetInfo.AssetPath, collectAssetInfo);
+            }
+
+            //填充所有收集资源的依赖列表,理论上所有依赖应该也已经被收集
+            foreach (var collectAssetInfo in allCollectAssets)
+            {
+                var dependAssetInfos = new List<CollectAssetInfo>(collectAssetInfo.DependAssets.Count);
+                foreach (var dependAsset in collectAssetInfo.DependAssets)
+                {
+                    if (allBuildAssetInfos.TryGetValue(dependAsset.AssetPath, out CollectAssetInfo value))
+                        dependAssetInfos.Add(value);
+                    else
+                        throw new Exception("Should never get here !");
+                }
+                allBuildAssetInfos[collectAssetInfo.AssetInfo.AssetPath].DependAssetInfos = dependAssetInfos;
+            }
+
+            //构建资源列表
+            Dictionary<string, BuildBundleInfo> bundleInfoDic = new Dictionary<string, BuildBundleInfo>(10000);
+
+            var allPackAssets = allBuildAssetInfos.Values.ToList();
+            foreach (var assetInfo in allPackAssets)
+            {
+                string bundleName = assetInfo.BundleName;
+                if (string.IsNullOrEmpty(bundleName))
+                    throw new Exception("Should never get here !");
+
+                if (bundleInfoDic.TryGetValue(bundleName, out BuildBundleInfo bundleInfo))
+                {
+                    bundleInfo.PackAsset(assetInfo);
+                }
+                else
+                {
+                    BuildBundleInfo newBundleInfo = new BuildBundleInfo(bundleName);
+                    newBundleInfo.PackAsset(assetInfo);
+                    bundleInfoDic.Add(bundleName, newBundleInfo);
+                }
+            }
+
+            return bundleInfoDic;
+        }
+
+        public static List<CollectAssetInfo> BeginCollect(AssetBundleCollectorSetting assetColloectorSetting)
         {
             Dictionary<string, CollectAssetInfo> result = new Dictionary<string, CollectAssetInfo>(10000);
 
@@ -63,6 +120,8 @@ namespace GameEditor.AssetBuidler
                         throw new Exception($"The collecting asset file is existed : {collectAsset.AssetInfo.AssetPath}");
                 }
             }
+
+            return result.Values.ToList();
         }
 
         public static List<CollectAssetInfo> GetAllCollectAssets(AssetBundleCollectorGroup group)
@@ -111,14 +170,17 @@ namespace GameEditor.AssetBuidler
             {
                 var assetInfo = new AssetInfo(assetPath);
 
-                if (result.ContainsKey(assetPath) == false)
+                if (AssetBundleCollectorConfig.IsIgnore(assetInfo) == false)
                 {
-                    var collectAssetInfo = CreateCollectAssetInfo(collector, group, assetInfo);
-                    result.Add(assetPath, collectAssetInfo);
-                }
-                else
-                {
-                    throw new Exception($"The collecting asset file is existed : {assetPath} in collector : {collector.CollectPath}");
+                    if (result.ContainsKey(assetPath) == false)
+                    {
+                        var collectAssetInfo = CreateCollectAssetInfo(collector, group, assetInfo);
+                        result.Add(assetPath, collectAssetInfo);
+                    }
+                    else
+                    {
+                        throw new Exception($"The collecting asset file is existed : {assetPath} in collector : {collector.CollectPath}");
+                    }
                 }
             }
 
@@ -183,21 +245,22 @@ namespace GameEditor.AssetBuidler
 
         private static List<AssetInfo> GetAllDependencies(string mainAssetPath)
         {
-            //string[] depends = command.AssetDependency.GetDependencies(mainAssetPath, true);
-            //List<AssetInfo> result = new List<AssetInfo>(depends.Length);
-            //foreach (string assetPath in depends)
-            //{
-            //    // 注意：排除主资源对象
-            //    if (assetPath == mainAssetPath)
-            //        continue;
+            string[] depends = AssetDependencyDatabase.GetDependencies(mainAssetPath, true);
+            List<AssetInfo> result = new List<AssetInfo>(depends.Length);
+            foreach (string assetPath in depends)
+            {
+                // 注意：排除主资源对象
+                if (assetPath == mainAssetPath)
+                    continue;
 
-            //    AssetInfo assetInfo = new AssetInfo(assetPath);
-            //    if (command.IgnoreRule.IsIgnore(assetInfo) == false)
-            //        result.Add(assetInfo);
-            //}
-            //return result;
-            return null;
+                AssetInfo assetInfo = new AssetInfo(assetPath);
+                if (AssetBundleCollectorConfig.IsIgnore(assetInfo) == false)
+                    result.Add(assetInfo);
+            }
+            return result;
         }
+
+        private static void BuildingTask(Dictionary<string, BuildBundleInfo> bundleInfoDic) { }
 
         public static string GenerateVersion()
         {

@@ -12,7 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aee90f9b991dd004db04d98894bfbd07, type: 3}
   m_Name: Defalut
   m_EditorClassIdentifier: 
-  parameters:
-    optimizeDependencies: 1
-    options: 12544
-  groups: []
+  BuildPlatform: Win
+  AppResSource: _dev
+  BuildOutputRoot: ../_assets/res/
+  Options: 12544
+  Groups: []
