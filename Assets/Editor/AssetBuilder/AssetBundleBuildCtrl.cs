@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.Build.Pipeline;
+using UnityEditor.Build.Pipeline.Interfaces;
+using UnityEditor.Build.Pipeline.Tasks;
 using UnityEngine;
 
 namespace GameEditor.AssetBuidler
@@ -34,22 +37,29 @@ namespace GameEditor.AssetBuidler
 
             Dictionary<string, BuildBundleInfo> bundleInfoDic = CreateBuildMap(assetColloectorSetting);
 
-            BuildingTask(bundleInfoDic);
+            BuildingTask(assetColloectorSetting, bundleInfoDic);
+
+            CreateManifest(assetColloectorSetting, bundleInfoDic);
         }
 
         public static void BuildTaskPrepare(AssetBundleCollectorSetting assetColloectorSetting)
         {
-            string savePath = string.Format(
-                "{0}{1}{2}",
-                assetColloectorSetting.BuildOutputRoot,
-                assetColloectorSetting.AppResSource,
-                assetColloectorSetting.BuildPlatform
-            );
+            string savePath = GetPipelineOutputDirectory(assetColloectorSetting);
 
             if (!Directory.Exists(savePath))
                 Directory.CreateDirectory(savePath);
 
             AssetDependencyDatabase = new AssetDependencyDatabase(true, savePath);
+        }
+
+        public static string GetPipelineOutputDirectory(AssetBundleCollectorSetting assetColloectorSetting)
+        {
+            return string.Format(
+                "{0}{1}{2}",
+                assetColloectorSetting.BuildOutputRoot,
+                assetColloectorSetting.AppResSource,
+                assetColloectorSetting.BuildPlatform
+            );
         }
 
         public static Dictionary<string, BuildBundleInfo> CreateBuildMap(AssetBundleCollectorSetting assetColloectorSetting)
@@ -260,7 +270,107 @@ namespace GameEditor.AssetBuidler
             return result;
         }
 
-        private static void BuildingTask(Dictionary<string, BuildBundleInfo> bundleInfoDic) { }
+        private static void BuildingTask(
+            AssetBundleCollectorSetting assetColloectorSetting,
+            Dictionary<string, BuildBundleInfo> bundleInfoDic
+        )
+        {
+            List<UnityEditor.AssetBundleBuild> bundleBuilds = new List<UnityEditor.AssetBundleBuild>(bundleInfoDic.Count);
+            foreach (var bundleInfo in bundleInfoDic.Values)
+            {
+                bundleBuilds.Add(bundleInfo.CreatePipelineBuild());
+            }
+
+            var buildContent = new BundleBuildContent(bundleBuilds);
+
+            IBundleBuildResults buildResults;
+            var buildParameters = GetBundleBuildParameters(assetColloectorSetting);
+            IList<IBuildTask> taskList = Create();
+            ReturnCode exitCode = ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out buildResults, taskList);
+            if (exitCode < 0)
+            {
+                throw new Exception($"UnityEngine build failed ! ReturnCode : {exitCode}");
+            }
+        }
+
+        public static IList<IBuildTask> Create()
+        {
+            var buildTasks = new List<IBuildTask>();
+
+            // Setup
+            buildTasks.Add(new SwitchToBuildPlatform());
+            buildTasks.Add(new RebuildSpriteAtlasCache());
+
+            // Player Scripts
+            buildTasks.Add(new BuildPlayerScripts());
+            buildTasks.Add(new PostScriptsCallback());
+
+            // Dependency
+            buildTasks.Add(new CalculateSceneDependencyData());
+#if UNITY_2019_3_OR_NEWER
+            buildTasks.Add(new CalculateCustomDependencyData());
+#endif
+            buildTasks.Add(new CalculateAssetDependencyData());
+            buildTasks.Add(new StripUnusedSpriteSources());
+
+            //if (string.IsNullOrEmpty(builtInShaderBundleName) == false)
+            //    buildTasks.Add(new CreateBuiltInShadersBundle(builtInShaderBundleName));
+            //if (string.IsNullOrEmpty(monoScriptsBundleName) == false)
+            //    buildTasks.Add(new CreateMonoScriptBundle(monoScriptsBundleName));
+
+            buildTasks.Add(new PostDependencyCallback());
+
+            // Packing
+            buildTasks.Add(new GenerateBundlePacking());
+            buildTasks.Add(new UpdateBundleObjectLayout());
+            buildTasks.Add(new GenerateBundleCommands());
+            buildTasks.Add(new GenerateSubAssetPathMaps());
+            buildTasks.Add(new GenerateBundleMaps());
+            buildTasks.Add(new PostPackingCallback());
+
+            // Writing
+            buildTasks.Add(new WriteSerializedFiles());
+            buildTasks.Add(new ArchiveAndCompressBundles());
+            buildTasks.Add(new AppendBundleHash());
+            buildTasks.Add(new GenerateLinkXml());
+            buildTasks.Add(new PostWritingCallback());
+
+            return buildTasks;
+        }
+
+        public static BundleBuildParameters GetBundleBuildParameters(AssetBundleCollectorSetting assetColloectorSetting)
+        {
+            BuildTarget buildTarget = BuildTarget.Android;
+
+            if (assetColloectorSetting.BuildPlatform == BuildPlatform.Android.ToString())
+            {
+                buildTarget = BuildTarget.Android;
+            }
+            else if (assetColloectorSetting.BuildPlatform == BuildPlatform.Win.ToString())
+            {
+                buildTarget = BuildTarget.StandaloneWindows64;
+            }
+            else if (assetColloectorSetting.BuildPlatform == BuildPlatform.IOS.ToString())
+            {
+                buildTarget = BuildTarget.iOS;
+            }
+
+            var targetGroup = UnityEditor.BuildPipeline.GetBuildTargetGroup(buildTarget);
+            var pipelineOutputDirectory = GetPipelineOutputDirectory(assetColloectorSetting);
+            var buildParams = new BundleBuildParameters(buildTarget, targetGroup, pipelineOutputDirectory);
+
+            buildParams.BundleCompression = assetColloectorSetting.CompressOption;
+
+            buildParams.UseCache = true;
+            buildParams.WriteLinkXML = true;
+
+            return buildParams;
+        }
+
+        private static void CreateManifest(
+            AssetBundleCollectorSetting assetColloectorSetting,
+            Dictionary<string, BuildBundleInfo> bundleInfoDic
+        ) { }
 
         public static string GenerateVersion()
         {

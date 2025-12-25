@@ -28,6 +28,8 @@ namespace GameEditor.AssetBuidler
         public string AppResSource = "_dev";
         public string BuildOutputRoot = "../_assets/res/";
 
+        public BuildCompression CompressOption = BuildCompression.LZ4;
+
         public BuildAssetBundleOptions Options =
             BuildAssetBundleOptions.ChunkBasedCompression
             | BuildAssetBundleOptions.DisableLoadAssetByFileName

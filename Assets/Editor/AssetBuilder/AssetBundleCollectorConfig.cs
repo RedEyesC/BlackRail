@@ -74,6 +74,27 @@ namespace GameEditor.AssetBuidler
             _packAssetDic.Add(assetPath, buildAsset);
             AllPackAssets.Add(buildAsset);
         }
+
+        public UnityEditor.AssetBundleBuild CreatePipelineBuild()
+        {
+            // 注意：我们不再支持AssetBundle的变种机制
+            AssetBundleBuild build = new AssetBundleBuild();
+            build.assetBundleName = BundleName;
+            build.assetBundleVariant = string.Empty;
+            build.assetNames = GetAllPackAssetPaths();
+            return build;
+        }
+
+        public string[] GetAllPackAssetPaths()
+        {
+            List<string> results = new List<string>(AllPackAssets.Count);
+            for (int i = 0; i < AllPackAssets.Count; i++)
+            {
+                var packAsset = AllPackAssets[i];
+                results.Add(packAsset.AssetInfo.AssetPath);
+            }
+            return results.ToArray();
+        }
     }
 
     public enum PackRule
