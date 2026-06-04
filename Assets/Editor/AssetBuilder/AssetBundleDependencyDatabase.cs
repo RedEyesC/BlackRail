@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -21,7 +20,7 @@ namespace GameEditor.AssetBuidler
             /// 此哈希函数会聚合了以下内容：源资源路径、源资源、元文件、目标平台以及导入器版本。
             /// 如果此哈希值发送变化，则说明导入资源可能已更改，因此应重新搜集依赖关系。
             /// </summary>
-            public string DependHash;
+            public Hash128 DependHash;
 
             /// <summary>
             /// 直接依赖资源的GUID列表
@@ -67,7 +66,11 @@ namespace GameEditor.AssetBuidler
                     for (int i = 0; i < count; i++)
                     {
                         var assetPath = reader.ReadString();
-                        var cacheInfo = new DependencyInfo { DependHash = reader.ReadString(), DependGUIDs = ReadStringList(reader) };
+
+                        var hashString = reader.ReadString();
+                        var dependHash = Hash128.Parse(hashString);
+
+                        var cacheInfo = new DependencyInfo { DependHash = dependHash, DependGUIDs = ReadStringList(reader) };
                         _database.Add(assetPath, cacheInfo);
                     }
 
@@ -105,7 +108,6 @@ namespace GameEditor.AssetBuidler
                     stream.Close();
             }
 
-            // 可以考虑把这个移到查找的时候来做
             // 查找新增或变动资源，
             var allAssetPaths = AssetDatabase.GetAllAssetPaths();
             foreach (var assetPath in allAssetPaths)
@@ -113,7 +115,7 @@ namespace GameEditor.AssetBuidler
                 if (_database.TryGetValue(assetPath, out DependencyInfo cacheInfo))
                 {
                     var dependHash = AssetDatabase.GetAssetDependencyHash(assetPath);
-                    if (dependHash.ToString() != cacheInfo.DependHash)
+                    if (!dependHash.Equals(cacheInfo.DependHash))
                     {
                         _database[assetPath] = CreateDependencyInfo(assetPath);
                     }
@@ -147,7 +149,7 @@ namespace GameEditor.AssetBuidler
                     string assetPath = assetPair.Key;
                     var assetInfo = assetPair.Value;
                     writer.Write(assetPath);
-                    writer.Write(assetInfo.DependHash);
+                    writer.Write(assetInfo.DependHash.ToString());
                     WriteStringList(writer, assetInfo.DependGUIDs);
                 }
                 writer.Flush();
@@ -282,7 +284,7 @@ namespace GameEditor.AssetBuidler
             }
 
             var cacheInfo = new DependencyInfo();
-            cacheInfo.DependHash = dependHash.ToString();
+            cacheInfo.DependHash = dependHash;
             cacheInfo.DependGUIDs = dependGUIDs;
             return cacheInfo;
         }

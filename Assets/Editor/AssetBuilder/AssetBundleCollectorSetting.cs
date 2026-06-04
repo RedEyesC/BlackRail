@@ -26,7 +26,7 @@ namespace GameEditor.AssetBuidler
     {
         public string BuildPlatform = "Win";
         public string AppResSource = "_dev";
-        public string BuildOutputRoot = "../_assets/res/";
+        public string BuildOutputRoot = "../Assets/res";
 
         public BuildCompression CompressOption = BuildCompression.LZ4;
 

@@ -14,6 +14,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   BuildPlatform: Win
   AppResSource: _dev
-  BuildOutputRoot: ../_assets/res/
+  BuildOutputRoot: ../Assets/res
   Options: 12544
-  Groups: []
+  Groups:
+  - GroupName: res
+    Collectors:
+    - CollectPath: Assets/Resource/Model/Monster
+      PackRuleName: 1
+      FilterRuleName: 0
+    - CollectPath: Assets/Resource/Model/Role
+      PackRuleName: 1
+      FilterRuleName: 0
+    - CollectPath: Assets/Resource/Model/Weapon
+      PackRuleName: 1
+      FilterRuleName: 0
+    - CollectPath: Assets/Resource/Map
+      PackRuleName: 1
+      FilterRuleName: 0
+    - CollectPath: Assets/Resource/Config
+      PackRuleName: 0
+      FilterRuleName: 0
+    - CollectPath: Assets/Resource/Shader
+      PackRuleName: 0
+      FilterRuleName: 0
+    - CollectPath: Assets/Resource/UI
+      PackRuleName: 1
+      FilterRuleName: 0
+    - CollectPath: Assets/Resource/Font
+      PackRuleName: 0
+      FilterRuleName: 0

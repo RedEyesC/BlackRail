@@ -28,7 +28,7 @@ namespace GameEditor.AssetBuidler
         All,
     };
 
-    public enum AssetSetting
+    public enum AssetBundleCollectorSettingName
     {
         Defalut,
     };

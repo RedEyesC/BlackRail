@@ -10,7 +10,7 @@ namespace Assets.Editor.AssetBuilder
         public AppPlatform appPlatform = AppPlatform.Debug;
         public AppResSource appResSource = AppResSource._dev;
         public AppResMode appResMode = AppResMode.Small;
-        public AssetSetting assetSetting = AssetSetting.Defalut;
+        public AssetBundleCollectorSettingName assetBundleCollectorSettingName = AssetBundleCollectorSettingName.Defalut;
 
         public DefaultAsset folderValue;
 
@@ -80,32 +80,33 @@ namespace Assets.Editor.AssetBuilder
             GUILayout.Space(10);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("AssetSetting Name:");
-            assetSetting = (AssetSetting)EditorGUILayout.EnumPopup(assetSetting);
+            GUILayout.Label("AssetBundleCollectorSettingName:");
+            assetBundleCollectorSettingName = (AssetBundleCollectorSettingName)EditorGUILayout.EnumPopup(assetBundleCollectorSettingName);
             GUILayout.EndHorizontal();
 
             GUILayout.Space(10);
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Generate AssetBundle"))
+            if (GUILayout.Button("Build AssetBundle"))
             {
-                AssetBundleBuildCtrl.BuildAssetBundles(buildPlatform, appResSource, assetSetting);
+                AssetBundleBuildCtrl.BuildAssetBundles(buildPlatform, appResSource, assetBundleCollectorSettingName);
             }
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10);
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Create AssetBundleCollectorSetting"))
+            {
+                AssetBundleBuildCtrl.CreateAssetSetting();
+            }
+
             GUILayout.EndHorizontal();
 
             GUILayout.EndVertical();
 
             GUILayout.BeginVertical("GroupBox");
             GUILayout.Label("其他", EditorStyles.boldLabel);
-
-            GUILayout.Space(10);
-
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Create AssetSetting"))
-            {
-                AssetBundleBuildCtrl.CreateAssetSetting();
-            }
-            GUILayout.EndHorizontal();
 
             GUILayout.EndVertical();
         }

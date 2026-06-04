@@ -115,6 +115,13 @@ namespace GameEditor.AssetBuidler
 
     public static class AssetBundleCollectorConfig
     {
+        public static readonly string VersionFileName = "version";
+        public static readonly string FileListName = "filelist";
+
+        public static readonly string DependencyFileName = "dependency";
+
+        public static readonly string AssetBuildEditorPath = "Assets/Editor/AssetBuilder/";
+
         public static Dictionary<PackRule, PackRuleResult> PackRuleFunc = new Dictionary<PackRule, PackRuleResult>
         {
             {

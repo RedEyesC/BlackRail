@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEditor.Build.Pipeline;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -17,17 +18,20 @@ namespace GameEditor.AssetBuidler
         public static void CreateAssetSetting()
         {
             AssetBundleCollectorSetting asset = ScriptableObject.CreateInstance<AssetBundleCollectorSetting>();
-            string fullPath = AssetDatabase.GenerateUniqueAssetPath("Assets/Editor/AssetBuilder/New Custom Asset.asset");
+            string path = Path.Combine(AssetBundleCollectorConfig.AssetBuildEditorPath, "New Custom Asset.asset");
+            string fullPath = AssetDatabase.GenerateUniqueAssetPath(path);
             ProjectWindowUtil.CreateAsset(asset, fullPath);
         }
 
-        public static void BuildAssetBundles(BuildPlatform buildPlatform, AppResSource appResSource, AssetSetting assetSetting)
+        public static void BuildAssetBundles(
+            BuildPlatform buildPlatform,
+            AppResSource appResSource,
+            AssetBundleCollectorSettingName assetBundleCollectorSettingName
+        )
         {
-            //string mVersionStr = GenerateVersion();
+            string assetPath = AssetBundleCollectorConfig.AssetBuildEditorPath + assetBundleCollectorSettingName.ToString() + ".asset";
 
-            AssetBundleCollectorSetting assetColloectorSetting = AssetDatabase.LoadAssetAtPath<AssetBundleCollectorSetting>(
-                "Assets/Editor/AssetBuilder/" + assetSetting.ToString()
-            );
+            AssetBundleCollectorSetting assetColloectorSetting = AssetDatabase.LoadAssetAtPath<AssetBundleCollectorSetting>(assetPath);
 
             assetColloectorSetting.BuildPlatform = buildPlatform.ToString();
             assetColloectorSetting.AppResSource = appResSource.ToString();
@@ -49,13 +53,15 @@ namespace GameEditor.AssetBuidler
             if (!Directory.Exists(savePath))
                 Directory.CreateDirectory(savePath);
 
-            AssetDependencyDatabase = new AssetDependencyDatabase(true, savePath);
+            string databaseFilePath = AssetBundleCollectorConfig.AssetBuildEditorPath + AssetBundleCollectorConfig.DependencyFileName;
+
+            AssetDependencyDatabase = new AssetDependencyDatabase(true, databaseFilePath);
         }
 
         public static string GetPipelineOutputDirectory(AssetBundleCollectorSetting assetColloectorSetting)
         {
             return string.Format(
-                "{0}{1}{2}",
+                "{0}/{1}/{2}/",
                 assetColloectorSetting.BuildOutputRoot,
                 assetColloectorSetting.AppResSource,
                 assetColloectorSetting.BuildPlatform
@@ -83,7 +89,7 @@ namespace GameEditor.AssetBuidler
                     if (allBuildAssetInfos.TryGetValue(dependAsset.AssetPath, out CollectAssetInfo value))
                         dependAssetInfos.Add(value);
                     else
-                        throw new Exception("Should never get here !");
+                        throw new Exception($"AssetPath :{dependAsset.AssetPath} Should never get here !");
                 }
                 allBuildAssetInfos[collectAssetInfo.AssetInfo.AssetPath].DependAssetInfos = dependAssetInfos;
             }
@@ -96,7 +102,7 @@ namespace GameEditor.AssetBuidler
             {
                 string bundleName = assetInfo.BundleName;
                 if (string.IsNullOrEmpty(bundleName))
-                    throw new Exception("Should never get here !");
+                    throw new Exception($"bundleName :{bundleName} Should never get here !");
 
                 if (bundleInfoDic.TryGetValue(bundleName, out BuildBundleInfo bundleInfo))
                 {
@@ -370,7 +376,29 @@ namespace GameEditor.AssetBuidler
         private static void CreateManifest(
             AssetBundleCollectorSetting assetColloectorSetting,
             Dictionary<string, BuildBundleInfo> bundleInfoDic
-        ) { }
+        )
+        {
+            string savePath = GetPipelineOutputDirectory(assetColloectorSetting);
+
+            string versionStr = GenerateVersion();
+
+            // save version
+            string versionPath = savePath + AssetBundleCollectorConfig.VersionFileName;
+            File.WriteAllText(versionPath, versionStr);
+
+            //save fileList
+            StringBuilder str = new StringBuilder();
+            str.AppendLine(bundleInfoDic.Count.ToString());
+            foreach (var item in bundleInfoDic.Values)
+            {
+                str.AppendFormat("{0}", item.BundleName);
+                str.AppendLine();
+            }
+
+            string fileListStr = str.ToString();
+            string fileListPath = savePath + AssetBundleCollectorConfig.FileListName + "_" + versionStr;
+            File.WriteAllText(fileListPath, fileListStr);
+        }
 
         public static string GenerateVersion()
         {
