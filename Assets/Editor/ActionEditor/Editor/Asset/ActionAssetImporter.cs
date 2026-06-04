@@ -5,7 +5,7 @@ using UnityEditor.AssetImporters;
 using UnityEngine;
 
 [ScriptedImporter(1, "action")]
-public class ActionImporter : ScriptedImporter
+public class ActionAssetImporter : ScriptedImporter
 {
     public override void OnImportAsset(AssetImportContext ctx)
     {
@@ -25,7 +25,7 @@ public class ActionImporter : ScriptedImporter
         string folderPath = GetSelectedFolderPath();
         string assetPath = AssetDatabase.GenerateUniqueAssetPath(Path.Combine(folderPath, DefaultFileName).Replace("\\", "/"));
 
-        File.WriteAllText(assetPath, "", Encoding.UTF8);
+        File.WriteAllText(assetPath, "{}", Encoding.UTF8);
 
         AssetDatabase.ImportAsset(assetPath);
         AssetDatabase.Refresh();

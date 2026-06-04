@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace TrackEditor
 {
@@ -23,6 +23,24 @@ namespace TrackEditor
 
         [HideInInspector, NonSerialized]
         Track[] m_CacheOutputTracks;
+
+        [NonSerialized]
+        private IAssetStorage storage;
+
+        [NonSerialized]
+        private UnityEngine.Object storageSource;
+
+        public IAssetStorage Storage => storage;
+
+        public UnityEngine.Object StorageSource => storageSource;
+
+        public static IAssetStorage DefaultStorage { get; } = new AssetStorage();
+
+        internal void SetStorage(IAssetStorage value, UnityEngine.Object source)
+        {
+            storage = value;
+            storageSource = source;
+        }
 
         public float Length
         {
@@ -107,9 +125,62 @@ namespace TrackEditor
         public override void SaveToAssets()
         {
 #if UNITY_EDITOR
-            EditorUtility.SetDirty(this);
-            AssetDatabase.SaveAssets();
+            Save(this, StorageSource, Storage);
 #endif
+        }
+
+        public static Asset Load(Object source, IAssetStorage storage)
+        {
+            if (!storage.CanLoad(source))
+            {
+                return null;
+            }
+
+            var asset = storage.Load(source);
+            Bind(asset, storage, source);
+            return asset;
+        }
+
+        public static void Save(Asset asset, Object source, IAssetStorage storage)
+        {
+            if (asset == null)
+            {
+                return;
+            }
+
+            source = source != null ? source : asset.StorageSource;
+            storage.Save(asset, source);
+        }
+
+        public static void SaveAssetIntoObject(Object childAsset, Object masterAsset)
+        {
+            var root = GetRoot(masterAsset);
+            var storage = root != null ? root.Storage : null;
+            if (storage == null)
+            {
+                return;
+            }
+
+            storage.SaveAssetIntoObject(childAsset, masterAsset);
+        }
+
+        internal static void Bind(Asset asset, IAssetStorage storage, Object source)
+        {
+            if (asset != null)
+            {
+                asset.SetStorage(storage, source);
+            }
+        }
+
+        private static Asset GetRoot(Object target)
+        {
+            var directable = target as DirectableAsset;
+            while (directable != null && directable.parent != null)
+            {
+                directable = directable.parent;
+            }
+
+            return directable as Asset;
         }
     }
 }

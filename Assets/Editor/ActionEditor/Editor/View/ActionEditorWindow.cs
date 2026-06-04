@@ -4,13 +4,14 @@ namespace ActionEditor
 {
     public class ActionEditorWindow : TrackEditorWindow
     {
-        public static void OpenDirectorWindow()
+        protected override IAssetStorage CreateAssetStorage()
         {
-            var window = GetWindow(typeof(ActionEditorWindow)) as ActionEditorWindow;
-            if (window == null)
-                return;
-            window.InitializeAll();
-            window.Show();
+            return new ActionAssetStorage();
+        }
+
+        protected override string CreateWindowTitle()
+        {
+            return "Action Editor";
         }
     }
 }

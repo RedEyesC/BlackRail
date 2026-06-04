@@ -175,7 +175,7 @@ namespace TrackEditor
 
             if (GUILayout.Button(new GUIContent(Styles.saveIcon, Lan.Save), EditorStyles.toolbarButton, GUILayout.Width(26)))
             {
-                //App.AutoSave(); //先保存当前的
+                SaveCurrentAsset();
             }
 
             if (

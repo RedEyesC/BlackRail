@@ -25,6 +25,9 @@ namespace TrackEditor
 
         public Asset asset;
 
+        [SerializeField]
+        public UnityEngine.Object assetSource;
+
         int UID(int g, int t, int a)
         {
             var A = g.ToString("D3");
@@ -39,7 +42,13 @@ namespace TrackEditor
 
         public static void ShowWindow()
         {
-            var window = GetWindow(typeof(TrackEditorWindow)) as TrackEditorWindow;
+            ShowWindow<TrackEditorWindow>();
+        }
+
+        public static void ShowWindow<TWindow>()
+            where TWindow : TrackEditorWindow
+        {
+            var window = GetWindow(typeof(TWindow)) as TWindow;
             if (window == null)
                 return;
             window.InitializeAll();
@@ -48,7 +57,13 @@ namespace TrackEditor
 
         public static void CloseWindow()
         {
-            var window = GetWindow(typeof(TrackEditorWindow)) as TrackEditorWindow;
+            CloseWindow<TrackEditorWindow>();
+        }
+
+        protected static void CloseWindow<TWindow>()
+            where TWindow : TrackEditorWindow
+        {
+            var window = GetWindow(typeof(TWindow)) as TWindow;
             if (window == null)
                 return;
             window.Close();
@@ -56,7 +71,11 @@ namespace TrackEditor
 
         static bool Quit()
         {
-            CloseWindow();
+            if (current != null)
+            {
+                current.Close();
+            }
+
             return true;
         }
 
@@ -71,10 +90,9 @@ namespace TrackEditor
 
             EditorSceneManager.sceneSaving -= OnWillSaveScene;
             EditorSceneManager.sceneSaving += OnWillSaveScene;
-#pragma warning disable 618
-            EditorApplication.playmodeStateChanged -= InitializeAll;
-            EditorApplication.playmodeStateChanged += InitializeAll;
-#pragma warning restore
+
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.update += OnEditorUpdate;
@@ -85,7 +103,7 @@ namespace TrackEditor
             Selection.selectionChanged += OnSelectionChanged;
 
             Tools.hidden = false;
-            titleContent = new GUIContent(Lan.Title, Styles.cutsceneIconOpen);
+            ApplyWindowTitle();
             minSize = new Vector2(500, 250);
 
             WillRepaint = true;
@@ -93,16 +111,14 @@ namespace TrackEditor
 
             pendingGuides = new List<GuideLine>();
 
-            InitializeAll();
+            RestoreEditorState();
         }
 
         void OnDisable()
         {
             EditorSceneManager.sceneSaving -= OnWillSaveScene;
 
-#pragma warning disable 618
-            EditorApplication.playmodeStateChanged -= InitializeAll;
-#pragma warning restore
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
 
             EditorApplication.update -= OnEditorUpdate;
 
@@ -125,6 +141,24 @@ namespace TrackEditor
         void OnStop()
         {
             WillRepaint = true;
+        }
+
+        void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            if (state == PlayModeStateChange.ExitingEditMode)
+            {
+                if (asset != null)
+                {
+                    Stop(true);
+                }
+
+                return;
+            }
+
+            if (state == PlayModeStateChange.EnteredEditMode)
+            {
+                RestoreEditorState();
+            }
         }
 
         void OnEditorUpdate()
@@ -247,16 +281,80 @@ namespace TrackEditor
                 //TODO - if the target object is deleted we need to prevent entering an invalid state.
                 return;
             }
-            TargetCurrentSelection();
+            if (TargetCurrentSelection())
+            {
+                RebuildPlayer();
+            }
         }
 
-        void TargetCurrentSelection()
+        bool TargetCurrentSelection()
         {
-            var selectAsset = Selection.activeObject as Asset;
+            var source = GetSelectedAssetSource();
+            var selectAsset = LoadAssetFromSource(source);
             if (selectAsset != null)
             {
                 asset = selectAsset;
+                assetSource = source;
+                return true;
             }
+
+            return false;
+        }
+
+        protected virtual UnityEngine.Object GetSelectedAssetSource()
+        {
+            return Selection.activeObject;
+        }
+
+        protected virtual Asset LoadAssetFromSource(UnityEngine.Object source)
+        {
+            return Asset.Load(source, CreateAssetStorage());
+        }
+
+        protected virtual void SaveCurrentAsset()
+        {
+            Asset.Save(asset, assetSource, CreateAssetStorage());
+        }
+
+        protected virtual IAssetStorage CreateAssetStorage()
+        {
+            return Asset.DefaultStorage;
+        }
+
+        protected virtual string CreateWindowTitle()
+        {
+            return Lan.Title;
+        }
+
+        private void ApplyWindowTitle()
+        {
+            titleContent = new GUIContent(CreateWindowTitle(), Styles.cutsceneIconOpen);
+        }
+
+        private void RestoreEditorState()
+        {
+            if (assetSource != null)
+            {
+                var restoredAsset = Asset.Load(assetSource, CreateAssetStorage());
+                if (restoredAsset != null)
+                {
+                    asset = restoredAsset;
+                }
+            }
+
+            RebuildPlayer();
+        }
+
+        private void RebuildPlayer()
+        {
+            player = new AssetPlayer(asset);
+
+            if (asset != null && !Application.isPlaying)
+            {
+                Stop(true);
+            }
+
+            WillRepaint = true;
         }
 
         #endregion
@@ -267,17 +365,7 @@ namespace TrackEditor
         {
             TargetCurrentSelection();
 
-            player = new AssetPlayer(asset);
-            //停止播放
-            if (asset != null)
-            {
-                if (!Application.isPlaying)
-                {
-                    Stop(true);
-                }
-            }
-
-            WillRepaint = true;
+            RebuildPlayer();
         }
 
         #endregion
@@ -300,7 +388,8 @@ namespace TrackEditor
                 {
                     if (e.keyCode == KeyCode.S)
                     {
-                        //App.AutoSave();
+                        SaveCurrentAsset();
+                        e.Use();
                     }
                 }
 

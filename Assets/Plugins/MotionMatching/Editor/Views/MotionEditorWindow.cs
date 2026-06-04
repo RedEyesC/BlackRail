@@ -4,13 +4,9 @@ namespace MotionMatching
 {
     public class MotionEditorWindow : TrackEditorWindow
     {
-        public static void OpenDirectorWindow()
+        protected override string CreateWindowTitle()
         {
-            var window = GetWindow(typeof(MotionEditorWindow)) as MotionEditorWindow;
-            if (window == null)
-                return;
-            window.InitializeAll();
-            window.Show();
+            return "Motion Editor";
         }
     }
 }

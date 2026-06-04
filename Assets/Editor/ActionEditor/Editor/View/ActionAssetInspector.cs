@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace ActionEditor
 {
-    [CustomEditor(typeof(ActionImporter))]
+    [CustomEditor(typeof(ActionAssetImporter))]
     internal class ActionAssetInspector : Editor
     {
         public override void OnInspectorGUI()
@@ -16,10 +16,12 @@ namespace ActionEditor
             {
                 if (target != null)
                 {
-                    Selection.activeObject = target as UnityEngine.Object;
+                    var path = AssetDatabase.GetAssetPath(target);
+                    var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+                    Selection.activeObject = asset != null ? asset : target as UnityEngine.Object;
                 }
 
-                ActionEditorWindow.OpenDirectorWindow();
+                ActionEditorWindow.ShowWindow<ActionEditorWindow>();
             }
         }
     }

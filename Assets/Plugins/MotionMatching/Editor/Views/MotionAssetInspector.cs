@@ -26,7 +26,7 @@ namespace MotionMatching
                     Selection.activeObject = target as UnityEngine.Object;
                 }
 
-                MotionEditorWindow.OpenDirectorWindow();
+                MotionEditorWindow.ShowWindow<MotionEditorWindow>();
             }
         }
     }
