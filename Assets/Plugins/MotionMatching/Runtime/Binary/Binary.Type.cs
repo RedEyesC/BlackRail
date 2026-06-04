@@ -1,5 +1,4 @@
 ﻿using Unity.Burst;
-using UnityEditor.ShaderGraph.Internal;
 using UnityEngine.Assertions;
 
 namespace MotionMatching
