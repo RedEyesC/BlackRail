@@ -9,7 +9,6 @@
         public static string Seeting = "编辑器配置";
 
         //**********  Preferences Window *********
-        public static string PreferencesTitle = "编辑器首选项";
         public static string PreferencesTimeStepMode = "时间步长模式";
         public static string PreferencesSnapInterval = "时间步长";
         public static string PreferencesFrameRate = "帧率";

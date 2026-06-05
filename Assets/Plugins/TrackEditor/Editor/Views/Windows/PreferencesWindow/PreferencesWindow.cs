@@ -24,14 +24,6 @@ namespace TrackEditor
         {
             GUILayout.BeginVertical("box");
 
-            GUI.color = new Color(0, 0, 0, 0.3f);
-
-            GUILayout.BeginHorizontal(Styles.headerBoxStyle);
-            GUI.color = Color.white;
-            GUILayout.Label($"<size=22><b>{Lan.PreferencesTitle}</b></size>");
-            GUILayout.EndHorizontal();
-            GUILayout.Space(2);
-
             GUILayout.BeginVertical("box");
             Prefs.timeStepMode = (Prefs.TimeStepMode)EditorGUILayout.EnumPopup(Lan.PreferencesTimeStepMode, Prefs.timeStepMode);
             if (Prefs.timeStepMode == Prefs.TimeStepMode.Seconds)
