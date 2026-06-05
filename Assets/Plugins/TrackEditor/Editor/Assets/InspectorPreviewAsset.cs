@@ -2,8 +2,5 @@
 
 namespace TrackEditor
 {
-    public class InspectorPreviewAsset : ScriptableObject
-    {
-        
-    }
+    public class InspectorPreviewAsset : ScriptableObject { }
 }

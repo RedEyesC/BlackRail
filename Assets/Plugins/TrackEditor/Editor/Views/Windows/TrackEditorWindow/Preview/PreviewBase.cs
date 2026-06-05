@@ -1,6 +1,7 @@
 ﻿namespace TrackEditor
 {
-    public abstract class PreviewBase<T> : PreviewBase where T : ActionClip
+    public abstract class PreviewBase<T> : PreviewBase
+        where T : TrackClip
     {
         public T clip => (T)directable;
     }
@@ -13,24 +14,15 @@
         {
             directable = t;
         }
-        
-        public virtual void Enter()
-        {
-        }
 
-        public virtual void Exit()
-        {
-        }
+        public virtual void Enter() { }
 
-        public virtual void ReverseEnter()
-        {
-        }
+        public virtual void Exit() { }
 
-        public virtual void Reverse()
-        {
-        }
+        public virtual void ReverseEnter() { }
 
-        
+        public virtual void Reverse() { }
+
         public abstract void Update(float time, float previousTime);
     }
 }

@@ -9,13 +9,19 @@ namespace TrackEditor
     [Attachable(typeof(Group))]
     public abstract class Track : DirectableAsset
     {
-        [SerializeField] private List<ActionClip> actionClips = new List<ActionClip>();
+        [SerializeField]
+        private List<TrackClip> actionClips = new List<TrackClip>();
 
-        [SerializeField] [HideInInspector] private bool active = true;
-        [SerializeField] [HideInInspector] private bool isLocked = false;
+        [SerializeField]
+        [HideInInspector]
+        private bool active = true;
 
-        [SerializeField] private Color color = Color.white;
+        [SerializeField]
+        [HideInInspector]
+        private bool isLocked = false;
 
+        [SerializeField]
+        private Color color = Color.white;
 
         public Color Color => color.a > 0.1f ? color : Color.white;
 
@@ -24,7 +30,6 @@ namespace TrackEditor
             get => name;
             set => name = value;
         }
-
 
         public virtual string info => string.Empty;
 
@@ -54,8 +59,7 @@ namespace TrackEditor
             set => isLocked = value;
         }
 
-
-        public List<ActionClip> Clips
+        public List<TrackClip> Clips
         {
             get => actionClips;
             set => actionClips = value;
@@ -63,35 +67,32 @@ namespace TrackEditor
 
         public override float StartTime => 0;
 
-
         public override float EndTime => Parent != null ? Parent.EndTime : 0;
 
         public override bool CanCrossBlend => false;
 
-
         public virtual float ShowHeight => 30f;
-
 
         #region 增删
 
 #if UNITY_EDITOR
-        public T AddAction<T>(float time) where T : ActionClip
+        public T AddAction<T>(float time, IAssetStorage storage)
+            where T : TrackClip
         {
-            return (T)AddAction(typeof(T), time);
+            return (T)AddAction(typeof(T), time, storage);
         }
 
-        public ActionClip AddAction(Type type, float time)
+        public TrackClip AddAction(Type type, float time, IAssetStorage storage)
         {
-            var catAtt =
-                type.GetCustomAttributes(typeof(CategoryAttribute), true).FirstOrDefault() as CategoryAttribute;
+            var catAtt = type.GetCustomAttributes(typeof(CategoryAttribute), true).FirstOrDefault() as CategoryAttribute;
             if (catAtt != null && Clips.Count == 0)
             {
                 Name = catAtt.category + " Track";
             }
 
-            var newAction = CreateInstance(type) as ActionClip;
+            var newAction = CreateInstance(type) as TrackClip;
 
-            CreateUtilities.SaveAssetIntoObject(newAction, this);
+            CreateUtilities.SaveAssetIntoObject(newAction, this, storage);
             DirectorUtility.selectedObject = newAction;
 
             if (newAction != null)
@@ -110,7 +111,7 @@ namespace TrackEditor
             return newAction;
         }
 
-        public void DeleteAction(ActionClip action)
+        public void DeleteAction(TrackClip action)
         {
             Clips.Remove(action);
             if (ReferenceEquals(DirectorUtility.selectedObject, action))
@@ -119,7 +120,7 @@ namespace TrackEditor
             }
         }
 
-        public ActionClip PasteClip(ActionClip clip, float time = 0)
+        public TrackClip PasteClip(TrackClip clip, IAssetStorage storage, float time = 0)
         {
             var newClip = Instantiate(clip);
             if (newClip != null)
@@ -136,7 +137,7 @@ namespace TrackEditor
 
                 newClip.Parent = this;
                 Clips.Add(newClip);
-                CreateUtilities.SaveAssetIntoObject(newClip, this);
+                CreateUtilities.SaveAssetIntoObject(newClip, this, storage);
             }
 
             return newClip;
@@ -144,13 +145,12 @@ namespace TrackEditor
 #endif
 
         #endregion
-        
+
 
         internal bool IsCompilable()
         {
             return true;
         }
-
 
         bool m_CacheSorted;
 

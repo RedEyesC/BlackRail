@@ -6,9 +6,9 @@ namespace TrackEditor
     internal static class CreateUtilities
     {
         
-        public static void SaveAssetIntoObject(Object childAsset, Object masterAsset)
+        public static void SaveAssetIntoObject(Object childAsset, Object masterAsset, IAssetStorage storage)
         {
-            Asset.SaveAssetIntoObject(childAsset, masterAsset);
+            Asset.SaveAssetIntoObject(childAsset, masterAsset, storage);
         }
     }
 }

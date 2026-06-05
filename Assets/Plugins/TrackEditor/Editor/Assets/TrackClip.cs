@@ -5,7 +5,7 @@ namespace TrackEditor
 {
     [Serializable]
     [Attachable(typeof(Track))]
-    public abstract class ActionClip : DirectableAsset
+    public abstract class TrackClip : DirectableAsset
     {
         [SerializeField]
         private float startTime;
@@ -77,9 +77,9 @@ namespace TrackEditor
 
         public virtual bool isValid => false;
 
-        public ActionClip GetNextClip()
+        public TrackClip GetNextClip()
         {
-            return this.GetNextSibling<ActionClip>();
+            return this.GetNextSibling<TrackClip>();
         }
 
         public float GetClipWeight(float time)

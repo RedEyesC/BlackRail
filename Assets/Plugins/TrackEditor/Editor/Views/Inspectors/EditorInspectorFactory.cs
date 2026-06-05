@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using UnityEngine;
-using UnityEngine.SocialPlatforms.Impl;
 
 namespace TrackEditor.Test
 {
@@ -35,7 +32,8 @@ namespace TrackEditor.Test
 
         public static void InitDic()
         {
-            if (_initDic) return;
+            if (_initDic)
+                return;
 
             _initDic = true;
 
@@ -59,7 +57,8 @@ namespace TrackEditor.Test
                         var iT = t.type;
                         if (!dictionary.ContainsKey(bindT))
                         {
-                            if (!iT.IsAbstract) dictionary[bindT] = iT;
+                            if (!iT.IsAbstract)
+                                dictionary[bindT] = iT;
                         }
                         else
                         {
@@ -74,7 +73,7 @@ namespace TrackEditor.Test
                 }
             }
         }
-        
+
         /// <summary>
         /// 找出没有映射关系的对象，并绑定其最近父类的面板对象
         /// </summary>
@@ -82,12 +81,14 @@ namespace TrackEditor.Test
         /// <param name="dictionary"></param>
         public static void GetNotFindType(Type type, Dictionary<Type, Type> dictionary)
         {
-            var types = AppDomain.CurrentDomain.GetAssemblies()
+            var types = AppDomain
+                .CurrentDomain.GetAssemblies()
                 .SelectMany(a => a.GetTypes().Where(t => t.GetInterfaces().Contains(type)))
                 .ToArray();
             foreach (var t in types)
             {
-                if (t.IsAbstract) continue;
+                if (t.IsAbstract)
+                    continue;
                 var iT = TryAddDic(t, dictionary);
                 if (iT != null)
                 {

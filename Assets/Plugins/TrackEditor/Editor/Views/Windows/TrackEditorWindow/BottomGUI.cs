@@ -1,4 +1,4 @@
-﻿using UnityEditor;
+using UnityEditor;
 using UnityEngine;
 
 namespace TrackEditor
@@ -17,17 +17,21 @@ namespace TrackEditor
         void ShowTimeSlider(Rect rect)
         {
             GUILayout.BeginArea(rect);
-            //最小最大值滑块
-            var _timeMin = asset.ViewTimeMin;
-            var _timeMax = asset.ViewTimeMax;
-            var sliderRect = new Rect(5, 0, G.TopMiddleRect.width - 10, 18);
-            EditorGUI.MinMaxSlider(sliderRect, ref _timeMin, ref _timeMax, 0, asset.MaxTime);
-            asset.ViewTimeMin = _timeMin;
-            asset.ViewTimeMax = _timeMax;
+            var sliderRect = new Rect(2, 0, G.TopMiddleRect.width - 4, 18);
+            var timeMin = asset.ViewTimeMin;
+            var timeMax = asset.ViewTimeMax;
+            var maxTime = Mathf.Max(asset.Length, timeMax);
+
+            EditorGUI.MinMaxSlider(sliderRect, ref timeMin, ref timeMax, 0, maxTime);
+
+            if (!Mathf.Approximately(timeMin, asset.ViewTimeMin) || !Mathf.Approximately(timeMax, asset.ViewTimeMax))
+            {
+                SetViewTimeRange(timeMin, timeMax);
+            }
+
             if (sliderRect.Contains(Event.current.mousePosition) && Event.current.clickCount == 2)
             {
-                asset.ViewTimeMin = 0;
-                asset.ViewTimeMax = asset.Length;
+                SetViewTimeRange(0, asset.Length);
             }
 
             GUI.color = Color.white.WithAlpha(0.1f);
@@ -37,6 +41,22 @@ namespace TrackEditor
             GUILayout.EndArea();
 
             GUI.contentColor = Color.white;
+        }
+
+        private void SetViewTimeRange(float timeMin, float timeMax)
+        {
+            timeMin = Mathf.Max(0, timeMin);
+            timeMax = Mathf.Max(timeMax, timeMin + 0.25f);
+
+            if (timeMin > asset.ViewTimeMin)
+            {
+                asset.ViewTimeMax = timeMax;
+                asset.ViewTimeMin = timeMin;
+                return;
+            }
+
+            asset.ViewTimeMin = timeMin;
+            asset.ViewTimeMax = timeMax;
         }
     }
 }

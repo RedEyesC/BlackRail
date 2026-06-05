@@ -318,7 +318,12 @@ namespace TrackEditor
 
         protected virtual IAssetStorage CreateAssetStorage()
         {
-            return Asset.DefaultStorage;
+            return new AssetStorage();
+        }
+
+        internal IAssetStorage GetAssetStorage()
+        {
+            return CreateAssetStorage();
         }
 
         protected virtual string CreateWindowTitle()
@@ -442,7 +447,7 @@ namespace TrackEditor
 
         private Dictionary<int, ActionClipWrapper> clipWrappers = new Dictionary<int, ActionClipWrapper>();
 
-        private Dictionary<ActionClip, ActionClipWrapper> clipWrappersMap = new Dictionary<ActionClip, ActionClipWrapper>();
+        private Dictionary<TrackClip, ActionClipWrapper> clipWrappersMap = new Dictionary<TrackClip, ActionClipWrapper>();
 
         ActionClipWrapper interactingClip;
 
@@ -577,7 +582,7 @@ namespace TrackEditor
 
         #region Magnet Snap
 
-        void CacheMagnetSnapTimes(ActionClip clip = null)
+        void CacheMagnetSnapTimes(TrackClip clip = null)
         {
             var result = new List<float>();
             result.Add(0);
@@ -853,7 +858,7 @@ namespace TrackEditor
                         false,
                         () =>
                         {
-                            var lastClip = asset.directables.Where(d => d is ActionClip).OrderBy(d => d.EndTime).LastOrDefault();
+                            var lastClip = asset.directables.Where(d => d is TrackClip).OrderBy(d => d.EndTime).LastOrDefault();
                             if (lastClip != null)
                             {
                                 asset.Length = lastClip.EndTime;
@@ -962,7 +967,7 @@ namespace TrackEditor
             }
 
             clipWrappers = new Dictionary<int, ActionClipWrapper>();
-            clipWrappersMap = new Dictionary<ActionClip, ActionClipWrapper>();
+            clipWrappersMap = new Dictionary<TrackClip, ActionClipWrapper>();
             for (int g = 0; g < asset.groups.Count; g++)
             {
                 for (int t = 0; t < asset.groups[g].Tracks.Count; t++)
@@ -1602,7 +1607,7 @@ namespace TrackEditor
             const float SCALE_RECT_WIDTH = 5;
 
             public float dragOffset;
-            public ActionClip action;
+            public TrackClip action;
             public bool isDragging;
             public bool isScalingStart;
             public bool isScalingEnd;
@@ -1612,8 +1617,8 @@ namespace TrackEditor
             public float preScaleStartTime;
             public float preScaleEndTime;
 
-            public ActionClip previousClip;
-            public ActionClip nextClip;
+            public TrackClip previousClip;
+            public TrackClip nextClip;
 
             private Event e;
             private int clipID;
@@ -1648,7 +1653,7 @@ namespace TrackEditor
                 set => _rect = value;
             }
 
-            public ActionClipWrapper(ActionClip action)
+            public ActionClipWrapper(TrackClip action)
             {
                 this.action = action;
             }

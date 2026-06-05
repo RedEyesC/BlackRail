@@ -94,22 +94,22 @@ namespace TrackEditor
             return true;
         }
 
-        public T AddTrack<T>(string _name = null)
+        public T AddTrack<T>(IAssetStorage storage, string _name = null)
             where T : Track
         {
-            return (T)AddTrack(typeof(T), _name);
+            return (T)AddTrack(typeof(T), storage, _name);
         }
 
-        public Track AddTrack(Type type, string _name = null)
+        public Track AddTrack(Type type, IAssetStorage storage, string _name = null)
         {
             var newTrack = CreateInstance(type);
             if (newTrack is Track track)
             {
-                track.Name = type.Name;
+                track.Name = string.IsNullOrEmpty(_name) ? type.Name : _name;
                 track.Parent = this;
                 Tracks.Add(track);
 
-                CreateUtilities.SaveAssetIntoObject(track, this);
+                CreateUtilities.SaveAssetIntoObject(track, this, storage);
                 DirectorUtility.selectedObject = track;
 
                 return track;
@@ -133,7 +133,7 @@ namespace TrackEditor
             // root?.SaveToAssets();
         }
 
-        public Track PasteTrack(Track track)
+        public Track PasteTrack(Track track, IAssetStorage storage)
         {
             if (!CanAddTrack(track))
             {
@@ -145,11 +145,11 @@ namespace TrackEditor
             {
                 newTrack.Parent = this;
                 Tracks.Add(newTrack);
-                CreateUtilities.SaveAssetIntoObject(newTrack, this);
+                CreateUtilities.SaveAssetIntoObject(newTrack, this, storage);
                 newTrack.Clips.Clear();
                 foreach (var clip in track.Clips)
                 {
-                    newTrack.PasteClip(clip);
+                    newTrack.PasteClip(clip, storage);
                 }
             }
 

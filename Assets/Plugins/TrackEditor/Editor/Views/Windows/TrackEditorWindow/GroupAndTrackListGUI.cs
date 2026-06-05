@@ -124,7 +124,7 @@ namespace TrackEditor
                         false,
                         () =>
                         {
-                            asset.AddGroup(info.type);
+                            asset.AddGroup(info.type, CreateAssetStorage());
                         }
                     );
                 }
@@ -134,7 +134,7 @@ namespace TrackEditor
             else if (attachableTypeInfos.Count > 0)
             {
                 var info = attachableTypeInfos[0];
-                asset.AddGroup(info.type);
+                asset.AddGroup(info.type, CreateAssetStorage());
             }
         }
 
@@ -218,7 +218,7 @@ namespace TrackEditor
                                 false,
                                 () =>
                                 {
-                                    group.AddTrack(info.type);
+                                    group.AddTrack(info.type, CreateAssetStorage());
                                 }
                             );
                         }
@@ -236,7 +236,7 @@ namespace TrackEditor
                             false,
                             () =>
                             {
-                                var t = group.PasteTrack(_copyTrack);
+                                var t = group.PasteTrack(_copyTrack, CreateAssetStorage());
                                 DirectorUtility.selectedObject = t;
                                 TrackEditorWindow.current.InitClipWrappers();
                             }
@@ -271,7 +271,7 @@ namespace TrackEditor
                         false,
                         () =>
                         {
-                            asset.PasteGroup(group);
+                            asset.PasteGroup(group, CreateAssetStorage());
                             TrackEditorWindow.current.InitClipWrappers();
                         }
                     );
@@ -424,7 +424,7 @@ namespace TrackEditor
                             false,
                             () =>
                             {
-                                var t1 = group.PasteTrack(track);
+                                var t1 = group.PasteTrack(track, CreateAssetStorage());
                                 TrackEditorWindow.current.InitClipWrappers();
                                 DirectorUtility.selectedObject = t1;
                             }

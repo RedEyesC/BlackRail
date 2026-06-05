@@ -3,15 +3,16 @@ using UnityEngine;
 
 namespace TrackEditor
 {
-    public abstract class ActionClipInspector<T> : ActionClipInspector where T : ActionClip
+    public abstract class ActionClipInspector<T> : ActionClipInspector
+        where T : TrackClip
     {
         protected T action => (T)target;
     }
 
-    [CustomInspectors(typeof(ActionClip), true)]
+    [CustomInspectors(typeof(TrackClip), true)]
     public class ActionClipInspector : InspectorsBase
     {
-        private ActionClip action => (ActionClip)target;
+        private TrackClip action => (TrackClip)target;
 
         public override void OnInspectorGUI()
         {
@@ -28,15 +29,15 @@ namespace TrackEditor
                 base.OnInspectorGUI();
             }
         }
-        
+
         void ShowErrors()
         {
-            if (action.isValid) return;
-            EditorGUILayout.HelpBox("该剪辑无效。 请确保设置了所需的参数。",
-                MessageType.Error);
+            if (action.isValid)
+                return;
+            EditorGUILayout.HelpBox("该剪辑无效。 请确保设置了所需的参数。", MessageType.Error);
             GUILayout.Space(5);
         }
-        
+
         void ShowInOutControls()
         {
             var previousClip = action.GetPreviousSibling();
@@ -130,7 +131,6 @@ namespace TrackEditor
                 _out = _in;
             }
 
-
             if (GUI.changed)
             {
                 if (_length != action.Length)
@@ -143,7 +143,7 @@ namespace TrackEditor
 
                 _in = Mathf.Clamp(_in, previousTime, _out);
                 _out = Mathf.Clamp(_out, _in, nextClip != null ? nextTime : float.PositiveInfinity);
-                
+
                 action.StartTime = _in;
                 action.EndTime = _out;
             }

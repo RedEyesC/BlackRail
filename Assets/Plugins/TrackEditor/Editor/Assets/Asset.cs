@@ -21,27 +21,6 @@ namespace TrackEditor
         [SerializeField]
         private float viewTimeMax = 5f;
 
-        [HideInInspector, NonSerialized]
-        Track[] m_CacheOutputTracks;
-
-        [NonSerialized]
-        private IAssetStorage storage;
-
-        [NonSerialized]
-        private UnityEngine.Object storageSource;
-
-        public IAssetStorage Storage => storage;
-
-        public UnityEngine.Object StorageSource => storageSource;
-
-        public static IAssetStorage DefaultStorage { get; } = new AssetStorage();
-
-        internal void SetStorage(IAssetStorage value, UnityEngine.Object source)
-        {
-            storage = value;
-            storageSource = source;
-        }
-
         public float Length
         {
             get => length;
@@ -54,7 +33,7 @@ namespace TrackEditor
             set
             {
                 if (ViewTimeMax > 0)
-                    viewTimeMin = Mathf.Min(value, ViewTimeMax - 0.25f);
+                    viewTimeMin = Mathf.Max(0, Mathf.Min(value, ViewTimeMax - 0.25f));
             }
         }
 
@@ -69,20 +48,20 @@ namespace TrackEditor
 
         public List<DirectableAsset> directables { get; private set; }
 
-        public T AddGroup<T>()
+        public T AddGroup<T>(IAssetStorage storage)
             where T : Group, new()
         {
             var newGroup = CreateInstance<T>();
             newGroup.Name = "New Group";
             newGroup.Parent = this;
             groups.Add(newGroup);
-            CreateUtilities.SaveAssetIntoObject(newGroup, this);
+            CreateUtilities.SaveAssetIntoObject(newGroup, this, storage);
             DirectorUtility.selectedObject = newGroup;
 
             return newGroup;
         }
 
-        public Group AddGroup(Type type)
+        public Group AddGroup(Type type, IAssetStorage storage)
         {
             var catAtt = type.GetCustomAttributes(typeof(CategoryAttribute), true).FirstOrDefault() as CategoryAttribute;
             var newGroup = CreateInstance(type) as Group;
@@ -92,7 +71,7 @@ namespace TrackEditor
                 newGroup.Name = "New Group";
                 newGroup.Parent = this;
                 groups.Add(newGroup);
-                CreateUtilities.SaveAssetIntoObject(newGroup, this);
+                CreateUtilities.SaveAssetIntoObject(newGroup, this, storage);
                 DirectorUtility.selectedObject = newGroup;
             }
 
@@ -104,29 +83,22 @@ namespace TrackEditor
             groups.Remove(group);
         }
 
-        public Group PasteGroup(Group group)
+        public Group PasteGroup(Group group, IAssetStorage storage)
         {
             var newGroup = Instantiate(group);
             if (newGroup != null)
             {
                 newGroup.Parent = this;
                 groups.Add(newGroup);
-                CreateUtilities.SaveAssetIntoObject(newGroup, this);
+                CreateUtilities.SaveAssetIntoObject(newGroup, this, storage);
                 newGroup.Tracks.Clear();
                 foreach (var track in group.Tracks)
                 {
-                    newGroup.PasteTrack(track);
+                    newGroup.PasteTrack(track, storage);
                 }
             }
 
             return newGroup;
-        }
-
-        public override void SaveToAssets()
-        {
-#if UNITY_EDITOR
-            Save(this, StorageSource, Storage);
-#endif
         }
 
         public static Asset Load(Object source, IAssetStorage storage)
@@ -137,7 +109,6 @@ namespace TrackEditor
             }
 
             var asset = storage.Load(source);
-            Bind(asset, storage, source);
             return asset;
         }
 
@@ -148,39 +119,12 @@ namespace TrackEditor
                 return;
             }
 
-            source = source != null ? source : asset.StorageSource;
             storage.Save(asset, source);
         }
 
-        public static void SaveAssetIntoObject(Object childAsset, Object masterAsset)
+        public static void SaveAssetIntoObject(Object childAsset, Object masterAsset, IAssetStorage storage)
         {
-            var root = GetRoot(masterAsset);
-            var storage = root != null ? root.Storage : null;
-            if (storage == null)
-            {
-                return;
-            }
-
             storage.SaveAssetIntoObject(childAsset, masterAsset);
-        }
-
-        internal static void Bind(Asset asset, IAssetStorage storage, Object source)
-        {
-            if (asset != null)
-            {
-                asset.SetStorage(storage, source);
-            }
-        }
-
-        private static Asset GetRoot(Object target)
-        {
-            var directable = target as DirectableAsset;
-            while (directable != null && directable.parent != null)
-            {
-                directable = directable.parent;
-            }
-
-            return directable as Asset;
         }
     }
 }

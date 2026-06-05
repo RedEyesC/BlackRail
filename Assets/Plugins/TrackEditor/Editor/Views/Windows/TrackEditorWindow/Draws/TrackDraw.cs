@@ -105,8 +105,7 @@ namespace TrackEditor.Draws
 
             var iconBGRect = new Rect(4f, 0, BOX_WIDTH, track.ShowHeight);
             iconBGRect = iconBGRect.ExpandBy(-1);
-            var textInfoRect =
-                Rect.MinMaxRect(iconBGRect.xMax + 2, 0, trackRect.width - BOX_WIDTH - 2, track.ShowHeight);
+            var textInfoRect = Rect.MinMaxRect(iconBGRect.xMax + 2, 0, trackRect.width - BOX_WIDTH - 2, track.ShowHeight);
             var curveButtonRect = new Rect(trackRect.width - BOX_WIDTH, 0, BOX_WIDTH, track.ShowHeight);
 
             GUI.color = Color.black.WithAlpha(0.1f);
@@ -118,9 +117,7 @@ namespace TrackEditor.Draws
             {
                 var iconRect = new Rect(0, 0, 16, 16);
                 iconRect.center = iconBGRect.center;
-                GUI.color = ReferenceEquals(DirectorUtility.selectedObject, track)
-                    ? Color.white
-                    : new Color(1, 1, 1, 0.8f);
+                GUI.color = ReferenceEquals(DirectorUtility.selectedObject, track) ? Color.white : new Color(1, 1, 1, 0.8f);
                 GUI.DrawTexture(iconRect, icon);
                 GUI.color = Color.white;
             }
@@ -131,17 +128,13 @@ namespace TrackEditor.Draws
             GUI.Label(textInfoRect, $"{nameString}\n{infoString}");
             GUI.color = Color.white;
 
-
             var wasEnable = GUI.enabled;
             GUI.enabled = true;
 
             GUI.color = Color.grey;
             if (!track.IsActive)
             {
-                var hiddenRect = new Rect(0, 0, 16, 16)
-                {
-                    center = curveButtonRect.center
-                };
+                var hiddenRect = new Rect(0, 0, 16, 16) { center = curveButtonRect.center };
                 if (GUI.Button(hiddenRect, Styles.hiddenIcon, GUIStyle.none))
                 {
                     track.IsActive = !track.IsActive;
@@ -150,10 +143,7 @@ namespace TrackEditor.Draws
 
             if (track.IsLocked)
             {
-                var lockRect = new Rect(0, 0, 16, 16)
-                {
-                    center = curveButtonRect.center
-                };
+                var lockRect = new Rect(0, 0, 16, 16) { center = curveButtonRect.center };
                 if (!track.IsActive)
                 {
                     lockRect.center -= new Vector2(16, 0);
@@ -168,21 +158,19 @@ namespace TrackEditor.Draws
             GUI.color = Color.white;
             GUI.enabled = wasEnable;
         }
-        
+
         public static void DrawTrackContextMenu(Track track, Event e, Rect posRect, float cursorTime)
         {
-            var clipsPosRect =
-                Rect.MinMaxRect(posRect.xMin, posRect.yMin, posRect.xMax, posRect.yMin + track.ShowHeight);
+            var clipsPosRect = Rect.MinMaxRect(posRect.xMin, posRect.yMin, posRect.xMax, posRect.yMin + track.ShowHeight);
             if (e.type == EventType.ContextClick && clipsPosRect.Contains(e.mousePosition))
             {
                 var attachableTypeInfos = new List<EditorTools.TypeMetaInfo>();
 
                 var existing = track.Clips.FirstOrDefault();
                 var existingCatAtt =
-                    existing?.GetType().GetCustomAttributes(typeof(CategoryAttribute), true).FirstOrDefault() as
-                        CategoryAttribute;
+                    existing?.GetType().GetCustomAttributes(typeof(CategoryAttribute), true).FirstOrDefault() as CategoryAttribute;
 
-                foreach (var clip in EditorTools.GetTypeMetaDerivedFrom(typeof(ActionClip)))
+                foreach (var clip in EditorTools.GetTypeMetaDerivedFrom(typeof(TrackClip)))
                 {
                     if (!clip.attachableTypes.Contains(track.GetType()))
                     {
@@ -210,16 +198,28 @@ namespace TrackEditor.Draws
                         var info = _info;
                         var category = string.IsNullOrEmpty(info.category) ? string.Empty : (info.category + "/");
                         var tName = info.name;
-                        menu.AddItem(new GUIContent(category + tName), false,
-                            () => { track.AddAction(info.type, cursorTime); });
+                        menu.AddItem(
+                            new GUIContent(category + tName),
+                            false,
+                            () =>
+                            {
+                                track.AddAction(info.type, cursorTime, TrackEditorWindow.current.GetAssetStorage());
+                            }
+                        );
                     }
 
                     var copyType = DirectorUtility.GetCopyType();
                     if (copyType != null && attachableTypeInfos.Select(i => i.type).Contains(copyType))
                     {
                         menu.AddSeparator("/");
-                        menu.AddItem(new GUIContent(string.Format(Lan.ClipPaste, copyType.Name)), false,
-                            () => { track.PasteClip(DirectorUtility.CopyClip, cursorTime); });
+                        menu.AddItem(
+                            new GUIContent(string.Format(Lan.ClipPaste, copyType.Name)),
+                            false,
+                            () =>
+                            {
+                                track.PasteClip(DirectorUtility.CopyClip, TrackEditorWindow.current.GetAssetStorage(), cursorTime);
+                            }
+                        );
                     }
 
                     menu.ShowAsContext();

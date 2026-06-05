@@ -223,7 +223,8 @@ namespace TrackEditor
 
         private int FieldsSprtBy(FieldInfo f1, FieldInfo f2)
         {
-            if (f1 == null || f2 == null) return 0;
+            if (f1 == null || f2 == null)
+                return 0;
             //相同则是自身的字段，不相同则是继承的
             var e1 = f1.DeclaringType == f1.ReflectedType;
             var e2 = f2.DeclaringType == f2.ReflectedType;
