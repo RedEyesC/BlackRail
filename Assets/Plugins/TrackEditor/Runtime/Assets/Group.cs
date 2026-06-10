@@ -27,6 +27,7 @@ namespace TrackEditor
             set => _parent = value;
         }
 
+
         public override float StartTime => 0;
         public override float EndTime => Parent.Length;
 

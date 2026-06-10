@@ -52,7 +52,7 @@ namespace TrackEditor
             where T : Group, new()
         {
             var newGroup = CreateInstance<T>();
-            newGroup.Name = "New Group";
+            newGroup.Name = "Group";
             newGroup.Parent = this;
             groups.Add(newGroup);
             CreateUtilities.SaveAssetIntoObject(newGroup, this, storage);
@@ -68,7 +68,7 @@ namespace TrackEditor
 
             if (newGroup != null)
             {
-                newGroup.Name = "New Group";
+                newGroup.Name = "Group";
                 newGroup.Parent = this;
                 groups.Add(newGroup);
                 CreateUtilities.SaveAssetIntoObject(newGroup, this, storage);

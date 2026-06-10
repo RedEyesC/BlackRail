@@ -22,7 +22,7 @@ namespace TrackEditor
             return time - directable.StartTime;
         }
 
-        public static bool CanCrossBlend(this TrackClip directable, TrackClip other)
+        public static bool CanCrossBlend(this Clip directable, Clip other)
         {
             if (directable == null || other == null)
             {
@@ -37,7 +37,7 @@ namespace TrackEditor
             return false;
         }
 
-        public static bool CanBlendIn(this TrackClip directable)
+        public static bool CanBlendIn(this Clip directable)
         {
             var blendInProp = directable.GetType().GetProperty("BlendIn", BindingFlags.Instance | BindingFlags.Public);
             return blendInProp != null
@@ -46,7 +46,7 @@ namespace TrackEditor
                 && blendInProp.DeclaringType != typeof(DirectableAsset);
         }
 
-        public static bool CanBlendOut(this TrackClip directable)
+        public static bool CanBlendOut(this Clip directable)
         {
             var blendOutProp = directable.GetType().GetProperty("BlendOut", BindingFlags.Instance | BindingFlags.Public);
             return blendOutProp != null
@@ -55,13 +55,13 @@ namespace TrackEditor
                 && blendOutProp.DeclaringType != typeof(DirectableAsset);
         }
 
-        public static bool CanScale(this TrackClip directable)
+        public static bool CanScale(this Clip directable)
         {
             var lengthProp = directable.GetType().GetProperty("Length", BindingFlags.Instance | BindingFlags.Public);
-            return lengthProp != null && lengthProp.CanWrite && lengthProp.DeclaringType != typeof(TrackClip);
+            return lengthProp != null && lengthProp.CanWrite && lengthProp.DeclaringType != typeof(Clip);
         }
 
-        public static TrackClip GetPreviousSibling(this TrackClip directable)
+        public static Clip GetPreviousSibling(this Clip directable)
         {
             if (directable.Parent != null)
             {
@@ -77,13 +77,13 @@ namespace TrackEditor
         /// <param name="directable"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public static T GetNextSibling<T>(this TrackClip directable)
-            where T : TrackClip
+        public static T GetNextSibling<T>(this Clip directable)
+            where T : Clip
         {
             return (T)GetNextSibling(directable);
         }
 
-        public static TrackClip GetNextSibling(this TrackClip directable)
+        public static Clip GetNextSibling(this Clip directable)
         {
             if (directable.Parent != null)
             {
@@ -94,18 +94,18 @@ namespace TrackEditor
         }
 
         ///The weight at specified local time based on its blend properties.
-        public static float GetWeight(this TrackClip directable, float time)
+        public static float GetWeight(this Clip directable, float time)
         {
             return GetWeight(directable, time, directable.BlendIn, directable.BlendOut);
         }
 
         ///The weight at specified local time based on provided override blend in/out properties
-        public static float GetWeight(this TrackClip directable, float time, float blendInOut)
+        public static float GetWeight(this Clip directable, float time, float blendInOut)
         {
             return GetWeight(directable, time, blendInOut, blendInOut);
         }
 
-        public static float GetWeight(this TrackClip directable, float time, float blendIn, float blendOut)
+        public static float GetWeight(this Clip directable, float time, float blendIn, float blendOut)
         {
             var length = GetLength(directable);
             if (time <= 0)

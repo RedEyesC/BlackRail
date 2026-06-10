@@ -15,7 +15,7 @@ namespace TrackEditor
         PlayingBackwards,
     }
 
-    internal struct GuideLine
+    public struct GuideLine
     {
         public float time;
         public Color color;

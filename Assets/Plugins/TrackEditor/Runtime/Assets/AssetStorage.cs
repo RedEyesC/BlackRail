@@ -4,7 +4,7 @@ using Object = UnityEngine.Object;
 
 namespace TrackEditor
 {
-    internal sealed class AssetStorage : IAssetStorage
+    public sealed class AssetStorage : IAssetStorage
     {
         public bool CanLoad(Object source)
         {

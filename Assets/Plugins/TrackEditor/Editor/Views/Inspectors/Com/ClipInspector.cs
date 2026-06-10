@@ -3,16 +3,16 @@ using UnityEngine;
 
 namespace TrackEditor
 {
-    public abstract class ActionClipInspector<T> : ActionClipInspector
-        where T : TrackClip
+    public abstract class ClipInspector<T> : ClipInspector
+        where T : Clip
     {
         protected T action => (T)target;
     }
 
-    [CustomInspectors(typeof(TrackClip), true)]
-    public class ActionClipInspector : InspectorsBase
+    [CustomInspectors(typeof(Clip), true)]
+    public class ClipInspector : InspectorsBase
     {
-        private TrackClip action => (TrackClip)target;
+        private Clip action => (Clip)target;
 
         public override void OnInspectorGUI()
         {
@@ -119,7 +119,7 @@ namespace TrackEditor
                     }
                     else
                     {
-                        _in = EditorGUILayout.Slider(_in, previousTime, nextTime);
+                        _in = TimeSlider(_in, previousTime, nextTime, doFrames);
                         _out = _in;
                     }
                 }
@@ -127,7 +127,7 @@ namespace TrackEditor
             else
             {
                 GUILayout.Label("IN", GUILayout.Width(30));
-                _in = EditorGUILayout.Slider(_in, 0, action.Parent.EndTime);
+                _in = TimeSlider(_in, 0, action.Parent.EndTime, doFrames);
                 _out = _in;
             }
 
@@ -173,6 +173,22 @@ namespace TrackEditor
             }
 
             GUILayout.EndVertical();
+        }
+
+        static float TimeSlider(float value, float leftValue, float rightValue, bool doFrames)
+        {
+            if (!doFrames)
+            {
+                return EditorGUILayout.Slider(value, leftValue, rightValue);
+            }
+
+            var frameRate = Mathf.Max(1, Prefs.frameRate);
+            var frame = Mathf.RoundToInt(value * frameRate);
+            var leftFrame = Mathf.RoundToInt(leftValue * frameRate);
+            var rightFrame = Mathf.RoundToInt(rightValue * frameRate);
+
+            frame = EditorGUILayout.IntSlider(frame, leftFrame, rightFrame);
+            return frame * (1f / frameRate);
         }
 
         /// <summary>

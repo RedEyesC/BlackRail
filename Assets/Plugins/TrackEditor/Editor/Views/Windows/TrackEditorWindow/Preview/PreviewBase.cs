@@ -1,7 +1,7 @@
 ﻿namespace TrackEditor
 {
     public abstract class PreviewBase<T> : PreviewBase
-        where T : TrackClip
+        where T : Clip
     {
         public T clip => (T)directable;
     }

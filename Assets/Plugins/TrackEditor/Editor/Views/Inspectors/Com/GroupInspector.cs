@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace TrackEditor.Design.Editor.Inspectors
 {
-    public abstract class GroupInspector<T> : ActionClipInspector where T : Group
+    public abstract class GroupInspector<T> : ClipInspector where T : Group
     {
         protected T action => (T)target;
     }

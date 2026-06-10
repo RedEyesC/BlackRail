@@ -5,7 +5,7 @@ namespace TrackEditor
 {
     public static class DirectorUtility
     {
-        private static TrackClip _copyClip;
+        private static Clip _copyClip;
         private static System.Type _copyClipType;
 
         [System.NonSerialized]
@@ -15,7 +15,7 @@ namespace TrackEditor
         private static ScriptableObject _selectedObject;
         public static event System.Action<ScriptableObject> onSelectionChange;
 
-        public static TrackClip CopyClip
+        public static Clip CopyClip
         {
             get => _copyClip;
             set
@@ -43,7 +43,7 @@ namespace TrackEditor
             _copyClip = null;
         }
 
-        public static void CutClip(TrackClip clip)
+        public static void CutClip(Clip clip)
         {
             _copyClip = clip;
             _copyClipType = clip.GetType();

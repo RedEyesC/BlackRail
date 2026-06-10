@@ -447,7 +447,7 @@ namespace TrackEditor
 
         private Dictionary<int, ActionClipWrapper> clipWrappers = new Dictionary<int, ActionClipWrapper>();
 
-        private Dictionary<TrackClip, ActionClipWrapper> clipWrappersMap = new Dictionary<TrackClip, ActionClipWrapper>();
+        private Dictionary<Clip, ActionClipWrapper> clipWrappersMap = new Dictionary<Clip, ActionClipWrapper>();
 
         ActionClipWrapper interactingClip;
 
@@ -582,7 +582,7 @@ namespace TrackEditor
 
         #region Magnet Snap
 
-        void CacheMagnetSnapTimes(TrackClip clip = null)
+        void CacheMagnetSnapTimes(Clip clip = null)
         {
             var result = new List<float>();
             result.Add(0);
@@ -858,7 +858,7 @@ namespace TrackEditor
                         false,
                         () =>
                         {
-                            var lastClip = asset.directables.Where(d => d is TrackClip).OrderBy(d => d.EndTime).LastOrDefault();
+                            var lastClip = asset.directables.Where(d => d is Clip).OrderBy(d => d.EndTime).LastOrDefault();
                             if (lastClip != null)
                             {
                                 asset.Length = lastClip.EndTime;
@@ -967,7 +967,7 @@ namespace TrackEditor
             }
 
             clipWrappers = new Dictionary<int, ActionClipWrapper>();
-            clipWrappersMap = new Dictionary<TrackClip, ActionClipWrapper>();
+            clipWrappersMap = new Dictionary<Clip, ActionClipWrapper>();
             for (int g = 0; g < asset.groups.Count; g++)
             {
                 for (int t = 0; t < asset.groups[g].Tracks.Count; t++)
@@ -1607,7 +1607,7 @@ namespace TrackEditor
             const float SCALE_RECT_WIDTH = 5;
 
             public float dragOffset;
-            public TrackClip action;
+            public Clip action;
             public bool isDragging;
             public bool isScalingStart;
             public bool isScalingEnd;
@@ -1617,8 +1617,8 @@ namespace TrackEditor
             public float preScaleStartTime;
             public float preScaleEndTime;
 
-            public TrackClip previousClip;
-            public TrackClip nextClip;
+            public Clip previousClip;
+            public Clip nextClip;
 
             private Event e;
             private int clipID;
@@ -1653,7 +1653,7 @@ namespace TrackEditor
                 set => _rect = value;
             }
 
-            public ActionClipWrapper(TrackClip action)
+            public ActionClipWrapper(Clip action)
             {
                 this.action = action;
             }

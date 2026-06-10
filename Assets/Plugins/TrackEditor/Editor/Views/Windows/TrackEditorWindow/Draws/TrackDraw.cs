@@ -170,7 +170,7 @@ namespace TrackEditor.Draws
                 var existingCatAtt =
                     existing?.GetType().GetCustomAttributes(typeof(CategoryAttribute), true).FirstOrDefault() as CategoryAttribute;
 
-                foreach (var clip in EditorTools.GetTypeMetaDerivedFrom(typeof(TrackClip)))
+                foreach (var clip in EditorTools.GetTypeMetaDerivedFrom(typeof(Clip)))
                 {
                     if (!clip.attachableTypes.Contains(track.GetType()))
                     {

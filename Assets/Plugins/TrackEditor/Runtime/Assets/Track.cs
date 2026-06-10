@@ -10,7 +10,7 @@ namespace TrackEditor
     public abstract class Track : DirectableAsset
     {
         [SerializeField]
-        private List<TrackClip> actionClips = new List<TrackClip>();
+        private List<Clip> actionClips = new List<Clip>();
 
         [SerializeField]
         [HideInInspector]
@@ -59,7 +59,7 @@ namespace TrackEditor
             set => isLocked = value;
         }
 
-        public List<TrackClip> Clips
+        public List<Clip> Clips
         {
             get => actionClips;
             set => actionClips = value;
@@ -77,12 +77,12 @@ namespace TrackEditor
 
 #if UNITY_EDITOR
         public T AddAction<T>(float time, IAssetStorage storage)
-            where T : TrackClip
+            where T : Clip
         {
             return (T)AddAction(typeof(T), time, storage);
         }
 
-        public TrackClip AddAction(Type type, float time, IAssetStorage storage)
+        public Clip AddAction(Type type, float time, IAssetStorage storage)
         {
             var catAtt = type.GetCustomAttributes(typeof(CategoryAttribute), true).FirstOrDefault() as CategoryAttribute;
             if (catAtt != null && Clips.Count == 0)
@@ -90,7 +90,7 @@ namespace TrackEditor
                 Name = catAtt.category + " Track";
             }
 
-            var newAction = CreateInstance(type) as TrackClip;
+            var newAction = CreateInstance(type) as Clip;
 
             CreateUtilities.SaveAssetIntoObject(newAction, this, storage);
             DirectorUtility.selectedObject = newAction;
@@ -111,7 +111,7 @@ namespace TrackEditor
             return newAction;
         }
 
-        public void DeleteAction(TrackClip action)
+        public void DeleteAction(Clip action)
         {
             Clips.Remove(action);
             if (ReferenceEquals(DirectorUtility.selectedObject, action))
@@ -120,7 +120,7 @@ namespace TrackEditor
             }
         }
 
-        public TrackClip PasteClip(TrackClip clip, IAssetStorage storage, float time = 0)
+        public Clip PasteClip(Clip clip, IAssetStorage storage, float time = 0)
         {
             var newClip = Instantiate(clip);
             if (newClip != null)
