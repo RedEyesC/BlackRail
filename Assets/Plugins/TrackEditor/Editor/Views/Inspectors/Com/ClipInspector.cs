@@ -119,7 +119,7 @@ namespace TrackEditor
                     }
                     else
                     {
-                        _in = TimeSlider(_in, previousTime, nextTime, doFrames);
+                        _in = SliderOnly(_in, previousTime, nextTime);
                         _out = _in;
                     }
                 }
@@ -127,7 +127,7 @@ namespace TrackEditor
             else
             {
                 GUILayout.Label("IN", GUILayout.Width(30));
-                _in = TimeSlider(_in, 0, action.Parent.EndTime, doFrames);
+                _in = SliderOnly(_in, 0, action.Parent.EndTime);
                 _out = _in;
             }
 
@@ -175,20 +175,15 @@ namespace TrackEditor
             GUILayout.EndVertical();
         }
 
-        static float TimeSlider(float value, float leftValue, float rightValue, bool doFrames)
+        static float SliderOnly(float value, float min, float max, params GUILayoutOption[] options)
         {
-            if (!doFrames)
-            {
-                return EditorGUILayout.Slider(value, leftValue, rightValue);
-            }
+            Rect rect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight, options);
 
-            var frameRate = Mathf.Max(1, Prefs.frameRate);
-            var frame = Mathf.RoundToInt(value * frameRate);
-            var leftFrame = Mathf.RoundToInt(leftValue * frameRate);
-            var rightFrame = Mathf.RoundToInt(rightValue * frameRate);
+            rect = EditorGUI.IndentedRect(rect);
+            rect.y += 2f;
+            rect.height = 16f;
 
-            frame = EditorGUILayout.IntSlider(frame, leftFrame, rightFrame);
-            return frame * (1f / frameRate);
+            return GUI.HorizontalSlider(rect, value, min, max);
         }
 
         /// <summary>

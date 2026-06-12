@@ -173,10 +173,11 @@ namespace TrackEditor
             //GUILayout.Label($"<size=11>{string.Format(Lan.HeaderLastSaveTime, App.LastSaveTime.ToString("HH:mm:ss"))}</size>");
             GUI.color = Color.white;
 
-            if (GUILayout.Button(new GUIContent(Styles.saveIcon, Lan.Save), EditorStyles.toolbarButton, GUILayout.Width(26)))
-            {
-                SaveCurrentAsset();
-            }
+            //暂时不需要保存按钮
+            //if (GUILayout.Button(new GUIContent(Styles.saveIcon, Lan.Save), EditorStyles.toolbarButton, GUILayout.Width(26)))
+            //{
+            //    SaveCurrentAsset();
+            //}
 
             if (
                 GUILayout.Button(

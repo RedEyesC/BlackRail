@@ -6,6 +6,8 @@ namespace TrackEditor
 {
     public sealed class AssetStorage : IAssetStorage
     {
+        public static readonly IAssetStorage Default = new AssetStorage();
+
         public bool CanLoad(Object source)
         {
             return source is Asset;

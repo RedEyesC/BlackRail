@@ -318,7 +318,7 @@ namespace TrackEditor
 
         protected virtual IAssetStorage CreateAssetStorage()
         {
-            return new AssetStorage();
+            return AssetStorage.Default;
         }
 
         internal IAssetStorage GetAssetStorage()
