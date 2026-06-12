@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace GameFramework.Asset
 {
     public class ActionRequest : Request
     {
         private static readonly Queue<ActionRequest> Unused = new Queue<ActionRequest>();
-        public Action action;
+        public System.Action action;
 
         protected override void OnStart()
         {
@@ -19,7 +18,7 @@ namespace GameFramework.Asset
             Recycle(this);
         }
 
-        public static ActionRequest CallAsync(Action action)
+        public static ActionRequest CallAsync(System.Action action)
         {
             var request = Create();
             request.Reset();
