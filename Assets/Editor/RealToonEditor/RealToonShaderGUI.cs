@@ -10,10 +10,8 @@ using System;
 
 namespace GameEditor.RealToonEditor
 {
-
     public class RealToonShaderGUI : ShaderGUI
     {
-
         #region foldout bools variable
 
         static bool ShowTextureColor;
@@ -31,9 +29,11 @@ namespace GameEditor.RealToonEditor
         static bool ShowRimLight;
         static bool ShowSeeThrough;
         static bool NearFadeDithering;
+
         //static bool ShowTessellation; In Progress
         static bool ShowDisableEnable;
         static bool ShowSettings;
+
         //static bool ShowFReflection; //remove later
         //static bool ShowLightmapping; //remove later
         //static bool ShowDepth; //remove later
@@ -42,7 +42,6 @@ namespace GameEditor.RealToonEditor
 
         string LightBlendString = "Anime/Cartoon";
         static string ShowUIString = "Hide Settings";
-
 
         #endregion
 
@@ -64,7 +63,6 @@ namespace GameEditor.RealToonEditor
         static string twofourfive_target_string = "Change shader compilation target to 4.5";
 
         static bool dots_lbs_cd = false;
-        static string dots_lbs_cd_string = "DOTS|HR - Use Compute Deformation";
 
         #endregion
 
@@ -309,7 +307,7 @@ namespace GameEditor.RealToonEditor
             N_F_COEDGL_ON,
             N_F_DDMD_ON,
             N_F_SIMTRANS_ON,
-            N_F_NFD_ON
+            N_F_NFD_ON,
         }
 
         #endregion
@@ -318,470 +316,315 @@ namespace GameEditor.RealToonEditor
 
         string[] TOTIPS =
         {
-
-    //Culling [0]
-    "Controls which sides of polygons should be culled (not drawn).\n\n\nBack: Don’t render polygons that are facing away from the viewer.\n\nFront: Don’t render polygons that are facing towards the viewer, Used for turning objects inside-out.\n\nOff: Disables culling - all faces are drawn, This also called Double Sided." ,
-
-    //Texture [1]
-    "Main or base texture." , 
-
-    //Texture Pattern Style [2]
-    "Turn the 'Main/Base Texture' into pattern style." ,
-
-    //Main Color [3]
-    "Main or base color." ,
-
-    //Mix Vertex Color [4]
-    "Mix or show vertex color." ,
-
-    //Main Color in Ambient Light Only [5]
-    "Put the 'Main/Base Color' into ambient light." ,
-
-    //Highlight Color [6]
-    "Highlight color." ,
-
-    //Highlight Color Power [7]
-    "'Highlight Color' power or intensity." ,
-
-    //Main Color Power [8]
-    "'Main Color' power or intensity." ,
-
-    //Blend - Source [9] [Transparent Mode]
-    "Blending source.\n\n-Default Value: ScrAlpha" ,
-
-    //Blend - Destination [10] [Transparent Mode]
-    "Blending Destination.\n\n-Default Value: OneMinusScrAlpha" ,
-
-    //Transparent Mode [11]
-    "Setting the current mode from Opaque to Transparent.\n\nThis will allow you to use 'Fade Transparency' and 'Cutout' feature.",
-
-    //Intensity [12] [MatCap]
-    "MatCap intensity." ,
-
-    //MatCap [13] [MatCap]
-    "MatCap texture." ,
-
-    //Specualar Mode [14] [MatCap]
-    "Turn MatCap into specular." ,
-
-    //Specular Power [15] [MatCap]
-    "Specular intensity or power." ,
-
-    //Mask MatCap [16] [MatCap]
-    "Mask MatCap.\n\nUse a Black and White texture map.\nWhite means visible matcap while Black is not." ,
-
-    //Cutout [17]
-    "Cutout value or threshold." ,
-
-    //Alpha Base Cutout [18] 
-    "It will use the alpha/transparent channel of the 'Main/Base Texture' to cutout." ,
-
-    //Use Secondary Cutout Only [19]
-    "Use only the 'Secondary Cutout' to do the cutout." ,
-
-    //Secondary Cutout [20]
-    "Secondary texture cutout.\n\nUse a Black and White texture map.\nWhite means not cut out while Black is cutout." ,
-
-    //Opacity [21]
-    "Adjust the Transparency - Opacity of the object" ,
-
-    //Transparent Threshold [22]
-    "'Main/Base Texture' transparency threshold." ,
-
-    //Mask Transparency [23]
-    "Mask Transparency.\n\nWhite means opaque while Black means transparent." ,
-
-    //Normal Map [24]
-    "Normal Map." ,
-
-    //Normal Map Intensity [25]
-    "'Normal Map' intensity." ,
-
-    //Saturation [26] [Color Adjustment]
-    "Color saturation of the object." ,
-
-    //Width [27] [Outline]
-    "Outline main width." ,
-
-    //Width Control [28] [Outline]
-    "Controls the 'Outline Width' using texture Map.\n\nUse a Black and White texture map.\nWhite means 1 while Black means 0.\nThis will not work if the Outline main width value is 0." ,
-
-    //Outline Extrude Method [29] [Outline]
-    "Outline Extrude Methods.\n\nNormal - The outline extrusion will be based on normal direction.\n\nOrigin - The outline extrusion will be based on the center of the object." ,
-
-    //Outline Offset [30] [Outline]
-    "Outline XYZ position." ,
-
-    //Double Sided Outline [31] [Outline]
-    "Show the front side of the outline.\n\nUseful for plane object.\n'Outline Z Position In Camera' option is needed to be adjust to show the object." ,
-
-    //Color [32] [Outline] [Outline]
-    "Outline color." ,
-
-    //Mix Main Texture To Outline [33] [Outline]
-    "Mix 'Main/Base Texture' to oultine." ,
-
-    //Noisy Outline Intensity [34] [Outline]
-    "The power/intensity of the outline distortion or noise." ,
-
-    //Dynamic Noisy Outline [35] [Outline]
-    "Moving noisy or distort outline." ,
-
-    //Light Affect Outline Color [36] [Outline]
-    "Light (Brightness and Color) affect Outline color." ,
-
-    //Outline Width Affected By View Distance [37] [Outline]
-    "'Outline Width' affected by view distance." ,
-
-    //Far Distance Max Width [38] [Outline]
-    "The maximum 'Outline Width' limit when moving far from the object." ,
-
-    //Vertex Color Blue Affect Outline Width [39] [Outline]
-    "'Vertex Color Blue will affect the Outline Width.\n\nThis will not work if the Outline main width value is 0." ,
-
-    //Intensity [40] [SelfLit]
-    "How visible or strong the 'Self Lit' is." ,
-
-    //Color [41] [SelfLit]
-    "Self Lit color" ,
-
-    //Power [42] [SelfLit]
-    "'Self Lit Color' power or intensity." ,
-
-    //Texture and Main Color Intensity [43] [SelfLit]
-    "'Main/Base Texture' and 'Main/Base Color' intensity.\n\nAdjust this if the 'Main/Base Texture' and 'Main/Base Color' is too strong or too bright for Self Lit." ,
-
-    //High Contrast [44] [SelfLit]
-    "Turn Self Lit into high contrast colors and mix 'Base/Main Texture' twice." ,
-
-    //Mask Self Lit [45] [SelfLit]
-    "Mask Self Lit.\n\nUse a Black and White texture map.\nWhite means visible Self Lit while Black is not." ,
-
-    //Gloss Intensity [46] [Gloss]
-    "How visible or strong the 'Gloss' is." ,
-
-    //Glossiness [47] [Gloss]
-    "Glossiness." ,
-
-    //Softness [48] [Gloss]
-    "How soft the 'Gloss' is." ,
-
-    //Color [49] [Gloss]
-    "Gloss color" ,
-
-    //Power [50] [Gloss]
-    "'Gloss Color' power or intensity." ,
-
-    //Mask Gloss [51] [Gloss]
-    "Mask Gloss.\n\nWhite means visible Gloss while black is not." ,
-
-    //Gloss Texture [52] [Gloss Texture]
-    "A Black and White texture map to be used as gloss.\n\nWhite means gloss while Black is not." ,
-
-    //Softness [53] [Gloss Texture]
-    "The softness of the 'Gloss Texture'." ,
-
-    //Pattern Style [54] [Gloss Texture]
-    "Turn 'Gloss Texture' into pattern style." ,
-
-    //Rotate [55] [Gloss Texture]
-    "Rotate 'Gloss Texture'." ,
-
-    //Follow Object Rotation [56] [Gloss Texture]
-    "'Gloss Texture' will follow the object local rotation." ,
-
-    //Follow Light [57] [Gloss Texture]
-    "'Gloss Texture' will follow the light direction or position." ,
-
-    //Overall Shadow Color [58]
-    "Overall shadow color.\n\nThis will affect Realtime Shadow, Self Shadow/Shade and ShadowT." ,
-
-    //Overall Shadow Color Power [59]
-    "'Overall shadow Color' power or intensity." ,
-
-    //Self Shadow & ShadowT At View Direction [60]
-    "'Self Shadow' and 'ShadowT' follow your view or camera view direction." ,
-
-    //Reduce Shadow (Point Light) [61]
-    "The amount of reduce self cast shadow.\n\nThis option will only take effect when there's a Point Light." ,
-
-    //Refresh Settings [62]
-    "This will refresh and re-apply the settings properly.\n\nClick this if there are some problem, after you update, after material reset or re-import RealToon.",
-
-    //Reduce Shadow [63]
-    "The amount of reduce self cast shadow.\n\nThis option will only take effect when there's a 'Directional Light', 'Point' or 'Spot Light'." ,
-
-    //Shadow Hardness [64] [RealTime Shadow]
-    "Real time shadow hardness" ,
-
-    //Threshold [65] [Self Shadow]
-    "The amount of 'Self Shadow/Shade' on the object." ,
-
-    //Vertex Color Green Control Self Shadow Threshold [66]
-    "Controls 'Self Shadow Threshold' by using vertex color Green." ,
-
-    //Hardness [67] [Self Shadow]
-    "'Self Shadow/Shade' hardness." ,
-
-    //Self Shadow & Real Time Shadow Color [68]
-    "'Self Shadow and Real Time Shadow Color'.\n\nBefore you set/change this, Set 'Overall Shadow Color' to White." ,
-
-    //Self Shadow & Real Time Shadow Color Power [69]
-    "'Self Shadow and Real Time Shadow Color' power or intensity." ,
-
-    //Self Shadow Affected By Light Shadow Strength [70]
-    "Light shadow strength will affect self shadow visibility." ,
-
-    //Smooth Object Normal [71]
-    "The amount of smooth object normal." ,
-
-    //Vertex Color Red Control Smooth Object Normal [72]
-    "'Vertex color Red controls the amount of smooth object normal." ,
-
-    //XYZ Position [73] [Smooth Object Normal]
-    "Normal's XYZ positions." ,
-
-    //Affect Shadow [74]
-    "Transparency affect shadow." ,
-
-    //Show Normal [75] [Smooth Object Normal]
-    "Show the normal of the object." ,
-
-    //Shadow Color Texture [76]
-    "A texture to color shadow.\n\nThis includes (RealTime Shadow, Self Shadow/Shade and ShadowT.\nYou can also use your 'Main/Base Texture' and adjust 'Power' to make it dark." ,
-
-    //Power [77] [Shadow Color Texture]
-    "How strong or dark the 'Shadow Color Texture'." ,
-
-    //Intensity [78] [ShadowT]
-    "How visitble or strong the 'ShadowT' is." ,
-
-    //ShadowT [79]
-    "ShadowT or Shadow Texture, shadows in texture form.\n\nUse Black or Gray and White Flat, Gradient and Smooth texture map.\nGray and White affected by light while Black is not.\n\nFor more info and how to use and make ShadowT texture maps, see 'Video Tutorials' and 'User Guide.pdf' at the bottom of this RealToon inspector.",
-
-    //Light Threshold [80] [ShadowT]
-    "The amount of light." ,
-
-    //Shadow Threshold [81] [ShadowT]
-    "The amount of ShadowT." ,
-
-    //Hardness [82] [ShadowT]
-    "'ShadowT' hardness." ,
-
-    //Show In Shadow [83] [ShadowT]
-    "Show 'ShadowT' in shadow.\n\nThis will only be visible if realtime shadow and self shadow/shade color is not Black." ,
-
-    //Show In Ambient Light [84] [ShadowT]
-    "Show 'ShadowT' in Ambient Light.\n\nThis will only be visible if there's an Ambient Light present or GI." ,
-
-    //Show In Ambient Light & Shadow Intensity [85] [ShadowT]
-    "'ShadowT' intensity or visibility in shadow and ambient light." ,
-
-    //Show In Ambient Light & Shadow Threshold [86] [ShadowT]
-    "'ShadowT' threshold in Ambient Light and shadow." ,
-
-    //Light Falloff Affect ShadowT [87]
-    "'Point light' and 'Spot Light' light falloff affect 'ShadowT'." ,
-
-    //PTexture [88]
-    "A Black and White texture to be used as pattern for shadow.\n\nBlack means pattern while White is nothing.\nThis will not be visible if the shadow color is Black." ,
-
-    //Power [89] [PTexture]
-    "How strong or dark the pattern is." ,
-
-    //Receive Environmental Ligthing and GI [90] [Lighting]
-    "Turn on or off receive 'Environmental Ligthing' or 'GI'." ,
-
-    //Environmental Ligthing Intensity [91] [Lighting]
-    "Ambient Light, GI or Environmental Ligthing intensity on the object." ,
-
-    //GI Flat Shade [92] [Lighting]
-    "Turn GI or SH lighting shade into flat shade." ,
-
-    //GI Shade Threshold [93] [Lighting]
-    "The amount of GI Shade on the object." ,
-
-    //Light affect Shadow [94] [Lighting]
-    "Light intensity, color and light falloff affect shadows.\n\nThis will affect (RealTime shadow, Self Shadow and ShadowT)." ,
-
-    //Directional Light Intensity [95] [Lighting]
-    "Directional Light intensity received on the object." ,
-
-    //Point and Spot Light Intensity [96] [Lighting]
-    "Point and Spot light intensity received on the object." ,
-
-    //Light Falloff Softness [97] [Lighting]
-    "How soft is the point and spot light light falloff." ,
-
-    //Intensity [98] [Custom Light Direction]
-    "The amount of custom light direction." ,
-
-    //Custom Light Direction [99] [Custom Light Direction]
-    "XYZ light direction." ,
-
-    //Follow Object Rotation [100] [Custom Light Direction]
-    "'Custom Light Direction' follow object rotation." ,
-
-    //Intensity [101] [Reflection]
-    "The amount reflection visibility." ,
-
-    //Roughness [102] [Reflection]
-    "'Reflection' roughness." ,
-        
-    //Metallic [103] [Reflection]
-    "The amount of reflection metallic look." ,
-        
-    //Mask Reflection [104]
-    "Mask Reflection.\n\nWhite means visible relfection while Black means reflection not visible." ,
-
-    //FReflection [105]
-    "A texture or image to be used as reflection." ,
-
-    //Unfill [106] [Rim Light]
-    "Unfill the 'Rim Light' on the object." ,
-
-    //Softness [107] [Rim Light]
-    "'Rim Light' softness." ,
-
-    //Light Affect Rim Light [108] [Rim Light]
-    "Light (Brightness and Color) affect 'Rim Light'." ,
-
-    //Color [109] [Rim Light]
-    "'Rim Light' color." ,
-
-    //Color Power [110] [Rim Light]
-    "'Rim Light Color' power or intensity." ,
-
-    //Rim Light In Light [111]
-    "'Rim Light' will be visible in light only." ,
-
-    //ID [112] [See Through]
-    "ID or reference value.\n\n-Default Value: 0" ,
-
-    //Set A [113] [See Through]
-    "'A' The see through object while 'B' is the object to be seen through 'A'.\n\n-Default Value: A" ,
-
-    //Set B [114] [See Through]
-    "'A' The see through object while 'B' is the object to be seen through 'A'.\n\n-Default Value: None" ,
-
-    //No Light and Shadow On Backface [115]
-    "No light and shadow will be visible on a back of a plane/flat object or face.\n\nThis will only be take effect or visible if 'Culling' is turned 'Off' or 'Front'." ,
-
-    //Change Shader Compilation Target To 2.0/4.5. [116]
-    "This will change the Shader Compilation Target of the RealToon Shader file to '2.0' or '4.5'.\n\n*If the shader compilation target is changed to 4.5, the shader will support DOTS/DOTS Hybrid Renderer and Tessellation.",
-
-    //Hide Directional Light Shadow [117]
-    "Hide received 'Directional Light' shadows on the object." ,
-
-    //Hide Point & Spot Light Shadow [118]
-    "Hide received 'Point and Spot Light' shadows on the object." ,
-
-    //Disable Cast Shadow [119]
-    "Disable object cast shadow." ,
-
-    //ZWrite [120]
-    "Turn on or off ZWrite." ,
-
-    //Automatic Remove Unused Shader Keywords [121]
-    "Remove unused shader keywords automatically in all materials with Realtoon Shader. This will take effect once this enabled and when the RealToon Inspector shown. Disable this if you experience too slow Inspector.\n\n(Warning: This will also remove stored previous shaders shader keywords.)",
-
-    //Color[122] [PTexture]
-    "'PTexture' color." ,
-
-    //Outline Z Position In Camera [123] [Outline]
-    "Adjust the outline Z position in camera space." ,
-
-    //RealTime Shadow Intensity [124] [RealTime Shadow]
-    "Adjust the realtime shadow intensity." ,
-
-    //Rim Light Intensity [125] [RimLight]
-    "'Rim Light' intensity.",
-
-    //Self Shadow & RealTime Shadow Intensity [126]
-    "Adjust the 'Self Shadow' and realtime shadow intensity." ,
-
-    //Self Shadow Color [127] [Shadow]
-    "'Self Shadow' color." ,
-
-    //Self Shadow Color Power [128] [Shadow]
-    "'Self Shadow' color power or intensity." ,
-
-    //Color [129] [ShadowT]
-    "'ShadowT' color." ,
-
-    //Color Power [130] [ShadowT]
-    "'ShadowT' color power or intensity.",
-
-    //Ignore Light [131] [ShadowT]
-    "'ShadowT' ignore direction light or light position.",
-
-    //Light Intensity [132] [Lighting]
-    "How strong is the Light in the shadow.",
-
-    //Enable Additional Lights [133] [Lighting]
-    "Enable additional lights like Point and Spot lights.",
-
-    //Use Traditional Light Blend [134] [Lighting]
-    "Use traditional light blend.\n\nIf enabled light blending will be in add mode, if not enabled the light blending will based on high or maximum light intensity and the blending will be similar to Anime or Cartoon.",
-
-    //Remove Outline/Add Outline (On Shader) [135]
-    "This will remove the Outline feature completely on the shader file or Add back the Outline feature on the shader file.\n\nThis is not per material.",
-
-    //Video Tutorials [136]
-    "RealToon's video tutorial playlist.",
-
-    //RealToon (User Guide).pdf [137]
-    "RealToon's user guide or documentation.",
-
-    //Hide/Show UI [138]
-    "This will hide or show RealToon's Inspector UI.\n\nThis is global and not per material.",
-
-    //Depth Threshold [139] [outline]
-    "This will adjust the depth based outline threshold.",
-
-    //Mix Outline To The Shader Output [140] [outline]
-    "This will mix the outline to the shader output",
-
-    //Optimize for [Light Mode:Baked] [141]
-    "If enabled, it will disable all realtime features on the shader and optimize it for [Light Mode:Baked].\n\nDisable or uncheck this for [Light Mode: RealTime or Mixed] use.",
-
-    //Use Screen Space Outline/Use Traditional Outline [142] [outline]
-    "This will enable you to use 'Screen Space Outline' or 'Traditional Outline'.\n\n'Depth Texture' needs to be turn 'On' if you use the 'Screen Space Outline'.\n\nThis is not per material.",
-
-    //Use Linear Blend Skinning/Compute Deformation [143]
-    "This will enable you to use 'Linear Blend Skinning' or 'Compute Deformation'.\n\nThis will modify the RealToon shader file.",
-
-    //Light Ignore Y Normal Direcion [144]
-    "Light will ignore Object Normal Y direction.",
-
-    //Enable Screen Space Ambient Occlusion [145]
-    "Enable SSAO or Screen Space Ambient Occlusion." ,
-
-    //Ambient Occlusion Color [146]
-    "Ambient Occlusion color or tint.",
-
-    //Receive Decal [147]
-    "The object will Receive Decal.",
-
-    //Glow Color [148]
-    "Glow edge color.",
-
-    //Glow Edge Width [149]
-    "The width of the glow.",
-
-    //Simple Transparency Mode[150]
-    "Common simple transparency.\nOnly 'Opacity', 'Blend Modes' and 'Affect Shadow' are available.\n\n'Transparent Threshold' and 'Mask Transparency' not available on this mode.",
-
-    //Disable DOTS Mesh Deformation[151]
-    "Disable DOTS Mesh Deformation: 'Linear Blend Skinning and Compute Deformation'.\n\n*For Static Objects, enabled this.",
-
-    //Near Fade Dithering - Min Distance[152]
-    "The minimum near distance.",
-
-    //Near Fade Dithering - Max Distance[153]
-    "The maximum near distance."
-
-};
+            //Culling [0]
+            "Controls which sides of polygons should be culled (not drawn).\n\n\nBack: Don’t render polygons that are facing away from the viewer.\n\nFront: Don’t render polygons that are facing towards the viewer, Used for turning objects inside-out.\n\nOff: Disables culling - all faces are drawn, This also called Double Sided.",
+            //Texture [1]
+            "Main or base texture.",
+            //Texture Pattern Style [2]
+            "Turn the 'Main/Base Texture' into pattern style.",
+            //Main Color [3]
+            "Main or base color.",
+            //Mix Vertex Color [4]
+            "Mix or show vertex color.",
+            //Main Color in Ambient Light Only [5]
+            "Put the 'Main/Base Color' into ambient light.",
+            //Highlight Color [6]
+            "Highlight color.",
+            //Highlight Color Power [7]
+            "'Highlight Color' power or intensity.",
+            //Main Color Power [8]
+            "'Main Color' power or intensity.",
+            //Blend - Source [9] [Transparent Mode]
+            "Blending source.\n\n-Default Value: ScrAlpha",
+            //Blend - Destination [10] [Transparent Mode]
+            "Blending Destination.\n\n-Default Value: OneMinusScrAlpha",
+            //Transparent Mode [11]
+            "Setting the current mode from Opaque to Transparent.\n\nThis will allow you to use 'Fade Transparency' and 'Cutout' feature.",
+            //Intensity [12] [MatCap]
+            "MatCap intensity.",
+            //MatCap [13] [MatCap]
+            "MatCap texture.",
+            //Specualar Mode [14] [MatCap]
+            "Turn MatCap into specular.",
+            //Specular Power [15] [MatCap]
+            "Specular intensity or power.",
+            //Mask MatCap [16] [MatCap]
+            "Mask MatCap.\n\nUse a Black and White texture map.\nWhite means visible matcap while Black is not.",
+            //Cutout [17]
+            "Cutout value or threshold.",
+            //Alpha Base Cutout [18]
+            "It will use the alpha/transparent channel of the 'Main/Base Texture' to cutout.",
+            //Use Secondary Cutout Only [19]
+            "Use only the 'Secondary Cutout' to do the cutout.",
+            //Secondary Cutout [20]
+            "Secondary texture cutout.\n\nUse a Black and White texture map.\nWhite means not cut out while Black is cutout.",
+            //Opacity [21]
+            "Adjust the Transparency - Opacity of the object",
+            //Transparent Threshold [22]
+            "'Main/Base Texture' transparency threshold.",
+            //Mask Transparency [23]
+            "Mask Transparency.\n\nWhite means opaque while Black means transparent.",
+            //Normal Map [24]
+            "Normal Map.",
+            //Normal Map Intensity [25]
+            "'Normal Map' intensity.",
+            //Saturation [26] [Color Adjustment]
+            "Color saturation of the object.",
+            //Width [27] [Outline]
+            "Outline main width.",
+            //Width Control [28] [Outline]
+            "Controls the 'Outline Width' using texture Map.\n\nUse a Black and White texture map.\nWhite means 1 while Black means 0.\nThis will not work if the Outline main width value is 0.",
+            //Outline Extrude Method [29] [Outline]
+            "Outline Extrude Methods.\n\nNormal - The outline extrusion will be based on normal direction.\n\nOrigin - The outline extrusion will be based on the center of the object.",
+            //Outline Offset [30] [Outline]
+            "Outline XYZ position.",
+            //Double Sided Outline [31] [Outline]
+            "Show the front side of the outline.\n\nUseful for plane object.\n'Outline Z Position In Camera' option is needed to be adjust to show the object.",
+            //Color [32] [Outline] [Outline]
+            "Outline color.",
+            //Mix Main Texture To Outline [33] [Outline]
+            "Mix 'Main/Base Texture' to oultine.",
+            //Noisy Outline Intensity [34] [Outline]
+            "The power/intensity of the outline distortion or noise.",
+            //Dynamic Noisy Outline [35] [Outline]
+            "Moving noisy or distort outline.",
+            //Light Affect Outline Color [36] [Outline]
+            "Light (Brightness and Color) affect Outline color.",
+            //Outline Width Affected By View Distance [37] [Outline]
+            "'Outline Width' affected by view distance.",
+            //Far Distance Max Width [38] [Outline]
+            "The maximum 'Outline Width' limit when moving far from the object.",
+            //Vertex Color Blue Affect Outline Width [39] [Outline]
+            "'Vertex Color Blue will affect the Outline Width.\n\nThis will not work if the Outline main width value is 0.",
+            //Intensity [40] [SelfLit]
+            "How visible or strong the 'Self Lit' is.",
+            //Color [41] [SelfLit]
+            "Self Lit color",
+            //Power [42] [SelfLit]
+            "'Self Lit Color' power or intensity.",
+            //Texture and Main Color Intensity [43] [SelfLit]
+            "'Main/Base Texture' and 'Main/Base Color' intensity.\n\nAdjust this if the 'Main/Base Texture' and 'Main/Base Color' is too strong or too bright for Self Lit.",
+            //High Contrast [44] [SelfLit]
+            "Turn Self Lit into high contrast colors and mix 'Base/Main Texture' twice.",
+            //Mask Self Lit [45] [SelfLit]
+            "Mask Self Lit.\n\nUse a Black and White texture map.\nWhite means visible Self Lit while Black is not.",
+            //Gloss Intensity [46] [Gloss]
+            "How visible or strong the 'Gloss' is.",
+            //Glossiness [47] [Gloss]
+            "Glossiness.",
+            //Softness [48] [Gloss]
+            "How soft the 'Gloss' is.",
+            //Color [49] [Gloss]
+            "Gloss color",
+            //Power [50] [Gloss]
+            "'Gloss Color' power or intensity.",
+            //Mask Gloss [51] [Gloss]
+            "Mask Gloss.\n\nWhite means visible Gloss while black is not.",
+            //Gloss Texture [52] [Gloss Texture]
+            "A Black and White texture map to be used as gloss.\n\nWhite means gloss while Black is not.",
+            //Softness [53] [Gloss Texture]
+            "The softness of the 'Gloss Texture'.",
+            //Pattern Style [54] [Gloss Texture]
+            "Turn 'Gloss Texture' into pattern style.",
+            //Rotate [55] [Gloss Texture]
+            "Rotate 'Gloss Texture'.",
+            //Follow Object Rotation [56] [Gloss Texture]
+            "'Gloss Texture' will follow the object local rotation.",
+            //Follow Light [57] [Gloss Texture]
+            "'Gloss Texture' will follow the light direction or position.",
+            //Overall Shadow Color [58]
+            "Overall shadow color.\n\nThis will affect Realtime Shadow, Self Shadow/Shade and ShadowT.",
+            //Overall Shadow Color Power [59]
+            "'Overall shadow Color' power or intensity.",
+            //Self Shadow & ShadowT At View Direction [60]
+            "'Self Shadow' and 'ShadowT' follow your view or camera view direction.",
+            //Reduce Shadow (Point Light) [61]
+            "The amount of reduce self cast shadow.\n\nThis option will only take effect when there's a Point Light.",
+            //Refresh Settings [62]
+            "This will refresh and re-apply the settings properly.\n\nClick this if there are some problem, after you update, after material reset or re-import RealToon.",
+            //Reduce Shadow [63]
+            "The amount of reduce self cast shadow.\n\nThis option will only take effect when there's a 'Directional Light', 'Point' or 'Spot Light'.",
+            //Shadow Hardness [64] [RealTime Shadow]
+            "Real time shadow hardness",
+            //Threshold [65] [Self Shadow]
+            "The amount of 'Self Shadow/Shade' on the object.",
+            //Vertex Color Green Control Self Shadow Threshold [66]
+            "Controls 'Self Shadow Threshold' by using vertex color Green.",
+            //Hardness [67] [Self Shadow]
+            "'Self Shadow/Shade' hardness.",
+            //Self Shadow & Real Time Shadow Color [68]
+            "'Self Shadow and Real Time Shadow Color'.\n\nBefore you set/change this, Set 'Overall Shadow Color' to White.",
+            //Self Shadow & Real Time Shadow Color Power [69]
+            "'Self Shadow and Real Time Shadow Color' power or intensity.",
+            //Self Shadow Affected By Light Shadow Strength [70]
+            "Light shadow strength will affect self shadow visibility.",
+            //Smooth Object Normal [71]
+            "The amount of smooth object normal.",
+            //Vertex Color Red Control Smooth Object Normal [72]
+            "'Vertex color Red controls the amount of smooth object normal.",
+            //XYZ Position [73] [Smooth Object Normal]
+            "Normal's XYZ positions.",
+            //Affect Shadow [74]
+            "Transparency affect shadow.",
+            //Show Normal [75] [Smooth Object Normal]
+            "Show the normal of the object.",
+            //Shadow Color Texture [76]
+            "A texture to color shadow.\n\nThis includes (RealTime Shadow, Self Shadow/Shade and ShadowT.\nYou can also use your 'Main/Base Texture' and adjust 'Power' to make it dark.",
+            //Power [77] [Shadow Color Texture]
+            "How strong or dark the 'Shadow Color Texture'.",
+            //Intensity [78] [ShadowT]
+            "How visitble or strong the 'ShadowT' is.",
+            //ShadowT [79]
+            "ShadowT or Shadow Texture, shadows in texture form.\n\nUse Black or Gray and White Flat, Gradient and Smooth texture map.\nGray and White affected by light while Black is not.\n\nFor more info and how to use and make ShadowT texture maps, see 'Video Tutorials' and 'User Guide.pdf' at the bottom of this RealToon inspector.",
+            //Light Threshold [80] [ShadowT]
+            "The amount of light.",
+            //Shadow Threshold [81] [ShadowT]
+            "The amount of ShadowT.",
+            //Hardness [82] [ShadowT]
+            "'ShadowT' hardness.",
+            //Show In Shadow [83] [ShadowT]
+            "Show 'ShadowT' in shadow.\n\nThis will only be visible if realtime shadow and self shadow/shade color is not Black.",
+            //Show In Ambient Light [84] [ShadowT]
+            "Show 'ShadowT' in Ambient Light.\n\nThis will only be visible if there's an Ambient Light present or GI.",
+            //Show In Ambient Light & Shadow Intensity [85] [ShadowT]
+            "'ShadowT' intensity or visibility in shadow and ambient light.",
+            //Show In Ambient Light & Shadow Threshold [86] [ShadowT]
+            "'ShadowT' threshold in Ambient Light and shadow.",
+            //Light Falloff Affect ShadowT [87]
+            "'Point light' and 'Spot Light' light falloff affect 'ShadowT'.",
+            //PTexture [88]
+            "A Black and White texture to be used as pattern for shadow.\n\nBlack means pattern while White is nothing.\nThis will not be visible if the shadow color is Black.",
+            //Power [89] [PTexture]
+            "How strong or dark the pattern is.",
+            //Receive Environmental Ligthing and GI [90] [Lighting]
+            "Turn on or off receive 'Environmental Ligthing' or 'GI'.",
+            //Environmental Ligthing Intensity [91] [Lighting]
+            "Ambient Light, GI or Environmental Ligthing intensity on the object.",
+            //GI Flat Shade [92] [Lighting]
+            "Turn GI or SH lighting shade into flat shade.",
+            //GI Shade Threshold [93] [Lighting]
+            "The amount of GI Shade on the object.",
+            //Light affect Shadow [94] [Lighting]
+            "Light intensity, color and light falloff affect shadows.\n\nThis will affect (RealTime shadow, Self Shadow and ShadowT).",
+            //Directional Light Intensity [95] [Lighting]
+            "Directional Light intensity received on the object.",
+            //Point and Spot Light Intensity [96] [Lighting]
+            "Point and Spot light intensity received on the object.",
+            //Light Falloff Softness [97] [Lighting]
+            "How soft is the point and spot light light falloff.",
+            //Intensity [98] [Custom Light Direction]
+            "The amount of custom light direction.",
+            //Custom Light Direction [99] [Custom Light Direction]
+            "XYZ light direction.",
+            //Follow Object Rotation [100] [Custom Light Direction]
+            "'Custom Light Direction' follow object rotation.",
+            //Intensity [101] [Reflection]
+            "The amount reflection visibility.",
+            //Roughness [102] [Reflection]
+            "'Reflection' roughness.",
+            //Metallic [103] [Reflection]
+            "The amount of reflection metallic look.",
+            //Mask Reflection [104]
+            "Mask Reflection.\n\nWhite means visible relfection while Black means reflection not visible.",
+            //FReflection [105]
+            "A texture or image to be used as reflection.",
+            //Unfill [106] [Rim Light]
+            "Unfill the 'Rim Light' on the object.",
+            //Softness [107] [Rim Light]
+            "'Rim Light' softness.",
+            //Light Affect Rim Light [108] [Rim Light]
+            "Light (Brightness and Color) affect 'Rim Light'.",
+            //Color [109] [Rim Light]
+            "'Rim Light' color.",
+            //Color Power [110] [Rim Light]
+            "'Rim Light Color' power or intensity.",
+            //Rim Light In Light [111]
+            "'Rim Light' will be visible in light only.",
+            //ID [112] [See Through]
+            "ID or reference value.\n\n-Default Value: 0",
+            //Set A [113] [See Through]
+            "'A' The see through object while 'B' is the object to be seen through 'A'.\n\n-Default Value: A",
+            //Set B [114] [See Through]
+            "'A' The see through object while 'B' is the object to be seen through 'A'.\n\n-Default Value: None",
+            //No Light and Shadow On Backface [115]
+            "No light and shadow will be visible on a back of a plane/flat object or face.\n\nThis will only be take effect or visible if 'Culling' is turned 'Off' or 'Front'.",
+            //Change Shader Compilation Target To 2.0/4.5. [116]
+            "This will change the Shader Compilation Target of the RealToon Shader file to '2.0' or '4.5'.\n\n*If the shader compilation target is changed to 4.5, the shader will support DOTS/DOTS Hybrid Renderer and Tessellation.",
+            //Hide Directional Light Shadow [117]
+            "Hide received 'Directional Light' shadows on the object.",
+            //Hide Point & Spot Light Shadow [118]
+            "Hide received 'Point and Spot Light' shadows on the object.",
+            //Disable Cast Shadow [119]
+            "Disable object cast shadow.",
+            //ZWrite [120]
+            "Turn on or off ZWrite.",
+            //Automatic Remove Unused Shader Keywords [121]
+            "Remove unused shader keywords automatically in all materials with Realtoon Shader. This will take effect once this enabled and when the RealToon Inspector shown. Disable this if you experience too slow Inspector.\n\n(Warning: This will also remove stored previous shaders shader keywords.)",
+            //Color[122] [PTexture]
+            "'PTexture' color.",
+            //Outline Z Position In Camera [123] [Outline]
+            "Adjust the outline Z position in camera space.",
+            //RealTime Shadow Intensity [124] [RealTime Shadow]
+            "Adjust the realtime shadow intensity.",
+            //Rim Light Intensity [125] [RimLight]
+            "'Rim Light' intensity.",
+            //Self Shadow & RealTime Shadow Intensity [126]
+            "Adjust the 'Self Shadow' and realtime shadow intensity.",
+            //Self Shadow Color [127] [Shadow]
+            "'Self Shadow' color.",
+            //Self Shadow Color Power [128] [Shadow]
+            "'Self Shadow' color power or intensity.",
+            //Color [129] [ShadowT]
+            "'ShadowT' color.",
+            //Color Power [130] [ShadowT]
+            "'ShadowT' color power or intensity.",
+            //Ignore Light [131] [ShadowT]
+            "'ShadowT' ignore direction light or light position.",
+            //Light Intensity [132] [Lighting]
+            "How strong is the Light in the shadow.",
+            //Enable Additional Lights [133] [Lighting]
+            "Enable additional lights like Point and Spot lights.",
+            //Use Traditional Light Blend [134] [Lighting]
+            "Use traditional light blend.\n\nIf enabled light blending will be in add mode, if not enabled the light blending will based on high or maximum light intensity and the blending will be similar to Anime or Cartoon.",
+            //Remove Outline/Add Outline (On Shader) [135]
+            "This will remove the Outline feature completely on the shader file or Add back the Outline feature on the shader file.\n\nThis is not per material.",
+            //Video Tutorials [136]
+            "RealToon's video tutorial playlist.",
+            //RealToon (User Guide).pdf [137]
+            "RealToon's user guide or documentation.",
+            //Hide/Show UI [138]
+            "This will hide or show RealToon's Inspector UI.\n\nThis is global and not per material.",
+            //Depth Threshold [139] [outline]
+            "This will adjust the depth based outline threshold.",
+            //Mix Outline To The Shader Output [140] [outline]
+            "This will mix the outline to the shader output",
+            //Optimize for [Light Mode:Baked] [141]
+            "If enabled, it will disable all realtime features on the shader and optimize it for [Light Mode:Baked].\n\nDisable or uncheck this for [Light Mode: RealTime or Mixed] use.",
+            //Use Screen Space Outline/Use Traditional Outline [142] [outline]
+            "This will enable you to use 'Screen Space Outline' or 'Traditional Outline'.\n\n'Depth Texture' needs to be turn 'On' if you use the 'Screen Space Outline'.\n\nThis is not per material.",
+            //Use Linear Blend Skinning/Compute Deformation [143]
+            "This will enable you to use 'Linear Blend Skinning' or 'Compute Deformation'.\n\nThis will modify the RealToon shader file.",
+            //Light Ignore Y Normal Direcion [144]
+            "Light will ignore Object Normal Y direction.",
+            //Enable Screen Space Ambient Occlusion [145]
+            "Enable SSAO or Screen Space Ambient Occlusion.",
+            //Ambient Occlusion Color [146]
+            "Ambient Occlusion color or tint.",
+            //Receive Decal [147]
+            "The object will Receive Decal.",
+            //Glow Color [148]
+            "Glow edge color.",
+            //Glow Edge Width [149]
+            "The width of the glow.",
+            //Simple Transparency Mode[150]
+            "Common simple transparency.\nOnly 'Opacity', 'Blend Modes' and 'Affect Shadow' are available.\n\n'Transparent Threshold' and 'Mask Transparency' not available on this mode.",
+            //Disable DOTS Mesh Deformation[151]
+            "Disable DOTS Mesh Deformation: 'Linear Blend Skinning and Compute Deformation'.\n\n*For Static Objects, enabled this.",
+            //Near Fade Dithering - Min Distance[152]
+            "The minimum near distance.",
+            //Near Fade Dithering - Max Distance[153]
+            "The maximum near distance.",
+        };
 
         #endregion
 
@@ -789,61 +632,43 @@ namespace GameEditor.RealToonEditor
 
         string[] TOTIPSEDF =
         {
-    //MatCap [0]
-    "MatCap or Material Capture.",
-
-    //Normal Map [1]
-    "Normal Map.",
-
-    //Outline [2]
-    "Outline.",
-
-    //Cutout [3]
-    "Cutout.",
-
-    //Color Adjustment [4]
-    "Adjust the color of the object.",
-
-    //SelfLit [5]
-    "Own light or Emission.",
-
-    //Gloss [6]
-    "Gloss.",
-
-    //Gloss Texture [7]
-    "Gloss in texture form.\n\nUse a Black and White texture map.\nWhite means gloss while Black is not.",
-
-    //Self Shadow [8]
-    "Self Shadow or Shade.",
-
-    //Smooth Object Normal [9]
-    "Smooth object normal or ignore object normal.",
-
-    //Shadow Color Texture [10]
-    "Color shadow using texture.",
-
-    //ShadowT [11]
-    "ShadowT or Shadow Texture, shadows in texture form.\n\nUse Black or Gray and White Flat, Gradient and Smooth texture map.\nGray and White affected by light while Black is not.\n\nFor more info and how to use and make ShadowT texture maps, see 'Video Tutorials' and 'User Guide.pdf' at the bottom of this RealToon inspector.",
-
-    //PTexture [12]
-    "PTexture or Pattern Texture.\n\nA Black and White texture to be used as pattern for shadow.\n\nBlack means pattern while White is nothing.\nThis will not be visible if the shadow color is Black.",
-
-    //Custom Light Direction [13]
-    "Custom light direction.",
-
-    //Reflection [14]
-    "Reflection.",
-
-    //FReflection [15]
-    "FReflection or Fake Reflection.\n\nUse any texture or image as reflection.",
-
-    //Rim Light [16]
-    "Rim light or fresnel effect.",
-
-    //Near Fade Dithering [17]
-    "Object fades when the camera near."
-
-};
+            //MatCap [0]
+            "MatCap or Material Capture.",
+            //Normal Map [1]
+            "Normal Map.",
+            //Outline [2]
+            "Outline.",
+            //Cutout [3]
+            "Cutout.",
+            //Color Adjustment [4]
+            "Adjust the color of the object.",
+            //SelfLit [5]
+            "Own light or Emission.",
+            //Gloss [6]
+            "Gloss.",
+            //Gloss Texture [7]
+            "Gloss in texture form.\n\nUse a Black and White texture map.\nWhite means gloss while Black is not.",
+            //Self Shadow [8]
+            "Self Shadow or Shade.",
+            //Smooth Object Normal [9]
+            "Smooth object normal or ignore object normal.",
+            //Shadow Color Texture [10]
+            "Color shadow using texture.",
+            //ShadowT [11]
+            "ShadowT or Shadow Texture, shadows in texture form.\n\nUse Black or Gray and White Flat, Gradient and Smooth texture map.\nGray and White affected by light while Black is not.\n\nFor more info and how to use and make ShadowT texture maps, see 'Video Tutorials' and 'User Guide.pdf' at the bottom of this RealToon inspector.",
+            //PTexture [12]
+            "PTexture or Pattern Texture.\n\nA Black and White texture to be used as pattern for shadow.\n\nBlack means pattern while White is nothing.\nThis will not be visible if the shadow color is Black.",
+            //Custom Light Direction [13]
+            "Custom light direction.",
+            //Reflection [14]
+            "Reflection.",
+            //FReflection [15]
+            "FReflection or Fake Reflection.\n\nUse any texture or image as reflection.",
+            //Rim Light [16]
+            "Rim light or fresnel effect.",
+            //Near Fade Dithering [17]
+            "Object fades when the camera near.",
+        };
 
         #endregion
 
@@ -867,7 +692,7 @@ namespace GameEditor.RealToonEditor
             //    break;
             //case "Universal Render Pipeline/RealToon/Version 5/Default/Fade Transparency":
             //    shader_name = "default_ft";
-            //    shader_type = "URP - Fade Transperancy"; 
+            //    shader_type = "URP - Fade Transperancy";
             //    break;
             //case "RealToon/Version 5/Default/Refraction": //Temporarily Removed
             //shader_name = "default_ref"; //Temporarily Removed
@@ -890,7 +715,6 @@ namespace GameEditor.RealToonEditor
             //    shader_type = string.Empty;
             //    break;
             //}
-
 
             #endregion
 
@@ -1136,7 +960,6 @@ namespace GameEditor.RealToonEditor
 
             if (ShowUI == true)
             {
-
                 GUILayout.Space(20);
 
                 EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
@@ -1224,11 +1047,9 @@ namespace GameEditor.RealToonEditor
                             default:
                                 break;
                         }
-
                     }
 
                     materialEditor.PropertiesChanged();
-
                 }
 
                 EditorGUILayout.EndVertical();
@@ -1238,7 +1059,6 @@ namespace GameEditor.RealToonEditor
                 EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
                 GUILayout.Space(20);
-
 
                 //Texture - Color
 
@@ -1250,7 +1070,6 @@ namespace GameEditor.RealToonEditor
 
                 if (ShowTextureColor)
                 {
-
                     GUILayout.Space(10);
 
                     materialEditor.ShaderProperty(_MainTex, new GUIContent(_MainTex.displayName, TOTIPS[1]));
@@ -1276,7 +1095,6 @@ namespace GameEditor.RealToonEditor
                     materialEditor.ShaderProperty(_HighlightColorPower, new GUIContent(_HighlightColorPower.displayName, TOTIPS[7]));
 
                     GUILayout.Space(10);
-
                 }
 
                 EditorGUILayout.EndVertical();
@@ -1296,7 +1114,6 @@ namespace GameEditor.RealToonEditor
 
                     if (ShowMatCap)
                     {
-
                         GUILayout.Space(10);
 
                         materialEditor.ShaderProperty(_MCapIntensity, new GUIContent(_MCapIntensity.displayName, TOTIPS[13]));
@@ -1314,7 +1131,6 @@ namespace GameEditor.RealToonEditor
                         materialEditor.ShaderProperty(_MCapMask, new GUIContent(_MCapMask.displayName, TOTIPS[16]));
 
                         GUILayout.Space(10);
-
                     }
 
                     EditorGUILayout.EndVertical();
@@ -1339,7 +1155,6 @@ namespace GameEditor.RealToonEditor
 
                         if (ShowCutout)
                         {
-
                             GUILayout.Space(10);
 
                             materialEditor.ShaderProperty(_Cutout, new GUIContent(_Cutout.displayName, TOTIPS[17]));
@@ -1359,7 +1174,6 @@ namespace GameEditor.RealToonEditor
                             EditorGUI.EndDisabledGroup();
 
                             GUILayout.Space(10);
-
                         }
 
                         EditorGUILayout.EndVertical();
@@ -1385,7 +1199,6 @@ namespace GameEditor.RealToonEditor
 
                     if (ShowTransparency)
                     {
-
                         GUILayout.Space(10);
                         materialEditor.ShaderProperty(_SimTrans, new GUIContent(_SimTrans.displayName, TOTIPS[150]));
 
@@ -1413,7 +1226,6 @@ namespace GameEditor.RealToonEditor
                         EditorGUI.EndDisabledGroup();
 
                         GUILayout.Space(10);
-
                     }
 
                     EditorGUI.EndDisabledGroup();
@@ -1429,7 +1241,6 @@ namespace GameEditor.RealToonEditor
 
                 if (_N_F_NM.floatValue == 1)
                 {
-
                     EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
                     Rect r_normalmap = EditorGUILayout.BeginVertical("Button");
@@ -1446,11 +1257,9 @@ namespace GameEditor.RealToonEditor
                         EditorGUI.EndDisabledGroup();
 
                         GUILayout.Space(10);
-
                     }
 
                     EditorGUILayout.EndVertical();
-
                 }
                 #endregion
 
@@ -1467,16 +1276,14 @@ namespace GameEditor.RealToonEditor
 
                     if (ShowColorAdjustment)
                     {
-
                         GUILayout.Space(10);
                         materialEditor.ShaderProperty(_Saturation, new GUIContent(_Saturation.displayName, TOTIPS[26]));
 
                         GUILayout.Space(10);
-
                     }
 
-                    EditorGUILayout.EndVertical(); ;
-
+                    EditorGUILayout.EndVertical();
+                    ;
                 }
 
                 #endregion
@@ -1487,64 +1294,91 @@ namespace GameEditor.RealToonEditor
 
                 if (remoout == true)
                 {
-
                     if (_N_F_O.floatValue == 1)
                     {
-
                         EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
                         Rect r_outline = EditorGUILayout.BeginVertical("Button");
                         ShowOutline = EditorGUILayout.Foldout(ShowOutline, "(Outline - " + OLType + ")", true, EditorStyles.foldout);
 
-
                         if (ShowOutline)
                         {
-
                             GUILayout.Space(10);
 
                             materialEditor.ShaderProperty(_OutlineWidth, new GUIContent(_OutlineWidth.displayName, TOTIPS[8]));
 
                             if (UseSSOL == true)
                             {
-
-                                materialEditor.ShaderProperty(_OutlineWidthControl, new GUIContent(_OutlineWidthControl.displayName, TOTIPS[28]));
+                                materialEditor.ShaderProperty(
+                                    _OutlineWidthControl,
+                                    new GUIContent(_OutlineWidthControl.displayName, TOTIPS[28])
+                                );
 
                                 GUILayout.Space(10);
 
-                                materialEditor.ShaderProperty(_OutlineExtrudeMethod, new GUIContent(_OutlineExtrudeMethod.displayName, TOTIPS[29]));
+                                materialEditor.ShaderProperty(
+                                    _OutlineExtrudeMethod,
+                                    new GUIContent(_OutlineExtrudeMethod.displayName, TOTIPS[29])
+                                );
 
                                 GUILayout.Space(10);
                                 materialEditor.ShaderProperty(_OutlineOffset, new GUIContent(_OutlineOffset.displayName, TOTIPS[30]));
 
                                 GUILayout.Space(10);
-                                materialEditor.ShaderProperty(_OutlineZPostionInCamera, new GUIContent(_OutlineZPostionInCamera.displayName, TOTIPS[123]));
+                                materialEditor.ShaderProperty(
+                                    _OutlineZPostionInCamera,
+                                    new GUIContent(_OutlineZPostionInCamera.displayName, TOTIPS[123])
+                                );
 
                                 GUILayout.Space(10);
-                                materialEditor.ShaderProperty(_DoubleSidedOutline, new GUIContent(_DoubleSidedOutline.displayName, TOTIPS[31]));
+                                materialEditor.ShaderProperty(
+                                    _DoubleSidedOutline,
+                                    new GUIContent(_DoubleSidedOutline.displayName, TOTIPS[31])
+                                );
 
                                 GUILayout.Space(10);
                                 materialEditor.ShaderProperty(_OutlineColor, new GUIContent(_OutlineColor.displayName, TOTIPS[32]));
 
                                 GUILayout.Space(10);
-                                materialEditor.ShaderProperty(_MixMainTexToOutline, new GUIContent(_MixMainTexToOutline.displayName, TOTIPS[33]));
+                                materialEditor.ShaderProperty(
+                                    _MixMainTexToOutline,
+                                    new GUIContent(_MixMainTexToOutline.displayName, TOTIPS[33])
+                                );
 
                                 GUILayout.Space(10);
-                                materialEditor.ShaderProperty(_NoisyOutlineIntensity, new GUIContent(_NoisyOutlineIntensity.displayName, TOTIPS[34]));
-                                materialEditor.ShaderProperty(_DynamicNoisyOutline, new GUIContent(_DynamicNoisyOutline.displayName, TOTIPS[35]));
+                                materialEditor.ShaderProperty(
+                                    _NoisyOutlineIntensity,
+                                    new GUIContent(_NoisyOutlineIntensity.displayName, TOTIPS[34])
+                                );
+                                materialEditor.ShaderProperty(
+                                    _DynamicNoisyOutline,
+                                    new GUIContent(_DynamicNoisyOutline.displayName, TOTIPS[35])
+                                );
 
                                 GUILayout.Space(10);
-                                materialEditor.ShaderProperty(_LightAffectOutlineColor, new GUIContent(_LightAffectOutlineColor.displayName, TOTIPS[36]));
+                                materialEditor.ShaderProperty(
+                                    _LightAffectOutlineColor,
+                                    new GUIContent(_LightAffectOutlineColor.displayName, TOTIPS[36])
+                                );
 
                                 GUILayout.Space(10);
-                                materialEditor.ShaderProperty(_OutlineWidthAffectedByViewDistance, new GUIContent(_OutlineWidthAffectedByViewDistance.displayName, TOTIPS[37]));
+                                materialEditor.ShaderProperty(
+                                    _OutlineWidthAffectedByViewDistance,
+                                    new GUIContent(_OutlineWidthAffectedByViewDistance.displayName, TOTIPS[37])
+                                );
                                 EditorGUI.BeginDisabledGroup(_OutlineWidthAffectedByViewDistance.floatValue == 0);
-                                materialEditor.ShaderProperty(_FarDistanceMaxWidth, new GUIContent(_FarDistanceMaxWidth.displayName, TOTIPS[38]));
+                                materialEditor.ShaderProperty(
+                                    _FarDistanceMaxWidth,
+                                    new GUIContent(_FarDistanceMaxWidth.displayName, TOTIPS[38])
+                                );
                                 EditorGUI.EndDisabledGroup();
 
                                 GUILayout.Space(10);
 
-                                materialEditor.ShaderProperty(_VertexColorBlueAffectOutlineWitdh, new GUIContent(_VertexColorBlueAffectOutlineWitdh.displayName, TOTIPS[39]));
-
+                                materialEditor.ShaderProperty(
+                                    _VertexColorBlueAffectOutlineWitdh,
+                                    new GUIContent(_VertexColorBlueAffectOutlineWitdh.displayName, TOTIPS[39])
+                                );
                             }
                             else
                             {
@@ -1567,13 +1401,10 @@ namespace GameEditor.RealToonEditor
                             }
 
                             GUILayout.Space(10);
-
                         }
 
                         EditorGUILayout.EndVertical();
-
                     }
-
                 }
 
                 #endregion
@@ -1584,7 +1415,6 @@ namespace GameEditor.RealToonEditor
 
                 if (_N_F_SL.floatValue == 1)
                 {
-
                     EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
                     Rect r_selflit = EditorGUILayout.BeginVertical("Button");
@@ -1592,7 +1422,6 @@ namespace GameEditor.RealToonEditor
 
                     if (ShowSelfLit)
                     {
-
                         GUILayout.Space(10);
 
                         materialEditor.ShaderProperty(_SelfLitIntensity, new GUIContent(_SelfLitIntensity.displayName, TOTIPS[40]));
@@ -1614,13 +1443,10 @@ namespace GameEditor.RealToonEditor
 
                         materialEditor.ShaderProperty(_MaskSelfLit, new GUIContent(_MaskSelfLit.displayName, TOTIPS[45]));
 
-
                         GUILayout.Space(10);
-
                     }
 
                     EditorGUILayout.EndVertical();
-
                 }
                 #endregion
 
@@ -1630,7 +1456,6 @@ namespace GameEditor.RealToonEditor
 
                 if (_N_F_OFLMB.floatValue == 0)
                 {
-
                     if (_N_F_GLO.floatValue == 1)
                     {
                         EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
@@ -1640,7 +1465,6 @@ namespace GameEditor.RealToonEditor
 
                         if (ShowGloss)
                         {
-
                             GUILayout.Space(10);
 
                             materialEditor.ShaderProperty(_GlossIntensity, new GUIContent(_GlossIntensity.displayName, TOTIPS[46]));
@@ -1666,7 +1490,6 @@ namespace GameEditor.RealToonEditor
 
                             if (_N_F_GLOT.floatValue == 1)
                             {
-
                                 EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
                                 Rect r_glosstexture = EditorGUILayout.BeginVertical("Button");
@@ -1675,14 +1498,16 @@ namespace GameEditor.RealToonEditor
 
                                 if (_N_F_GLOT.floatValue == 1)
                                 {
-
                                     GUILayout.Space(10);
 
                                     materialEditor.ShaderProperty(_GlossTexture, new GUIContent(_GlossTexture.displayName, TOTIPS[52]));
 
                                     GUILayout.Space(10);
                                     EditorGUI.BeginDisabledGroup(_GlossTexture.textureValue == null);
-                                    materialEditor.ShaderProperty(_GlossTextureSoftness, new GUIContent(_GlossTextureSoftness.displayName, TOTIPS[53]));
+                                    materialEditor.ShaderProperty(
+                                        _GlossTextureSoftness,
+                                        new GUIContent(_GlossTextureSoftness.displayName, TOTIPS[53])
+                                    );
 
                                     GUILayout.Space(10);
 
@@ -1691,26 +1516,30 @@ namespace GameEditor.RealToonEditor
                                     GUILayout.Space(10);
 
                                     EditorGUI.BeginDisabledGroup(_PSGLOTEX.floatValue == 1);
-                                    materialEditor.ShaderProperty(_GlossTextureRotate, new GUIContent(_GlossTextureRotate.displayName, TOTIPS[55]));
-                                    materialEditor.ShaderProperty(_GlossTextureFollowObjectRotation, new GUIContent(_GlossTextureFollowObjectRotation.displayName, TOTIPS[56]));
-                                    materialEditor.ShaderProperty(_GlossTextureFollowLight, new GUIContent(_GlossTextureFollowLight.displayName, TOTIPS[57]));
+                                    materialEditor.ShaderProperty(
+                                        _GlossTextureRotate,
+                                        new GUIContent(_GlossTextureRotate.displayName, TOTIPS[55])
+                                    );
+                                    materialEditor.ShaderProperty(
+                                        _GlossTextureFollowObjectRotation,
+                                        new GUIContent(_GlossTextureFollowObjectRotation.displayName, TOTIPS[56])
+                                    );
+                                    materialEditor.ShaderProperty(
+                                        _GlossTextureFollowLight,
+                                        new GUIContent(_GlossTextureFollowLight.displayName, TOTIPS[57])
+                                    );
                                     EditorGUI.EndDisabledGroup();
 
                                     EditorGUI.EndDisabledGroup();
-
                                 }
 
                                 GUILayout.Space(10);
-
                             }
                             #endregion
-
                         }
 
                         EditorGUILayout.EndVertical();
-
                     }
-
                 }
 
                 #endregion
@@ -1721,7 +1550,6 @@ namespace GameEditor.RealToonEditor
 
                 if (_N_F_OFLMB.floatValue == 0)
                 {
-
                     EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
                     Rect r_shadow = EditorGUILayout.BeginVertical("Button");
@@ -1729,15 +1557,20 @@ namespace GameEditor.RealToonEditor
 
                     if (ShowShadow)
                     {
-
                         GUILayout.Space(10);
 
                         materialEditor.ShaderProperty(_OverallShadowColor, new GUIContent(_OverallShadowColor.displayName, TOTIPS[58]));
-                        materialEditor.ShaderProperty(_OverallShadowColorPower, new GUIContent(_OverallShadowColorPower.displayName, TOTIPS[59]));
+                        materialEditor.ShaderProperty(
+                            _OverallShadowColorPower,
+                            new GUIContent(_OverallShadowColorPower.displayName, TOTIPS[59])
+                        );
 
                         GUILayout.Space(10);
 
-                        materialEditor.ShaderProperty(_SelfShadowShadowTAtViewDirection, new GUIContent(_SelfShadowShadowTAtViewDirection.displayName, TOTIPS[60]));
+                        materialEditor.ShaderProperty(
+                            _SelfShadowShadowTAtViewDirection,
+                            new GUIContent(_SelfShadowShadowTAtViewDirection.displayName, TOTIPS[60])
+                        );
                         materialEditor.ShaderProperty(_LigIgnoYNorDir, new GUIContent(_LigIgnoYNorDir.displayName, TOTIPS[144]));
 
                         GUILayout.Space(10);
@@ -1756,10 +1589,16 @@ namespace GameEditor.RealToonEditor
                         switch ((int)_N_F_SS.floatValue)
                         {
                             case 0:
-                                materialEditor.ShaderProperty(_SelfShadowRealtimeShadowIntensity, new GUIContent("Realtime Shadow Intensity", TOTIPS[124]));
+                                materialEditor.ShaderProperty(
+                                    _SelfShadowRealtimeShadowIntensity,
+                                    new GUIContent("Realtime Shadow Intensity", TOTIPS[124])
+                                );
                                 break;
                             case 1:
-                                materialEditor.ShaderProperty(_SelfShadowRealtimeShadowIntensity, new GUIContent(_SelfShadowRealtimeShadowIntensity.displayName, TOTIPS[126]));
+                                materialEditor.ShaderProperty(
+                                    _SelfShadowRealtimeShadowIntensity,
+                                    new GUIContent(_SelfShadowRealtimeShadowIntensity.displayName, TOTIPS[126])
+                                );
                                 break;
                             default:
                                 break;
@@ -1772,14 +1611,12 @@ namespace GameEditor.RealToonEditor
                         materialEditor.ShaderProperty(_SSAOColor, new GUIContent(_SSAOColor.displayName, TOTIPS[146]));
                         EditorGUI.EndDisabledGroup();
 
-
                         //Self Shadow
 
                         #region Self Shadow
 
                         if (_N_F_SS.floatValue == 1)
                         {
-
                             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
                             Rect r_selfshadow = EditorGUILayout.BeginVertical("Button");
@@ -1788,27 +1625,42 @@ namespace GameEditor.RealToonEditor
 
                             if (_N_F_SS.floatValue == 1)
                             {
+                                GUILayout.Space(10);
+
+                                materialEditor.ShaderProperty(
+                                    _SelfShadowThreshold,
+                                    new GUIContent(_SelfShadowThreshold.displayName, TOTIPS[65])
+                                );
+
+                                materialEditor.ShaderProperty(
+                                    _VertexColorGreenControlSelfShadowThreshold,
+                                    new GUIContent(_VertexColorGreenControlSelfShadowThreshold.displayName, TOTIPS[66])
+                                );
+
+                                materialEditor.ShaderProperty(
+                                    _SelfShadowHardness,
+                                    new GUIContent(_SelfShadowHardness.displayName, TOTIPS[67])
+                                );
 
                                 GUILayout.Space(10);
 
-                                materialEditor.ShaderProperty(_SelfShadowThreshold, new GUIContent(_SelfShadowThreshold.displayName, TOTIPS[65]));
-
-                                materialEditor.ShaderProperty(_VertexColorGreenControlSelfShadowThreshold, new GUIContent(_VertexColorGreenControlSelfShadowThreshold.displayName, TOTIPS[66]));
-
-                                materialEditor.ShaderProperty(_SelfShadowHardness, new GUIContent(_SelfShadowHardness.displayName, TOTIPS[67]));
-
-                                GUILayout.Space(10);
-
-                                materialEditor.ShaderProperty(_SelfShadowRealTimeShadowColor, new GUIContent(_SelfShadowRealTimeShadowColor.displayName, TOTIPS[68]));
-                                materialEditor.ShaderProperty(_SelfShadowRealTimeShadowColorPower, new GUIContent(_SelfShadowRealTimeShadowColorPower.displayName, TOTIPS[69]));
+                                materialEditor.ShaderProperty(
+                                    _SelfShadowRealTimeShadowColor,
+                                    new GUIContent(_SelfShadowRealTimeShadowColor.displayName, TOTIPS[68])
+                                );
+                                materialEditor.ShaderProperty(
+                                    _SelfShadowRealTimeShadowColorPower,
+                                    new GUIContent(_SelfShadowRealTimeShadowColorPower.displayName, TOTIPS[69])
+                                );
 
                                 GUILayout.Space(10);
-                                materialEditor.ShaderProperty(_SelfShadowAffectedByLightShadowStrength, new GUIContent(_SelfShadowAffectedByLightShadowStrength.displayName, TOTIPS[70]));
-
+                                materialEditor.ShaderProperty(
+                                    _SelfShadowAffectedByLightShadowStrength,
+                                    new GUIContent(_SelfShadowAffectedByLightShadowStrength.displayName, TOTIPS[70])
+                                );
                             }
 
                             GUILayout.Space(10);
-
                         }
                         #endregion
 
@@ -1818,7 +1670,6 @@ namespace GameEditor.RealToonEditor
 
                         if (_N_F_SON.floatValue == 1)
                         {
-
                             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
                             if (_N_F_SS.floatValue == 0)
@@ -1834,22 +1685,25 @@ namespace GameEditor.RealToonEditor
 
                             if (_N_F_SON.floatValue == 1)
                             {
-
                                 GUILayout.Space(10);
 
-                                materialEditor.ShaderProperty(_SmoothObjectNormal, new GUIContent(_SmoothObjectNormal.displayName, TOTIPS[71]));
+                                materialEditor.ShaderProperty(
+                                    _SmoothObjectNormal,
+                                    new GUIContent(_SmoothObjectNormal.displayName, TOTIPS[71])
+                                );
 
-                                materialEditor.ShaderProperty(_VertexColorRedControlSmoothObjectNormal, new GUIContent(_VertexColorRedControlSmoothObjectNormal.displayName, TOTIPS[72]));
+                                materialEditor.ShaderProperty(
+                                    _VertexColorRedControlSmoothObjectNormal,
+                                    new GUIContent(_VertexColorRedControlSmoothObjectNormal.displayName, TOTIPS[72])
+                                );
 
                                 GUILayout.Space(10);
                                 materialEditor.ShaderProperty(_XYZPosition, new GUIContent(_XYZPosition.displayName, TOTIPS[73]));
 
                                 materialEditor.ShaderProperty(_ShowNormal, new GUIContent(_ShowNormal.displayName, TOTIPS[75]));
-
                             }
 
                             GUILayout.Space(10);
-
                         }
                         #endregion
 
@@ -1867,15 +1721,19 @@ namespace GameEditor.RealToonEditor
 
                             if (_N_F_SCT.floatValue == 1)
                             {
-
                                 GUILayout.Space(10);
 
-                                materialEditor.ShaderProperty(_ShadowColorTexture, new GUIContent(_ShadowColorTexture.displayName, TOTIPS[76]));
-                                materialEditor.ShaderProperty(_ShadowColorTexturePower, new GUIContent(_ShadowColorTexturePower.displayName, TOTIPS[77]));
+                                materialEditor.ShaderProperty(
+                                    _ShadowColorTexture,
+                                    new GUIContent(_ShadowColorTexture.displayName, TOTIPS[76])
+                                );
+                                materialEditor.ShaderProperty(
+                                    _ShadowColorTexturePower,
+                                    new GUIContent(_ShadowColorTexturePower.displayName, TOTIPS[77])
+                                );
                             }
 
                             GUILayout.Space(10);
-
                         }
 
                         #endregion
@@ -1898,13 +1756,22 @@ namespace GameEditor.RealToonEditor
 
                                 materialEditor.ShaderProperty(_ShadowTIntensity, new GUIContent(_ShadowTIntensity.displayName, TOTIPS[78]));
                                 materialEditor.ShaderProperty(_ShadowT, new GUIContent(_ShadowT.displayName, TOTIPS[79]));
-                                materialEditor.ShaderProperty(_ShadowTLightThreshold, new GUIContent(_ShadowTLightThreshold.displayName, TOTIPS[80]));
-                                materialEditor.ShaderProperty(_ShadowTShadowThreshold, new GUIContent(_ShadowTShadowThreshold.displayName, TOTIPS[81]));
+                                materialEditor.ShaderProperty(
+                                    _ShadowTLightThreshold,
+                                    new GUIContent(_ShadowTLightThreshold.displayName, TOTIPS[80])
+                                );
+                                materialEditor.ShaderProperty(
+                                    _ShadowTShadowThreshold,
+                                    new GUIContent(_ShadowTShadowThreshold.displayName, TOTIPS[81])
+                                );
                                 materialEditor.ShaderProperty(_ShadowTHardness, new GUIContent(_ShadowTHardness.displayName, TOTIPS[82]));
 
                                 GUILayout.Space(10);
                                 materialEditor.ShaderProperty(_ShadowTColor, new GUIContent(_ShadowTColor.displayName, TOTIPS[129]));
-                                materialEditor.ShaderProperty(_ShadowTColorPower, new GUIContent(_ShadowTColorPower.displayName, TOTIPS[130]));
+                                materialEditor.ShaderProperty(
+                                    _ShadowTColorPower,
+                                    new GUIContent(_ShadowTColorPower.displayName, TOTIPS[130])
+                                );
 
                                 GUILayout.Space(10);
                                 materialEditor.ShaderProperty(_STIL, new GUIContent(_STIL.displayName, TOTIPS[131]));
@@ -1914,19 +1781,26 @@ namespace GameEditor.RealToonEditor
                                 materialEditor.ShaderProperty(_N_F_STIAL, new GUIContent(_N_F_STIAL.displayName, TOTIPS[84]));
 
                                 EditorGUI.BeginDisabledGroup(_N_F_STIAL.floatValue == 0 && _N_F_STIS.floatValue == 0);
-                                materialEditor.ShaderProperty(_ShowInAmbientLightShadowIntensity, new GUIContent(_ShowInAmbientLightShadowIntensity.displayName, TOTIPS[85]));
+                                materialEditor.ShaderProperty(
+                                    _ShowInAmbientLightShadowIntensity,
+                                    new GUIContent(_ShowInAmbientLightShadowIntensity.displayName, TOTIPS[85])
+                                );
                                 EditorGUI.EndDisabledGroup();
 
                                 GUILayout.Space(10);
-                                materialEditor.ShaderProperty(_ShowInAmbientLightShadowThreshold, new GUIContent(_ShowInAmbientLightShadowThreshold.displayName, TOTIPS[86]));
+                                materialEditor.ShaderProperty(
+                                    _ShowInAmbientLightShadowThreshold,
+                                    new GUIContent(_ShowInAmbientLightShadowThreshold.displayName, TOTIPS[86])
+                                );
 
                                 GUILayout.Space(10);
-                                materialEditor.ShaderProperty(_LightFalloffAffectShadowT, new GUIContent(_LightFalloffAffectShadowT.displayName, TOTIPS[87]));
-
+                                materialEditor.ShaderProperty(
+                                    _LightFalloffAffectShadowT,
+                                    new GUIContent(_LightFalloffAffectShadowT.displayName, TOTIPS[87])
+                                );
                             }
 
                             GUILayout.Space(10);
-
                         }
 
                         #endregion
@@ -1956,15 +1830,12 @@ namespace GameEditor.RealToonEditor
                             }
 
                             GUILayout.Space(10);
-
                         }
 
                         #endregion
-
                     }
 
                     EditorGUILayout.EndVertical();
-
                 }
 
                 #endregion
@@ -1980,12 +1851,14 @@ namespace GameEditor.RealToonEditor
 
                 if (ShowLighting)
                 {
-
                     GUILayout.Space(10);
 
                     materialEditor.ShaderProperty(_RELG, new GUIContent(_RELG.displayName, TOTIPS[90]));
                     EditorGUI.BeginDisabledGroup(_RELG.floatValue == 0);
-                    materialEditor.ShaderProperty(_EnvironmentalLightingIntensity, new GUIContent(_EnvironmentalLightingIntensity.displayName, TOTIPS[91]));
+                    materialEditor.ShaderProperty(
+                        _EnvironmentalLightingIntensity,
+                        new GUIContent(_EnvironmentalLightingIntensity.displayName, TOTIPS[91])
+                    );
 
                     GUILayout.Space(10);
 
@@ -1995,7 +1868,6 @@ namespace GameEditor.RealToonEditor
 
                     if (_N_F_OFLMB.floatValue == 0)
                     {
-
                         GUILayout.Space(10);
 
                         materialEditor.ShaderProperty(_LightAffectShadow, new GUIContent(_LightAffectShadow.displayName, TOTIPS[94]));
@@ -2008,9 +1880,15 @@ namespace GameEditor.RealToonEditor
                         materialEditor.ShaderProperty(_N_F_EAL, new GUIContent(_N_F_EAL.displayName, TOTIPS[133]));
 
                         GUILayout.Space(10);
-                        materialEditor.ShaderProperty(_DirectionalLightIntensity, new GUIContent(_DirectionalLightIntensity.displayName, TOTIPS[95]));
+                        materialEditor.ShaderProperty(
+                            _DirectionalLightIntensity,
+                            new GUIContent(_DirectionalLightIntensity.displayName, TOTIPS[95])
+                        );
                         EditorGUI.BeginDisabledGroup(_N_F_EAL.floatValue == 0);
-                        materialEditor.ShaderProperty(_PointSpotlightIntensity, new GUIContent(_PointSpotlightIntensity.displayName, TOTIPS[96]));
+                        materialEditor.ShaderProperty(
+                            _PointSpotlightIntensity,
+                            new GUIContent(_PointSpotlightIntensity.displayName, TOTIPS[96])
+                        );
 
                         GUILayout.Space(10);
                         materialEditor.ShaderProperty(_LightFalloffSoftness, new GUIContent(_LightFalloffSoftness.displayName, TOTIPS[97]));
@@ -2024,7 +1902,6 @@ namespace GameEditor.RealToonEditor
 
                         if (_N_F_CLD.floatValue == 1)
                         {
-
                             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
                             EditorGUI.BeginDisabledGroup(_N_F_CLD.floatValue == 0);
@@ -2035,23 +1912,28 @@ namespace GameEditor.RealToonEditor
 
                             if (_N_F_CLD.floatValue == 1)
                             {
-
                                 GUILayout.Space(10);
 
-                                materialEditor.ShaderProperty(_CustomLightDirectionIntensity, new GUIContent(_CustomLightDirectionIntensity.displayName, TOTIPS[98]));
-                                materialEditor.ShaderProperty(_CustomLightDirection, new GUIContent(_CustomLightDirection.displayName, TOTIPS[99]));
-                                materialEditor.ShaderProperty(_CustomLightDirectionFollowObjectRotation, new GUIContent(_CustomLightDirectionFollowObjectRotation.displayName, TOTIPS[100]));
-
+                                materialEditor.ShaderProperty(
+                                    _CustomLightDirectionIntensity,
+                                    new GUIContent(_CustomLightDirectionIntensity.displayName, TOTIPS[98])
+                                );
+                                materialEditor.ShaderProperty(
+                                    _CustomLightDirection,
+                                    new GUIContent(_CustomLightDirection.displayName, TOTIPS[99])
+                                );
+                                materialEditor.ShaderProperty(
+                                    _CustomLightDirectionFollowObjectRotation,
+                                    new GUIContent(_CustomLightDirectionFollowObjectRotation.displayName, TOTIPS[100])
+                                );
                             }
 
                             EditorGUI.EndDisabledGroup();
 
                             GUILayout.Space(10);
-
                         }
 
                         #endregion
-
                     }
 
                     GUILayout.Space(10);
@@ -2074,11 +1956,13 @@ namespace GameEditor.RealToonEditor
 
                     if (ShowReflection)
                     {
-
                         GUILayout.Space(10);
 
                         materialEditor.ShaderProperty(_ReflectionIntensity, new GUIContent(_ReflectionIntensity.displayName, TOTIPS[101]));
-                        materialEditor.ShaderProperty(_ReflectionRoughtness, new GUIContent(_ReflectionRoughtness.displayName, TOTIPS[102]));
+                        materialEditor.ShaderProperty(
+                            _ReflectionRoughtness,
+                            new GUIContent(_ReflectionRoughtness.displayName, TOTIPS[102])
+                        );
                         materialEditor.ShaderProperty(_RefMetallic, new GUIContent(_RefMetallic.displayName, TOTIPS[103]));
 
                         GUILayout.Space(10);
@@ -2093,7 +1977,6 @@ namespace GameEditor.RealToonEditor
 
                         if (_N_F_FR.floatValue == 1)
                         {
-
                             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
                             EditorGUI.BeginDisabledGroup(_N_F_FR.floatValue == 0);
@@ -2108,10 +1991,9 @@ namespace GameEditor.RealToonEditor
 
                             GUILayout.Space(10);
                         }
-
                     }
 
-                    #endregion
+                        #endregion
 
                     EditorGUILayout.EndVertical();
                 }
@@ -2124,7 +2006,6 @@ namespace GameEditor.RealToonEditor
 
                 if (_N_F_RL.floatValue == 1)
                 {
-
                     EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
                     Rect r_rimlight = EditorGUILayout.BeginVertical("Button");
@@ -2132,7 +2013,6 @@ namespace GameEditor.RealToonEditor
 
                     if (ShowRimLight)
                     {
-
                         GUILayout.Space(10);
 
                         materialEditor.ShaderProperty(_RimLigInt, new GUIContent(_RimLigInt.displayName, TOTIPS[125]));
@@ -2144,7 +2024,10 @@ namespace GameEditor.RealToonEditor
 
                         GUILayout.Space(10);
 
-                        materialEditor.ShaderProperty(_LightAffectRimLightColor, new GUIContent(_LightAffectRimLightColor.displayName, TOTIPS[108]));
+                        materialEditor.ShaderProperty(
+                            _LightAffectRimLightColor,
+                            new GUIContent(_LightAffectRimLightColor.displayName, TOTIPS[108])
+                        );
 
                         GUILayout.Space(10);
 
@@ -2158,11 +2041,9 @@ namespace GameEditor.RealToonEditor
                         }
 
                         GUILayout.Space(10);
-
                     }
 
                     EditorGUILayout.EndVertical();
-
                 }
 
                 #endregion
@@ -2180,18 +2061,15 @@ namespace GameEditor.RealToonEditor
 
                     if (NearFadeDithering)
                     {
-
                         GUILayout.Space(10);
 
                         materialEditor.ShaderProperty(_MinFadDistance, new GUIContent(_MinFadDistance.displayName, TOTIPS[152]));
                         materialEditor.ShaderProperty(_MaxFadDistance, new GUIContent(_MaxFadDistance.displayName, TOTIPS[153]));
 
                         GUILayout.Space(10);
-
                     }
 
                     EditorGUILayout.EndVertical();
-
                 }
 
                 #endregion
@@ -2236,7 +2114,6 @@ namespace GameEditor.RealToonEditor
 
                 if (ShowSeeThrough)
                 {
-
                     GUILayout.Space(10);
 
                     materialEditor.ShaderProperty(_RefVal, new GUIContent(_RefVal.displayName, TOTIPS[112]));
@@ -2244,7 +2121,6 @@ namespace GameEditor.RealToonEditor
                     materialEditor.ShaderProperty(_Compa, new GUIContent(_Compa.displayName, TOTIPS[114]));
 
                     GUILayout.Space(10);
-
                 }
 
                 EditorGUILayout.EndVertical();
@@ -2264,7 +2140,6 @@ namespace GameEditor.RealToonEditor
 
                 if (ShowDisableEnable)
                 {
-
                     Rect r_mc = EditorGUILayout.BeginVertical("HelpBox");
                     materialEditor.ShaderProperty(_N_F_MC, new GUIContent(_N_F_MC.displayName, TOTIPSEDF[0]));
                     EditorGUILayout.EndVertical();
@@ -2298,7 +2173,6 @@ namespace GameEditor.RealToonEditor
                                         break;
                                 }
                             }
-
                         }
 
                         EditorGUILayout.EndVertical();
@@ -2345,7 +2219,6 @@ namespace GameEditor.RealToonEditor
                     materialEditor.ShaderProperty(_N_F_CA, new GUIContent(_N_F_CA.displayName, TOTIPSEDF[4]));
                     EditorGUILayout.EndVertical();
 
-
                     EditorGUI.BeginChangeCheck();
 
                     Rect r_sl = EditorGUILayout.BeginVertical("HelpBox");
@@ -2369,14 +2242,10 @@ namespace GameEditor.RealToonEditor
                                     break;
                             }
                         }
-
                     }
-
 
                     if (_N_F_OFLMB.floatValue == 0)
                     {
-
-
                         Rect r_o = EditorGUILayout.BeginVertical("HelpBox");
                         materialEditor.ShaderProperty(_N_F_GLO, new GUIContent(_N_F_GLO.displayName, TOTIPSEDF[6]));
                         EditorGUILayout.EndVertical();
@@ -2384,13 +2253,10 @@ namespace GameEditor.RealToonEditor
                         Rect r_glot = EditorGUILayout.BeginVertical("HelpBox");
                         materialEditor.ShaderProperty(_N_F_GLOT, new GUIContent(_N_F_GLOT.displayName, TOTIPSEDF[7]));
                         EditorGUILayout.EndVertical();
-
                     }
-
 
                     if (_N_F_OFLMB.floatValue == 0)
                     {
-
                         EditorGUI.BeginChangeCheck();
 
                         Rect r_ss = EditorGUILayout.BeginVertical("HelpBox");
@@ -2414,11 +2280,8 @@ namespace GameEditor.RealToonEditor
                                         break;
                                 }
                             }
-
                         }
-
                     }
-
 
                     if (_N_F_OFLMB.floatValue == 0)
                     {
@@ -2431,14 +2294,12 @@ namespace GameEditor.RealToonEditor
                         EditorGUI.EndDisabledGroup();
                     }
 
-
                     if (_N_F_OFLMB.floatValue == 0)
                     {
                         Rect r_sct = EditorGUILayout.BeginVertical("HelpBox");
                         materialEditor.ShaderProperty(_N_F_SCT, new GUIContent(_N_F_SCT.displayName, TOTIPSEDF[10]));
                         EditorGUILayout.EndVertical();
                     }
-
 
                     if (_N_F_OFLMB.floatValue == 0)
                     {
@@ -2447,7 +2308,6 @@ namespace GameEditor.RealToonEditor
                         EditorGUILayout.EndVertical();
                     }
 
-
                     if (_N_F_OFLMB.floatValue == 0)
                     {
                         Rect r_pt = EditorGUILayout.BeginVertical("HelpBox");
@@ -2455,16 +2315,12 @@ namespace GameEditor.RealToonEditor
                         EditorGUILayout.EndVertical();
                     }
 
-
-
                     if (_N_F_OFLMB.floatValue == 0)
                     {
                         Rect r_cld = EditorGUILayout.BeginVertical("HelpBox");
                         materialEditor.ShaderProperty(_N_F_CLD, new GUIContent(_N_F_CLD.displayName, TOTIPSEDF[13]));
                         EditorGUILayout.EndVertical();
                     }
-
-
 
                     Rect r_r = EditorGUILayout.BeginVertical("HelpBox");
                     materialEditor.ShaderProperty(_N_F_R, new GUIContent(_N_F_R.displayName, TOTIPSEDF[14]));
@@ -2481,7 +2337,6 @@ namespace GameEditor.RealToonEditor
                     Rect r_nfd = EditorGUILayout.BeginVertical("HelpBox");
                     materialEditor.ShaderProperty(_N_F_NFD, new GUIContent(_N_F_NFD.displayName, TOTIPSEDF[17]));
                     EditorGUILayout.EndVertical();
-
                 }
 
                 EditorGUILayout.EndVertical();
@@ -2499,7 +2354,6 @@ namespace GameEditor.RealToonEditor
 
                 if (ShowSettings)
                 {
-
                     GUILayout.Space(10);
 
                     if (GUILayout.Button(new GUIContent(twofourfive_target_string, TOTIPS[116]), "Button"))
@@ -2508,14 +2362,13 @@ namespace GameEditor.RealToonEditor
                     }
 
 #if ENABLE_HYBRID_RENDERER_V2
-            if (GUILayout.Button(new GUIContent(dots_lbs_cd_string, TOTIPS[143]), "Button"))
-            {
-                DOTSLBSCD();
-            }
+                    if (GUILayout.Button(new GUIContent(dots_lbs_cd_string, TOTIPS[143]), "Button"))
+                    {
+                        DOTSLBSCD();
+                    }
 #endif
 
                     GUILayout.Space(10);
-
                 }
 
                 EditorGUILayout.EndVertical();
@@ -2552,13 +2405,11 @@ namespace GameEditor.RealToonEditor
                                     break;
                             }
                         }
-
                     }
 
                     materialEditor.ShaderProperty(_N_F_NLASOBF, new GUIContent(_N_F_NLASOBF.displayName, TOTIPS[115]));
 
                     GUILayout.Space(10);
-
                 }
 
                 materialEditor.ShaderProperty(_ZWrite, new GUIContent(_ZWrite.displayName, TOTIPS[120]));
@@ -2584,7 +2435,6 @@ namespace GameEditor.RealToonEditor
                 aruskw = EditorGUILayout.Toggle(new GUIContent("Automatic Remove Unused Shader Keywords (Global)", TOTIPS[121]), aruskw);
 
                 GUILayout.Space(10);
-
             }
 
             #region Automatic Remove UorOSKW
@@ -2614,7 +2464,6 @@ namespace GameEditor.RealToonEditor
                                 m1.DisableKeyword(m1.shaderKeywords[x]);
                                 del_skw = false;
                             }
-
                         }
                         else
                         {
@@ -2649,7 +2498,6 @@ namespace GameEditor.RealToonEditor
                 Check_RE_OL();
 
                 Debug.Log("You clicked [Refresh Settings]: RealToon on the material has been refresh and re-apply the settings properly.");
-
             }
 
             GUILayout.Space(5);
@@ -2687,7 +2535,6 @@ namespace GameEditor.RealToonEditor
             #endregion
 
             #endregion
-
         }
 
         //
@@ -2699,12 +2546,10 @@ namespace GameEditor.RealToonEditor
 
             if (oldShader.name != "Universal Render Pipeline/RealToon/Version 5/Default/Default")
             {
-
                 if (oldShader.name == "HDRP/RealToon/Version 5/Default")
                 {
                     material.SetFloat("_MaiColPo", material.GetFloat("_MaiColPo") + 0.65f);
                 }
-
             }
 
             CheckingPropKeyWord(material);
@@ -2714,16 +2559,12 @@ namespace GameEditor.RealToonEditor
 
         void CheckingPropKeyWord(Material material)
         {
-
             if (material.IsKeywordEnabled("N_F_TRANS_ON") || material.GetFloat("_TRANSMODE") == 1.0f)
             {
-
                 if (material.IsKeywordEnabled("N_F_CO_ON") || material.GetFloat("_N_F_CO") == 1.0f)
                 {
-
                     material.renderQueue = 2450;
                     material.SetOverrideTag("RenderType", "TransparentCutout");
-
                 }
                 else if (material.IsKeywordEnabled("N_F_TRANS_ON") || material.GetFloat("_TRANSMODE") == 1.0f)
                 {
@@ -3119,8 +2960,7 @@ namespace GameEditor.RealToonEditor
                 material.SetFloat("_N_F_NLASOBF", 0.0f);
             }
 
-            #endregion
-
+        #endregion
         }
 
         #endregion
@@ -3128,7 +2968,6 @@ namespace GameEditor.RealToonEditor
         #region ChanLi
         static void ChanLi(string searchTXT, string TXTChange, string fileName)
         {
-
             if (System.IO.File.Exists(fileName))
             {
                 string[] arrLine = System.IO.File.ReadAllLines(fileName);
@@ -3142,20 +2981,21 @@ namespace GameEditor.RealToonEditor
                         break;
                     }
                 }
-
             }
             else
             {
-                Debug.Log("Can't enable do 'Use Screen Space Outline' or 'Use Traditional Outline' because '" + fileName + "' Does not exist or file not found.");
+                Debug.Log(
+                    "Can't enable do 'Use Screen Space Outline' or 'Use Traditional Outline' because '"
+                        + fileName
+                        + "' Does not exist or file not found."
+                );
             }
-
         }
         #endregion
 
         #region ReaLi
         static bool ReaLi(string searchTXT, string fileName)
         {
-
             if (System.IO.File.Exists(fileName))
             {
                 string[] arrLine = System.IO.File.ReadAllLines(fileName);
@@ -3167,7 +3007,6 @@ namespace GameEditor.RealToonEditor
                         return true;
                     }
                 }
-
             }
             else
             {
@@ -3175,7 +3014,6 @@ namespace GameEditor.RealToonEditor
             }
 
             return false;
-
         }
 
         #endregion
@@ -3201,19 +3039,55 @@ namespace GameEditor.RealToonEditor
         {
             if (remoout == true)
             {
-                ChanLi("Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "SRPDefaultUnlit" + (char)34 + "}", "Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "remove" + (char)34 + "}", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("Cull [_DoubleSidedOutline]//OL_RCUL", "//Cull [_DoubleSidedOutline]//OL_RCUL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "SRPDefaultUnlit" + (char)34 + "}",
+                    "Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "remove" + (char)34 + "}",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "Cull [_DoubleSidedOutline]//OL_RCUL",
+                    "//Cull [_DoubleSidedOutline]//OL_RCUL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
-                ChanLi("#ifdef UNITY_COLORSPACE_GAMMA//SSOL", "//#ifdef UNITY_COLORSPACE_GAMMA//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("_OutlineColor=float4(LinearToGamma22(_OutlineColor.rgb),_OutlineColor.a);//SSOL", "//_OutlineColor=float4(LinearToGamma22(_OutlineColor.rgb),_OutlineColor.a);//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "#ifdef UNITY_COLORSPACE_GAMMA//SSOL",
+                    "//#ifdef UNITY_COLORSPACE_GAMMA//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "_OutlineColor=float4(LinearToGamma22(_OutlineColor.rgb),_OutlineColor.a);//SSOL",
+                    "//_OutlineColor=float4(LinearToGamma22(_OutlineColor.rgb),_OutlineColor.a);//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
                 ChanLi("#endif//SSOL", "//#endif//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
 
-                ChanLi("#if N_F_O_ON//SSOL", "//#if N_F_O_ON//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("float3 SSOLi=(float3)EdgDet(sceneUVs.xy);//SSOL", "//float3 SSOLi=(float3)EdgDet(sceneUVs.xy);//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("#if N_F_O_MOTTSO_ON//SSOL", "//#if N_F_O_MOTTSO_ON//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("float3 Init_FO=((RTD_CA*RTD_SON_CHE_1))*lerp((float3)1.0,_OutlineColor.rgb,SSOLi);//SSOL", "//float3 Init_FO=((RTD_CA*RTD_SON_CHE_1))*lerp((float3)1.0,_OutlineColor.rgb,SSOLi);//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "#if N_F_O_ON//SSOL",
+                    "//#if N_F_O_ON//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "float3 SSOLi=(float3)EdgDet(sceneUVs.xy);//SSOL",
+                    "//float3 SSOLi=(float3)EdgDet(sceneUVs.xy);//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "#if N_F_O_MOTTSO_ON//SSOL",
+                    "//#if N_F_O_MOTTSO_ON//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "float3 Init_FO=((RTD_CA*RTD_SON_CHE_1))*lerp((float3)1.0,_OutlineColor.rgb,SSOLi);//SSOL",
+                    "//float3 Init_FO=((RTD_CA*RTD_SON_CHE_1))*lerp((float3)1.0,_OutlineColor.rgb,SSOLi);//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
                 ChanLi("#else//SSOL", "//#else//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("float3 Init_FO=lerp((RTD_CA*RTD_SON_CHE_1),_OutlineColor.rgb,SSOLi);//SSOL", "//float3 Init_FO=lerp((RTD_CA*RTD_SON_CHE_1),_OutlineColor.rgb,SSOLi);//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "float3 Init_FO=lerp((RTD_CA*RTD_SON_CHE_1),_OutlineColor.rgb,SSOLi);//SSOL",
+                    "//float3 Init_FO=lerp((RTD_CA*RTD_SON_CHE_1),_OutlineColor.rgb,SSOLi);//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
                 ChanLi("#endif//SSOL", "//#endif//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
                 ChanLi("#else//SSOL", "//#else//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
 
@@ -3226,8 +3100,16 @@ namespace GameEditor.RealToonEditor
                 //============================
                 //============================
 
-                ChanLi("static bool remoout = true;", "static bool remoout = false;", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
-                ChanLi("static string remooutstat = " + (char)34 + "Remove Outline" + (char)34 + ";", "static string remooutstat = " + (char)34 + "Add Outline" + (char)34 + ";", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
+                ChanLi(
+                    "static bool remoout = true;",
+                    "static bool remoout = false;",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
+                ChanLi(
+                    "static string remooutstat = " + (char)34 + "Remove Outline" + (char)34 + ";",
+                    "static string remooutstat = " + (char)34 + "Add Outline" + (char)34 + ";",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
 
                 AssetDatabase.ImportAsset("Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
                 AssetDatabase.ImportAsset("Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
@@ -3235,8 +3117,16 @@ namespace GameEditor.RealToonEditor
             }
             else if (remoout == false)
             {
-                ChanLi("Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "remove" + (char)34 + "}", "Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "SRPDefaultUnlit" + (char)34 + "}", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//Cull [_DoubleSidedOutline]//OL_RCUL", "Cull [_DoubleSidedOutline]//OL_RCUL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "remove" + (char)34 + "}",
+                    "Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "SRPDefaultUnlit" + (char)34 + "}",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//Cull [_DoubleSidedOutline]//OL_RCUL",
+                    "Cull [_DoubleSidedOutline]//OL_RCUL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
                 ChanLi("//OL_RE", "//OL_NRE", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
 
@@ -3245,8 +3135,16 @@ namespace GameEditor.RealToonEditor
                 //============================
                 //============================
 
-                ChanLi("static bool remoout = false;", "static bool remoout = true;", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
-                ChanLi("static string remooutstat = " + (char)34 + "Add Outline" + (char)34 + ";", "static string remooutstat = " + (char)34 + "Remove Outline" + (char)34 + ";", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
+                ChanLi(
+                    "static bool remoout = false;",
+                    "static bool remoout = true;",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
+                ChanLi(
+                    "static string remooutstat = " + (char)34 + "Add Outline" + (char)34 + ";",
+                    "static string remooutstat = " + (char)34 + "Remove Outline" + (char)34 + ";",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
 
                 AssetDatabase.ImportAsset("Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
                 AssetDatabase.ImportAsset("Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
@@ -3276,19 +3174,55 @@ namespace GameEditor.RealToonEditor
         {
             if (UseSSOL == true)
             {
-                ChanLi("Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "SRPDefaultUnlit" + (char)34 + "}", "Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "remove" + (char)34 + "}", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("Cull [_DoubleSidedOutline]//OL_RCUL", "//Cull [_DoubleSidedOutline]//OL_RCUL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "SRPDefaultUnlit" + (char)34 + "}",
+                    "Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "remove" + (char)34 + "}",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "Cull [_DoubleSidedOutline]//OL_RCUL",
+                    "//Cull [_DoubleSidedOutline]//OL_RCUL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
-                ChanLi("//#ifdef UNITY_COLORSPACE_GAMMA//SSOL", "#ifdef UNITY_COLORSPACE_GAMMA//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//_OutlineColor=float4(LinearToGamma22(_OutlineColor.rgb),_OutlineColor.a);//SSOL", "_OutlineColor=float4(LinearToGamma22(_OutlineColor.rgb),_OutlineColor.a);//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "//#ifdef UNITY_COLORSPACE_GAMMA//SSOL",
+                    "#ifdef UNITY_COLORSPACE_GAMMA//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//_OutlineColor=float4(LinearToGamma22(_OutlineColor.rgb),_OutlineColor.a);//SSOL",
+                    "_OutlineColor=float4(LinearToGamma22(_OutlineColor.rgb),_OutlineColor.a);//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
                 ChanLi("//#endif//SSOL", "#endif//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
 
-                ChanLi("//#if N_F_O_ON//SSOL", "#if N_F_O_ON//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//float3 SSOLi=(float3)EdgDet(sceneUVs.xy);//SSOL", "float3 SSOLi=(float3)EdgDet(sceneUVs.xy);//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//#if N_F_O_MOTTSO_ON//SSOL", "#if N_F_O_MOTTSO_ON//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//float3 Init_FO=((RTD_CA*RTD_SON_CHE_1))*lerp((float3)1.0,_OutlineColor.rgb,SSOLi);//SSOL", "float3 Init_FO=((RTD_CA*RTD_SON_CHE_1))*lerp((float3)1.0,_OutlineColor.rgb,SSOLi);//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "//#if N_F_O_ON//SSOL",
+                    "#if N_F_O_ON//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//float3 SSOLi=(float3)EdgDet(sceneUVs.xy);//SSOL",
+                    "float3 SSOLi=(float3)EdgDet(sceneUVs.xy);//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//#if N_F_O_MOTTSO_ON//SSOL",
+                    "#if N_F_O_MOTTSO_ON//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//float3 Init_FO=((RTD_CA*RTD_SON_CHE_1))*lerp((float3)1.0,_OutlineColor.rgb,SSOLi);//SSOL",
+                    "float3 Init_FO=((RTD_CA*RTD_SON_CHE_1))*lerp((float3)1.0,_OutlineColor.rgb,SSOLi);//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
                 ChanLi("//#else//SSOL", "#else//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//float3 Init_FO=lerp((RTD_CA*RTD_SON_CHE_1),_OutlineColor.rgb,SSOLi);//SSOL", "float3 Init_FO=lerp((RTD_CA*RTD_SON_CHE_1),_OutlineColor.rgb,SSOLi);//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "//float3 Init_FO=lerp((RTD_CA*RTD_SON_CHE_1),_OutlineColor.rgb,SSOLi);//SSOL",
+                    "float3 Init_FO=lerp((RTD_CA*RTD_SON_CHE_1),_OutlineColor.rgb,SSOLi);//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
                 ChanLi("//#endif//SSOL", "#endif//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
                 ChanLi("//#else//SSOL", "#else//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
 
@@ -3299,9 +3233,21 @@ namespace GameEditor.RealToonEditor
                 //============================
                 //============================
 
-                ChanLi("static bool UseSSOL = true;", "static bool UseSSOL = false;", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
-                ChanLi("static string OLType = " + (char)34 + "Traditional" + (char)34 + ";", "static string OLType = " + (char)34 + "Screen Space" + (char)34 + ";", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
-                ChanLi("static string UseSSOLStat = " + (char)34 + "Use Screen Space Outline" + (char)34 + ";", "static string UseSSOLStat = " + (char)34 + "Use Traditional Outline" + (char)34 + ";", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
+                ChanLi(
+                    "static bool UseSSOL = true;",
+                    "static bool UseSSOL = false;",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
+                ChanLi(
+                    "static string OLType = " + (char)34 + "Traditional" + (char)34 + ";",
+                    "static string OLType = " + (char)34 + "Screen Space" + (char)34 + ";",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
+                ChanLi(
+                    "static string UseSSOLStat = " + (char)34 + "Use Screen Space Outline" + (char)34 + ";",
+                    "static string UseSSOLStat = " + (char)34 + "Use Traditional Outline" + (char)34 + ";",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
 
                 AssetDatabase.ImportAsset("Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
                 AssetDatabase.ImportAsset("Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
@@ -3309,19 +3255,55 @@ namespace GameEditor.RealToonEditor
             }
             else if (UseSSOL == false)
             {
-                ChanLi("Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "remove" + (char)34 + "}", "Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "SRPDefaultUnlit" + (char)34 + "}", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//Cull [_DoubleSidedOutline]//OL_RCUL", "Cull [_DoubleSidedOutline]//OL_RCUL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "remove" + (char)34 + "}",
+                    "Tags{" + (char)34 + "LightMode" + (char)34 + "=" + (char)34 + "SRPDefaultUnlit" + (char)34 + "}",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//Cull [_DoubleSidedOutline]//OL_RCUL",
+                    "Cull [_DoubleSidedOutline]//OL_RCUL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
-                ChanLi("#ifdef UNITY_COLORSPACE_GAMMA//SSOL", "//#ifdef UNITY_COLORSPACE_GAMMA//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("_OutlineColor=float4(LinearToGamma22(_OutlineColor.rgb),_OutlineColor.a);//SSOL", "//_OutlineColor=float4(LinearToGamma22(_OutlineColor.rgb),_OutlineColor.a);//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "#ifdef UNITY_COLORSPACE_GAMMA//SSOL",
+                    "//#ifdef UNITY_COLORSPACE_GAMMA//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "_OutlineColor=float4(LinearToGamma22(_OutlineColor.rgb),_OutlineColor.a);//SSOL",
+                    "//_OutlineColor=float4(LinearToGamma22(_OutlineColor.rgb),_OutlineColor.a);//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
                 ChanLi("#endif//SSOL", "//#endif//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
 
-                ChanLi("#if N_F_O_ON//SSOL", "//#if N_F_O_ON//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("float3 SSOLi=(float3)EdgDet(sceneUVs.xy);//SSOL", "//float3 SSOLi=(float3)EdgDet(sceneUVs.xy);//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("#if N_F_O_MOTTSO_ON//SSOL", "//#if N_F_O_MOTTSO_ON//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("float3 Init_FO=((RTD_CA*RTD_SON_CHE_1))*lerp((float3)1.0,_OutlineColor.rgb,SSOLi);//SSOL", "//float3 Init_FO=((RTD_CA*RTD_SON_CHE_1))*lerp((float3)1.0,_OutlineColor.rgb,SSOLi);//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "#if N_F_O_ON//SSOL",
+                    "//#if N_F_O_ON//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "float3 SSOLi=(float3)EdgDet(sceneUVs.xy);//SSOL",
+                    "//float3 SSOLi=(float3)EdgDet(sceneUVs.xy);//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "#if N_F_O_MOTTSO_ON//SSOL",
+                    "//#if N_F_O_MOTTSO_ON//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "float3 Init_FO=((RTD_CA*RTD_SON_CHE_1))*lerp((float3)1.0,_OutlineColor.rgb,SSOLi);//SSOL",
+                    "//float3 Init_FO=((RTD_CA*RTD_SON_CHE_1))*lerp((float3)1.0,_OutlineColor.rgb,SSOLi);//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
                 ChanLi("#else//SSOL", "//#else//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("float3 Init_FO=lerp((RTD_CA*RTD_SON_CHE_1),_OutlineColor.rgb,SSOLi);//SSOL", "//float3 Init_FO=lerp((RTD_CA*RTD_SON_CHE_1),_OutlineColor.rgb,SSOLi);//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "float3 Init_FO=lerp((RTD_CA*RTD_SON_CHE_1),_OutlineColor.rgb,SSOLi);//SSOL",
+                    "//float3 Init_FO=lerp((RTD_CA*RTD_SON_CHE_1),_OutlineColor.rgb,SSOLi);//SSOL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
                 ChanLi("#endif//SSOL", "//#endif//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
                 ChanLi("#else//SSOL", "//#else//SSOL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
 
@@ -3332,9 +3314,21 @@ namespace GameEditor.RealToonEditor
                 //============================
                 //============================
 
-                ChanLi("static bool UseSSOL = false;", "static bool UseSSOL = true;", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
-                ChanLi("static string OLType = " + (char)34 + "Screen Space" + (char)34 + ";", "static string OLType = " + (char)34 + "Traditional" + (char)34 + ";", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
-                ChanLi("static string UseSSOLStat = " + (char)34 + "Use Traditional Outline" + (char)34 + ";", "static string UseSSOLStat = " + (char)34 + "Use Screen Space Outline" + (char)34 + ";", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
+                ChanLi(
+                    "static bool UseSSOL = false;",
+                    "static bool UseSSOL = true;",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
+                ChanLi(
+                    "static string OLType = " + (char)34 + "Screen Space" + (char)34 + ";",
+                    "static string OLType = " + (char)34 + "Traditional" + (char)34 + ";",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
+                ChanLi(
+                    "static string UseSSOLStat = " + (char)34 + "Use Traditional Outline" + (char)34 + ";",
+                    "static string UseSSOLStat = " + (char)34 + "Use Screen Space Outline" + (char)34 + ";",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
 
                 AssetDatabase.ImportAsset("Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
                 AssetDatabase.ImportAsset("Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
@@ -3348,15 +3342,47 @@ namespace GameEditor.RealToonEditor
         {
             if (twofourfive_target == false)
             {
-                ChanLi("static bool twofourfive_target = false;", "static bool twofourfive_target = true;", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
-                ChanLi("static string twofourfive_target_string = " + (char)34 + "Change shader compilation target to 4.5" + (char)34 + ";", "static string twofourfive_target_string = " + (char)34 + "Change shader compilation target to 2.0" + (char)34 + ";", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
+                ChanLi(
+                    "static bool twofourfive_target = false;",
+                    "static bool twofourfive_target = true;",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
+                ChanLi(
+                    "static string twofourfive_target_string = " + (char)34 + "Change shader compilation target to 4.5" + (char)34 + ";",
+                    "static string twofourfive_target_string = " + (char)34 + "Change shader compilation target to 2.0" + (char)34 + ";",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
 
-                ChanLi("#pragma target 2.0 //targetol", "#pragma target 4.5 //targetol", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("#pragma target 2.0 //targetfl", "#pragma target 4.5 //targetfl", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("#pragma target 2.0 //targetsc", "#pragma target 4.5 //targetsc", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("#pragma target 2.0 //targetdo", "#pragma target 4.5 //targetdo", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("#pragma target 2.0 //targetdn", "#pragma target 4.5 //targetdn", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("#pragma target 2.0 //targetm", "#pragma target 4.5 //targetm", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "#pragma target 2.0 //targetol",
+                    "#pragma target 4.5 //targetol",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "#pragma target 2.0 //targetfl",
+                    "#pragma target 4.5 //targetfl",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "#pragma target 2.0 //targetsc",
+                    "#pragma target 4.5 //targetsc",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "#pragma target 2.0 //targetdo",
+                    "#pragma target 4.5 //targetdo",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "#pragma target 2.0 //targetdn",
+                    "#pragma target 4.5 //targetdn",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "#pragma target 2.0 //targetm",
+                    "#pragma target 4.5 //targetm",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
                 AssetDatabase.ImportAsset("Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
                 AssetDatabase.ImportAsset("Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
@@ -3364,15 +3390,47 @@ namespace GameEditor.RealToonEditor
             }
             else if (twofourfive_target == true)
             {
-                ChanLi("static bool twofourfive_target = true;", "static bool twofourfive_target = false;", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
-                ChanLi("static string twofourfive_target_string = " + (char)34 + "Change shader compilation target to 2.0" + (char)34 + ";", "static string twofourfive_target_string = " + (char)34 + "Change shader compilation target to 4.5" + (char)34 + ";", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
+                ChanLi(
+                    "static bool twofourfive_target = true;",
+                    "static bool twofourfive_target = false;",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
+                ChanLi(
+                    "static string twofourfive_target_string = " + (char)34 + "Change shader compilation target to 2.0" + (char)34 + ";",
+                    "static string twofourfive_target_string = " + (char)34 + "Change shader compilation target to 4.5" + (char)34 + ";",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
 
-                ChanLi("#pragma target 4.5 //targetol", "#pragma target 2.0 //targetol", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("#pragma target 4.5 //targetfl", "#pragma target 2.0 //targetfl", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("#pragma target 4.5 //targetsc", "#pragma target 2.0 //targetsc", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("#pragma target 4.5 //targetdo", "#pragma target 2.0 //targetdo", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("#pragma target 4.5 //targetdn", "#pragma target 2.0 //targetdn", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("#pragma target 4.5 //targetm", "#pragma target 2.0 //targetm", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "#pragma target 4.5 //targetol",
+                    "#pragma target 2.0 //targetol",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "#pragma target 4.5 //targetfl",
+                    "#pragma target 2.0 //targetfl",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "#pragma target 4.5 //targetsc",
+                    "#pragma target 2.0 //targetsc",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "#pragma target 4.5 //targetdo",
+                    "#pragma target 2.0 //targetdo",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "#pragma target 4.5 //targetdn",
+                    "#pragma target 2.0 //targetdn",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "#pragma target 4.5 //targetm",
+                    "#pragma target 2.0 //targetm",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
                 AssetDatabase.ImportAsset("Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
                 AssetDatabase.ImportAsset("Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
@@ -3387,97 +3445,304 @@ namespace GameEditor.RealToonEditor
         {
             if (dots_lbs_cd == false)
             {
-
 #if ENABLE_COMPUTE_DEFORMATIONS
 
-        ChanLi("static bool dots_lbs_cd = false;", "static bool dots_lbs_cd = true;", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
-        ChanLi("static string dots_lbs_cd_string = " + (char)34 + "DOTS|HR - Use Compute Deformation" + (char)34 + ";", "static string dots_lbs_cd_string = " + (char)34 + "DOTS|HR - Use Linear Blend Skinning" + (char)34 + ";", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
+                ChanLi(
+                    "static bool dots_lbs_cd = false;",
+                    "static bool dots_lbs_cd = true;",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
+                ChanLi(
+                    "static string dots_lbs_cd_string = " + (char)34 + "DOTS|HR - Use Compute Deformation" + (char)34 + ";",
+                    "static string dots_lbs_cd_string = " + (char)34 + "DOTS|HR - Use Linear Blend Skinning" + (char)34 + ";",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
 
+                ChanLi(
+                    "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_OL",
+                    "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_OL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_OL",
+                    "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_OL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//uint vertexID : SV_VertexID;//DOTS_CompDef_OL",
+                    "uint vertexID : SV_VertexID;//DOTS_CompDef_OL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_OL",
+                    "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_OL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_OL",
+                    "//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_OL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
-        ChanLi("float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_OL", "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_OL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("uint4 indices : BLENDINDICES;//DOTS_LiBleSki_OL", "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_OL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("//uint vertexID : SV_VertexID;//DOTS_CompDef_OL", "uint vertexID : SV_VertexID;//DOTS_CompDef_OL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_OL", "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_OL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_OL", "//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_OL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_FL",
+                    "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_FL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_FL",
+                    "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_FL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//uint vertexID : SV_VertexID;//DOTS_CompDef_FL",
+                    "uint vertexID : SV_VertexID;//DOTS_CompDef_FL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_FL",
+                    "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_FL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_FL",
+                    "//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_FL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
+                ChanLi(
+                    "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_SC",
+                    "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_SC",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_SC",
+                    "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_SC",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//uint vertexID : SV_VertexID;//DOTS_CompDef_SC",
+                    "uint vertexID : SV_VertexID;//DOTS_CompDef_SC",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_SC",
+                    "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_SC",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_SC",
+                    "//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_SC",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
-        ChanLi("float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_FL", "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_FL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("uint4 indices : BLENDINDICES;//DOTS_LiBleSki_FL", "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_FL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("//uint vertexID : SV_VertexID;//DOTS_CompDef_FL", "uint vertexID : SV_VertexID;//DOTS_CompDef_FL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_FL", "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_FL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_FL", "//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_FL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DO",
+                    "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DO",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DO",
+                    "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DO",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//uint vertexID : SV_VertexID;//DOTS_CompDef_DO",
+                    "uint vertexID : SV_VertexID;//DOTS_CompDef_DO",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DO",
+                    "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DO",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "DOTS_LiBleSki(input.indices, input.weights, input.position.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DO",
+                    "//DOTS_LiBleSki(input.indices, input.weights, input.position.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DO",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
+                ChanLi(
+                    "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DN",
+                    "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DN",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DN",
+                    "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DN",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//uint vertexID : SV_VertexID;//DOTS_CompDef_DN",
+                    "uint vertexID : SV_VertexID;//DOTS_CompDef_DN",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DN",
+                    "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DN",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normal.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DN",
+                    "//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normal.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DN",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
-        ChanLi("float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_SC", "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_SC", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("uint4 indices : BLENDINDICES;//DOTS_LiBleSki_SC", "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_SC", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("//uint vertexID : SV_VertexID;//DOTS_CompDef_SC", "uint vertexID : SV_VertexID;//DOTS_CompDef_SC", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_SC", "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_SC", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_SC", "//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_SC", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-
-
-        ChanLi("float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DO", "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DO", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DO", "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DO", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("//uint vertexID : SV_VertexID;//DOTS_CompDef_DO", "uint vertexID : SV_VertexID;//DOTS_CompDef_DO", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DO", "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DO", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("DOTS_LiBleSki(input.indices, input.weights, input.position.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DO", "//DOTS_LiBleSki(input.indices, input.weights, input.position.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DO", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-
-
-        ChanLi("float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DN", "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DN", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DN", "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DN", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("//uint vertexID : SV_VertexID;//DOTS_CompDef_DN", "uint vertexID : SV_VertexID;//DOTS_CompDef_DN", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DN", "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DN", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        ChanLi("DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normal.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DN", "//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normal.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DN", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-
-
-        AssetDatabase.ImportAsset("Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-        AssetDatabase.ImportAsset("Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
-        Debug.LogWarning("DOTS|HR - Compute Deformation is now use, This will enable you to use BlendShapes and other deformation.");
+                AssetDatabase.ImportAsset("Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                AssetDatabase.ImportAsset("Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
+                Debug.LogWarning(
+                    "DOTS|HR - Compute Deformation is now use, This will enable you to use BlendShapes and other deformation."
+                );
 #else
 
-                Debug.LogWarning("For the Compute Deformation node to work, you must go to Project Settings>Player>Other Settings and add the ENABLE_COMPUTE_DEFORMATIONS define to Scripting Define Symbols.");
+                Debug.LogWarning(
+                    "For the Compute Deformation node to work, you must go to Project Settings>Player>Other Settings and add the ENABLE_COMPUTE_DEFORMATIONS define to Scripting Define Symbols."
+                );
 
 #endif
             }
             else if (dots_lbs_cd == true)
             {
-                ChanLi("static bool dots_lbs_cd = true;", "static bool dots_lbs_cd = false;", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
-                ChanLi("static string dots_lbs_cd_string = " + (char)34 + "DOTS|HR - Use Linear Blend Skinning" + (char)34 + ";", "static string dots_lbs_cd_string = " + (char)34 + "DOTS|HR - Use Compute Deformation" + (char)34 + ";", "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
+                ChanLi(
+                    "static bool dots_lbs_cd = true;",
+                    "static bool dots_lbs_cd = false;",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
+                ChanLi(
+                    "static string dots_lbs_cd_string = " + (char)34 + "DOTS|HR - Use Linear Blend Skinning" + (char)34 + ";",
+                    "static string dots_lbs_cd_string = " + (char)34 + "DOTS|HR - Use Compute Deformation" + (char)34 + ";",
+                    "Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs"
+                );
 
+                ChanLi(
+                    "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_OL",
+                    "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_OL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_OL",
+                    "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_OL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "uint vertexID : SV_VertexID;//DOTS_CompDef_OL",
+                    "//uint vertexID : SV_VertexID;//DOTS_CompDef_OL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_OL",
+                    "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_OL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_OL",
+                    "DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_OL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
-                ChanLi("//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_OL", "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_OL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_OL", "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_OL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("uint vertexID : SV_VertexID;//DOTS_CompDef_OL", "//uint vertexID : SV_VertexID;//DOTS_CompDef_OL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_OL", "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_OL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_OL", "DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_OL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_FL",
+                    "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_FL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_FL",
+                    "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_FL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "uint vertexID : SV_VertexID;//DOTS_CompDef_FL",
+                    "//uint vertexID : SV_VertexID;//DOTS_CompDef_FL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_FL",
+                    "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_FL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_FL",
+                    "DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_FL",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
+                ChanLi(
+                    "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_SC",
+                    "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_SC",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_SC",
+                    "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_SC",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "uint vertexID : SV_VertexID;//DOTS_CompDef_SC",
+                    "//uint vertexID : SV_VertexID;//DOTS_CompDef_SC",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_SC",
+                    "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_SC",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_SC",
+                    "DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_SC",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
-                ChanLi("//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_FL", "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_FL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_FL", "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_FL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("uint vertexID : SV_VertexID;//DOTS_CompDef_FL", "//uint vertexID : SV_VertexID;//DOTS_CompDef_FL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_FL", "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_FL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_FL", "DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_FL", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
+                ChanLi(
+                    "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DO",
+                    "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DO",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DO",
+                    "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DO",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "uint vertexID : SV_VertexID;//DOTS_CompDef_DO",
+                    "//uint vertexID : SV_VertexID;//DOTS_CompDef_DO",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DO",
+                    "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DO",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//DOTS_LiBleSki(input.indices, input.weights, input.position.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DO",
+                    "DOTS_LiBleSki(input.indices, input.weights, input.position.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DO",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
-
-                ChanLi("//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_SC", "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_SC", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_SC", "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_SC", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("uint vertexID : SV_VertexID;//DOTS_CompDef_SC", "//uint vertexID : SV_VertexID;//DOTS_CompDef_SC", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_SC", "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_SC", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_SC", "DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_SC", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-
-
-                ChanLi("//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DO", "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DO", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DO", "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DO", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("uint vertexID : SV_VertexID;//DOTS_CompDef_DO", "//uint vertexID : SV_VertexID;//DOTS_CompDef_DO", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DO", "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DO", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//DOTS_LiBleSki(input.indices, input.weights, input.position.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DO", "DOTS_LiBleSki(input.indices, input.weights, input.position.xyz, input.normalOS.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DO", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-
-
-                ChanLi("//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DN", "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DN", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DN", "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DN", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("uint vertexID : SV_VertexID;//DOTS_CompDef_DN", "//uint vertexID : SV_VertexID;//DOTS_CompDef_DN", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DN", "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DN", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-                ChanLi("//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normal.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DN", "DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normal.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DN", "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
-
+                ChanLi(
+                    "//float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DN",
+                    "float4 weights : BLENDWEIGHTS;//DOTS_LiBleSki_DN",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DN",
+                    "uint4 indices : BLENDINDICES;//DOTS_LiBleSki_DN",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "uint vertexID : SV_VertexID;//DOTS_CompDef_DN",
+                    "//uint vertexID : SV_VertexID;//DOTS_CompDef_DN",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DN",
+                    "//DOTS_CompDef(input.vertexID, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_CompDef_DN",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
+                ChanLi(
+                    "//DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normal.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DN",
+                    "DOTS_LiBleSki(input.indices, input.weights, input.positionOS.xyz, input.normal.xyz, input.tangentOS.xyz, (float3)_LBS_CD_Position, _LBS_CD_Normal, (float3)_LBS_CD_Tangent);//DOTS_LiBleSki_DN",
+                    "Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader"
+                );
 
                 AssetDatabase.ImportAsset("Assets/RealToon/RealToon Shaders/Version 5/URP/Default/D_Default_URP.shader");
                 AssetDatabase.ImportAsset("Assets/RealToon/Editor/RealToonShaderGUI_URP_SRP.cs");
@@ -3487,7 +3752,6 @@ namespace GameEditor.RealToonEditor
 
         #endregion
     }
-
 }
 
 #endif
