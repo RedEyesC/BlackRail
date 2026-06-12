@@ -1,6 +1,9 @@
 ﻿using TrackEditor;
 using UnityEditor;
 using UnityEngine;
+#if UNITY_EDITOR
+using System.Linq;
+#endif
 
 namespace GameFramework.Action
 {
@@ -22,29 +25,6 @@ namespace GameFramework.Action
 
         [MenuName("动画对象")]
         public string resPath = "";
-
-        private UnityEngine.AnimationClip _animationClip;
-
-        public UnityEngine.AnimationClip animationClip
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(resPath))
-                {
-                    _animationClip = null;
-                    return null;
-                }
-
-                if (_animationClip == null)
-                {
-#if UNITY_EDITOR
-                    _animationClip = AssetDatabase.LoadAssetAtPath<UnityEngine.AnimationClip>(resPath);
-#endif
-                }
-
-                return _animationClip;
-            }
-        }
 
         [Range(0.1f, 10f)]
         public float playbackSpeed = 1;
@@ -75,12 +55,10 @@ namespace GameFramework.Action
             set => clipOffset = value;
         }
 
-        float ISubClipContainable.SubClipLength => animationClip != null ? animationClip.length : 0;
+        float ISubClipContainable.SubClipLength => 0;
 
         float ISubClipContainable.SubClipSpeed => 1;
 
-        public override bool isValid => animationClip != null;
-
-        public override string info => isValid ? animationClip.name : base.info;
+        public override bool isValid => true;
     }
 }

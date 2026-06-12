@@ -1,19 +1,16 @@
 using System.Collections.Generic;
+using TrackEditor;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
 
-
 public class AnimPlayableComponent : MonoBehaviour
 {
-
-
     private Animator _animator;
     private AnimationPlayableOutput _animationOutput;
     public Dictionary<string, AnimationClipPlayable> states = new Dictionary<string, AnimationClipPlayable>();
 
     private PlayableGraph _graph;
-
 
     private void Awake()
     {
@@ -43,9 +40,36 @@ public class AnimPlayableComponent : MonoBehaviour
         }
     }
 
+    public void Sample(string clipName, float time)
+    {
+        if (states.TryGetValue(clipName, out var state))
+        {
+            _animationOutput.SetSourcePlayable(state);
+            state.SetSpeed(0);
+            state.SetTime(time);
+            _graph.Evaluate(0);
+        }
+    }
+
+    public void SampleFrame(string clipName, int frame)
+    {
+        if (states.TryGetValue(clipName, out var state))
+        {
+            var clip = state.GetAnimationClip();
+            if (clip == null)
+            {
+                return;
+            }
+
+            Sample(clipName, frame / clip.frameRate);
+        }
+    }
+
     public void Play(AnimationClip clip, string clipName)
     {
-        _animationOutput.SetSourcePlayable(AddClip(clip, clipName));
+        var state = AddClip(clip, clipName);
+        _animationOutput.SetSourcePlayable(state);
+        state.SetSpeed(1);
 
         _graph.Play();
     }
@@ -55,10 +79,7 @@ public class AnimPlayableComponent : MonoBehaviour
         _graph.Stop();
     }
 
-    public bool TryGetAnimator()
-    => _animator != null
-    || TryGetComponent(out _animator);
-
+    public bool TryGetAnimator() => _animator != null || TryGetComponent(out _animator);
 
     public void InitializeGraph()
     {
@@ -91,11 +112,14 @@ public class AnimPlayableComponent : MonoBehaviour
 
     public void RestStates()
     {
-
         // 遍历并销毁每个值
         foreach (var key in new List<string>(states.Keys))
         {
-            _graph.DestroyPlayable(states[key]);
+            if (_graph.IsValid())
+            {
+                _graph.DestroyPlayable(states[key]);
+            }
+
             states.Remove(key);
         }
 
