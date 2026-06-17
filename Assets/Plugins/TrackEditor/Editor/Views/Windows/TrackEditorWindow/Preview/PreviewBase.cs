@@ -10,7 +10,7 @@
     {
         public DirectableAsset directable;
 
-        public void SetTarget(DirectableAsset t)
+        public virtual void SetTarget(DirectableAsset t)
         {
             directable = t;
         }

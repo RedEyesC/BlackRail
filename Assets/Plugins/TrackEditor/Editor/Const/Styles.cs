@@ -110,8 +110,6 @@ namespace TrackEditor
             Logo = (Texture2D)Resources.Load("Logo");
 
             styleSheet = (GUISkin)Resources.Load("StyleSheet");
-
-            lockButton = "IN LockButton";
         }
 
         public static Texture2D whiteTexture => EditorGUIUtility.whiteTexture;
@@ -170,6 +168,8 @@ namespace TrackEditor
             }
         }
 
-        public static GUIStyle lockButton;
+        private static GUIStyle _lockButton;
+
+        public static GUIStyle lockButton => _lockButton != null ? _lockButton : _lockButton = "IN LockButton";
     }
 }

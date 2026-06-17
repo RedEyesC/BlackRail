@@ -15,16 +15,10 @@ namespace GameFramework.Action
         private string _animClipName;
         private AnimationClip _animationClip;
 
-        public override void Update(float time, float previousTime)
+        public override void SetTarget(DirectableAsset t)
         {
-            if (_animator != null && _animClipName != null)
-            {
-                Preview(_animClipName, time);
-            }
-        }
+            base.SetTarget(t);
 
-        public override void Enter()
-        {
             var model = ModelSampler.EditModel;
             if (model != null)
             {
@@ -53,6 +47,16 @@ namespace GameFramework.Action
                 }
             }
         }
+
+        public override void Update(float time, float previousTime)
+        {
+            if (_animator != null && _animClipName != null)
+            {
+                Preview(_animClipName, time);
+            }
+        }
+
+        public override void Enter() { }
 
         /// <param name="animationClip"></param>
         /// <param name="gameObject"></param>

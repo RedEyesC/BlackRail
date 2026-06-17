@@ -10,8 +10,6 @@ namespace TrackEditor
     [CustomEditor(typeof(InspectorPreviewAsset))]
     public class InspectorPreviewAssetInspector : Editor
     {
-        private bool _optionsAssetFold = true;
-
         private static Asset _lastAsset;
         private static bool _willResample;
 
