@@ -10,8 +10,10 @@ namespace GameFramework.Action
     [TrackEditor.CustomPreview(typeof(ActionAnimationClip))]
     public class ActionAnimationClipPreview : PreviewBase<ActionAnimationClip>
     {
+        private string _animResPath = "Assets/Resource/Anim/";
         private AnimPlayableComponent _animator;
         private string _animClipName;
+        private AnimationClip _animationClip;
 
         public override void Update(float time, float previousTime)
         {
@@ -37,11 +39,15 @@ namespace GameFramework.Action
             {
                 if (clip.resPath != null)
                 {
-                    AnimationClip _animationClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(
-                        "Assets/RawData/Anim/HeavyLance/strafe_run_frontL45.anim"
-                    );
+                    _animationClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(_animResPath + clip.resPath + ".anim");
+
+                    if (_animationClip == null)
+                    {
+                        return;
+                    }
 
                     _animClipName = _animationClip.name;
+                    clip.SubClipLength = _animationClip.length;
 
                     _animator.AddClip(_animationClip, _animClipName);
                 }

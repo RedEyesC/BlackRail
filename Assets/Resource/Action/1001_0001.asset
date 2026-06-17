@@ -14,12 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _parent: {fileID: 705231904186063875}
   startTime: 0
-  length: 5.3
+  length: 0.6666667
   blendIn: 0
   blendOut: 0
-  resPath: Assets/RawData/Model/Monster/1002/DG_030_MonsterUI.fbx
+  resPath: 1001_0001
   playbackSpeed: 1
   clipOffset: 0
+  subClipLength: 0.6666667
 --- !u!114 &-3193018266052020786
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -65,14 +66,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a35a9fada00ba1447b3b64fc95ef3063, type: 3}
-  m_Name: 10000
+  m_Name: 1001_0001
   m_EditorClassIdentifier: 
   _parent: {fileID: 0}
   groups:
   - {fileID: -3193018266052020786}
-  length: 5.3
+  length: 0.6666667
   viewTimeMin: 0
-  viewTimeMax: 5.3
+  viewTimeMax: 0.7963358
 --- !u!114 &705231904186063875
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -128,3 +129,4 @@ MonoBehaviour:
   resPath: Assets/RawData/Model/Monster/1002/DG_030_MonsterUI.fbx
   playbackSpeed: 1
   clipOffset: 0
+  subClipLength: 0

@@ -1,9 +1,5 @@
 ﻿using TrackEditor;
-using UnityEditor;
 using UnityEngine;
-#if UNITY_EDITOR
-using System.Linq;
-#endif
 
 namespace GameFramework.Action
 {
@@ -31,6 +27,8 @@ namespace GameFramework.Action
 
         public float clipOffset;
 
+        public float subClipLength;
+
         public override float Length
         {
             get => length;
@@ -49,15 +47,23 @@ namespace GameFramework.Action
             set => blendOut = value;
         }
 
-        float ISubClipContainable.SubClipOffset
+        public virtual float SubClipOffset
         {
             get => clipOffset;
             set => clipOffset = value;
         }
 
-        float ISubClipContainable.SubClipLength => 0;
+        public virtual float SubClipLength
+        {
+            get => subClipLength;
+            set => subClipLength = Mathf.Max(0, value);
+        }
 
-        float ISubClipContainable.SubClipSpeed => 1;
+        public virtual float SubClipSpeed
+        {
+            get => playbackSpeed;
+            set => playbackSpeed = Mathf.Max(0.0001f, value);
+        }
 
         public override bool isValid => true;
     }
