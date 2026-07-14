@@ -1,27 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-6213564974111573063
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 918706c75e3020042ac2b8e469e92960, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _parent: {fileID: 705231904186063875}
-  startTime: 0
-  length: 0.6666667
-  blendIn: 0
-  blendOut: 0
-  resPath: 1001_0001
-  playbackSpeed: 1
-  clipOffset: 0
-  subClipLength: 0.6666667
---- !u!114 &-3193018266052020786
+--- !u!114 &-7928557442555289938
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -35,11 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp:GameEditor.ActionEditor:ActionGroup
   _parent: {fileID: 11400000}
   tracks:
-  - {fileID: 705231904186063875}
+  - {fileID: 4604311872445037573}
   isCollapsed: 0
   active: 1
   isLocked: 0
---- !u!114 &-394720445787577342
+--- !u!114 &-5924160624872651668
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -48,14 +27,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2a9db414099843999551c8e3036e3029, type: 3}
-  m_Name: ActionAnimationTrack
+  m_Script: {fileID: 11500000, guid: 918706c75e3020042ac2b8e469e92960, type: 3}
+  m_Name: 
   m_EditorClassIdentifier: 
-  _parent: {fileID: -3193018266052020786}
-  actionClips: []
-  active: 1
-  isLocked: 0
-  color: {r: 1, g: 1, b: 1, a: 1}
+  _parent: {fileID: 4604311872445037573}
+  startTime: 0.01
+  length: 2.6699998
+  blendIn: 0.25
+  blendOut: 0.25
+  resPath: 1001_0001
+  playbackSpeed: 1
+  clipOffset: 0
+  subClipLength: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -70,11 +53,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _parent: {fileID: 0}
   groups:
-  - {fileID: -3193018266052020786}
-  length: 0.6666667
+  - {fileID: -7928557442555289938}
+  length: 5
   viewTimeMin: 0
-  viewTimeMax: 0.7963358
---- !u!114 &705231904186063875
+  viewTimeMax: 5
+--- !u!114 &4604311872445037573
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -86,47 +69,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a9db414099843999551c8e3036e3029, type: 3}
   m_Name: ActionAnimationTrack
   m_EditorClassIdentifier: 
-  _parent: {fileID: -3193018266052020786}
+  _parent: {fileID: -7928557442555289938}
   actionClips:
-  - {fileID: -6213564974111573063}
+  - {fileID: -5924160624872651668}
   active: 1
   isLocked: 0
   color: {r: 1, g: 1, b: 1, a: 1}
---- !u!114 &2298385491727152397
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2a9db414099843999551c8e3036e3029, type: 3}
-  m_Name: ActionAnimationTrack
-  m_EditorClassIdentifier: 
-  _parent: {fileID: -3193018266052020786}
-  actionClips: []
-  active: 1
-  isLocked: 0
-  color: {r: 1, g: 1, b: 1, a: 1}
---- !u!114 &2555347586918650095
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 918706c75e3020042ac2b8e469e92960, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _parent: {fileID: 705231904186063875}
-  startTime: 3.0000002
-  length: 0
-  blendIn: 1.6333334
-  blendOut: 1.8333335
-  resPath: Assets/RawData/Model/Monster/1002/DG_030_MonsterUI.fbx
-  playbackSpeed: 1
-  clipOffset: 0
-  subClipLength: 0
