@@ -144,7 +144,7 @@ GameObject:
   - component: {fileID: 6822129902642874037}
   - component: {fileID: 5922772957722351800}
   m_Layer: 0
-  m_Name: Art_PlayerGirl_00
+  m_Name: 1002
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
