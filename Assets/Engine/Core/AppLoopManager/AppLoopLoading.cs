@@ -24,7 +24,7 @@ namespace GameFramework.AppLoop
             switch (_state)
             {
                 case 0:
-                    SceneCtrl.LoadScene(1003);
+                    SceneCtrl.LoadScene(1000);
                     _state = 1;
                     break;
                 case 1:

@@ -58,7 +58,7 @@ namespace GameLogic
         {
             mainRole = new Role();
 
-            mainRole.SetModelID(1, 1001);
+            mainRole.SetModelID(1, 1000);
 
             AddObj(mainRole);
 

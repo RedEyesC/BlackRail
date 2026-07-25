@@ -18,7 +18,7 @@ namespace GameFramework.AppLoop
             //// 远景 28，50，35，0，0，中景 20，50，35，0，0， 近景 10，60，20，0，0
             SceneManager.SetTarget(mainRole.root, 15f, 35, 25, 0, 0);
 
-            mainRole.SetPosition(-66, 499);
+            mainRole.SetPosition(0, 0);
             //mainRole.PlayAnim("Idle");
 
             //创建怪物
