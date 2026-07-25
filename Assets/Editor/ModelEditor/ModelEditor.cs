@@ -1,5 +1,5 @@
 ﻿
-using GameEditor.Utility;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -12,8 +12,7 @@ namespace GameEditor.ModelEditor
     {
 
         static readonly string ModelRawPath = "Assets/RawData/Model/";
-        static readonly string ModelResPath = "Assets/Resources/Model/";
-        static readonly string ModelDefaultShader = "BRShader/Character/Default/Default";
+        static readonly string ModelResPath = "Assets/Resource/Model/";
 
         [MenuItem("Assets/Game Editor/导出模型", false, 900)]
         static void ExportModelInfo()
@@ -103,45 +102,72 @@ namespace GameEditor.ModelEditor
 
             GameObject go = null;
 
-            DirectoryInfo dirInfo = new DirectoryInfo(path);
+            string modelType = GetModelType(path);
+            string modelName = GetModelName(path);
+
+            string prefabPath = path + "/Prefab";
+
+            DirectoryInfo dirInfo = new DirectoryInfo(prefabPath);
             foreach (var file in dirInfo.GetFiles())
             {
-                if (file.Extension.ToLower() == ".fbx")
+                if (file.Extension.ToLower() == ".prefab")
                 {
-                    GameObject pref = AssetDatabase.LoadAssetAtPath<GameObject>(path + "/" + file.Name);
+                    GameObject pref = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath + "/" + file.Name);
                     go = GameObject.Instantiate(pref);
-                    go.name = Path.GetFileNameWithoutExtension(file.Name);
+                    go.name = Path.GetFileNameWithoutExtension(modelName);
                     break;
                 }
             }
-            string modelName = GetModelName(path);
-            string avatarResPath = ModelResPath + modelName + "/Avatar/";
+
+
+            string avatarResPath = ModelResPath + modelType + "/" + modelName + "/Avatar/";
             ExportAvatar(go, avatarResPath);
 
-            string meshResPath = ModelResPath + modelName + "/Mesh/";
+            string meshResPath = ModelResPath + modelType + "/" + modelName + "/Mesh/";
             ExportMesh(go, meshResPath);
 
-            string textureResPath = ModelResPath + modelName + "/Materials/";
+            string textureResPath = ModelResPath + modelType + "/" + modelName + "/Material/";
             ExportMaterial(go, path, ModelResPath, textureResPath);
 
-            string resPrefabPath = ModelResPath + modelName + "/";
-
+            string resPrefabPath = ModelResPath + modelType + "/" + modelName + "/";
             ExportModel(go, path, resPrefabPath);
 
             GameObject.DestroyImmediate(go);
 
-            Debug.LogFormat("{0} Export Model Success！！", modelName);
+            Debug.LogFormat("{0} Export Model Success！！", modelType + "/" + modelName);
         }
+
 
         public static string GetModelName(string path)
         {
             if (path.Contains(ModelRawPath))
             {
                 path = path.Replace(ModelRawPath, "");
+                path = path.Remove(0, path.IndexOf("/") + 1);
+
+                if (path.Contains("/"))
+                    path = path.Remove(path.IndexOf("/"));
+
+                return path;
+
+            }
+            return null;
+        }
+
+
+        static string GetModelType(string path)
+        {
+            if (path.Contains(ModelRawPath))
+            {
+                path = path.Replace(ModelRawPath, "");
+                path = path.Remove(path.IndexOf("/"));
+                if (path.Contains("/"))
+                    path = path.Remove(path.IndexOf("/"));
                 return path;
             }
             return null;
         }
+
 
         static void ExportAvatar(GameObject go, string savePath)
         {
@@ -158,8 +184,8 @@ namespace GameEditor.ModelEditor
             string newAvPath = savePath + avatar.name + ".asset";
 
 
-            CommonUtility.CreateFolder(newAvPath.Remove(newAvPath.LastIndexOf("/")));
-            CommonUtility.CreateAsset(newAvatar, newAvPath);
+            CreateFolder(newAvPath.Remove(newAvPath.LastIndexOf("/")));
+            CreateAsset(newAvatar, newAvPath);
 
             anim.avatar = AssetDatabase.LoadAssetAtPath<Avatar>(newAvPath);
         }
@@ -196,12 +222,14 @@ namespace GameEditor.ModelEditor
         {
             Mesh newMesh = GameObject.Instantiate<Mesh>(mesh);
 
-            CommonUtility.CreateFolder(meshPath.Remove(meshPath.LastIndexOf("/")));
-            CommonUtility.CreateAsset(newMesh, meshPath);
+            CreateFolder(meshPath.Remove(meshPath.LastIndexOf("/")));
+            CreateAsset(newMesh, meshPath);
         }
 
         static void ExportMaterial(GameObject go, string rawPath, string savePath, string textureResPath)
         {
+            Dictionary<Material, Material> exportedMaterials = new Dictionary<Material, Material>();
+
             Renderer[] rendererArr = go.GetComponentsInChildren<Renderer>();
             for (int k = 0; k < rendererArr.Length; k++)
             {
@@ -210,15 +238,43 @@ namespace GameEditor.ModelEditor
                 for (int j = 0; j < mats.Length; j++)
                 {
 
-                    Material mat;
-                    mat = new Material(Shader.Find(ModelDefaultShader)) { name = mats[j].name+"_"+k, };
+                    Material mat = mats[j];
+                    if (exportedMaterials.ContainsKey(mat))
+                    {
+                        newMats[j] = exportedMaterials[mat];
+                        continue;
+                    }
+
+                    Material newMat = GameObject.Instantiate<Material>(mat);
+                    mat.name = mats[j].name + "_" + k + "_" + j;
 
                     string newMatPath = textureResPath + mat.name + ".mat";
-                    CommonUtility.CreateFolder(newMatPath.Remove(newMatPath.LastIndexOf("/")));
-                    AssetDatabase.CreateAsset(mat, newMatPath);
 
-                    Material newMat = AssetDatabase.LoadAssetAtPath<Material>(newMatPath);
+                    CreateFolder(newMatPath.Remove(newMatPath.LastIndexOf("/")));
+                    AssetDatabase.CreateAsset(newMat, newMatPath);
+
+                    var resShader = newMat.shader;
+
+                    int propertyCount = ShaderUtil.GetPropertyCount(resShader);
+                    for (int i = 0; i < propertyCount; i++)
+                    {
+                        if (ShaderUtil.GetPropertyType(resShader, i) == ShaderUtil.ShaderPropertyType.TexEnv)
+                        {
+                            string propertyName = ShaderUtil.GetPropertyName(resShader, i);
+
+                            Texture tex = newMat.GetTexture(propertyName);
+
+                            if (tex == null)
+                                continue;
+
+
+                            ExportTextureAsset(newMat, propertyName, tex, rawPath, textureResPath);
+                        }
+                    }
+
+                    newMat = AssetDatabase.LoadAssetAtPath<Material>(newMatPath);
                     newMats[j] = newMat;
+                    exportedMaterials.Add(mat, newMat);
 
                 }
                 rendererArr[k].sharedMaterials = newMats;
@@ -227,8 +283,33 @@ namespace GameEditor.ModelEditor
             AssetDatabase.Refresh();
         }
 
+        static bool ExportTextureAsset(Material mat, string propertyName, Texture tex, string rawPath, string textureResPath)
+        {
+
+            var texPath = AssetDatabase.GetAssetPath(tex);
+            texPath = texPath.Replace("\\", "/");
+
+            var saveTexPath = CombinePath(textureResPath, Path.GetFileName(texPath));
+
+            CopyTexture(texPath, saveTexPath);
+
+            Texture releaseTex = AssetDatabase.LoadAssetAtPath<Texture>(saveTexPath);
+            if (releaseTex == null)
+            {
+                Debug.LogErrorFormat("Texture Error! {0}", releaseTex.name);
+                return false;
+            }
+
+            mat.SetTexture(propertyName, releaseTex);
+
+
+            return false;
+        }
+
+
         static void ExportModel(GameObject go, string rawPath, string savePath)
         {
+            string modelType = GetModelType(rawPath);
             string modelName = GetModelName(rawPath);
 
             Renderer[] rendererArr = go.GetComponentsInChildren<Renderer>();
@@ -242,29 +323,27 @@ namespace GameEditor.ModelEditor
             }
 
 
-            go.AddComponent<AnimPlayableComponent>();
-
             Animator anim = go.GetComponent<Animator>();
             if (!anim)
             {
-               go.AddComponent<Animator>();
+                go.AddComponent<Animator>();
             }
 
-            string avatarPath = ModelResPath + modelName + "/" + anim.avatar.name + ".asset";
+            string avatarPath = ModelResPath + modelType + "/" + modelName + "/" + anim.avatar.name + ".asset";
             if (File.Exists(avatarPath))
             {
                 anim.avatar = AssetDatabase.LoadAssetAtPath<Avatar>(avatarPath);
             }
 
             string modelPath = savePath;
-            CommonUtility.CreatePrefab(go, modelPath);
+            CreatePrefab(go, modelPath);
             AssetDatabase.Refresh();
         }
 
         static void ExportAnim(string rawPath, string savePath)
         {
-            Object[] objs = AssetDatabase.LoadAllAssetsAtPath(rawPath);
-            foreach (Object o in objs)
+            UnityEngine.Object[] objs = AssetDatabase.LoadAllAssetsAtPath(rawPath);
+            foreach (UnityEngine.Object o in objs)
             {
                 if (o is AnimationClip)
                 {
@@ -279,12 +358,93 @@ namespace GameEditor.ModelEditor
                     AnimationClip newClip = new AnimationClip();
 
                     EditorUtility.CopySerialized(clip, newClip);
-                    CommonUtility.CreateFolder(savePath);
+                    CreateFolder(savePath);
                     string resAnimPath = savePath + clip.name + ".anim";
-                    CommonUtility.CreateAsset(newClip, resAnimPath);
+                    CreateAsset(newClip, resAnimPath);
                 }
             }
 
+        }
+
+        public static void CopyAsset(string srcPath, string destPath)
+        {
+            if (srcPath == destPath)
+            {
+                EditorUtility.DisplayDialog("error", string.Format("{0} srcPath==destPath", srcPath), "ok");
+                throw new System.IO.IOException();
+            }
+            UnityEngine.Object destOldAsset = AssetDatabase.LoadAssetAtPath(destPath, typeof(UnityEngine.Object)) as UnityEngine.Object;
+            if (destOldAsset == null)
+            {
+                AssetDatabase.CopyAsset(srcPath, destPath);
+            }
+            else
+            {
+                if (File.Exists(destPath))
+                {
+                    File.Copy(srcPath, destPath, true);
+                }
+                else
+                {
+                    FileUtil.DeleteFileOrDirectory(destPath);
+                    FileUtil.CopyFileOrDirectory(srcPath, destPath);
+                }
+                AssetDatabase.ImportAsset(destPath);
+            }
+        }
+
+        public static void CreateAsset(UnityEngine.Object asset, string path)
+        {
+            var oldAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
+            if (oldAsset)
+            {
+                EditorUtility.CopySerialized(asset, oldAsset);
+                EditorUtility.SetDirty(oldAsset);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate | ImportAssetOptions.ForceSynchronousImport);
+            }
+            else
+            {
+                AssetDatabase.CreateAsset(asset, path);
+            }
+        }
+
+        public static void CreateFolder(string path)
+        {
+            if (path.EndsWith("/"))
+            {
+                path = path[0..^1];
+            }
+            if (AssetDatabase.IsValidFolder(path))
+            {
+                return;
+            }
+            var parentPath = Path.GetDirectoryName(path);
+            CreateFolder(parentPath);
+            AssetDatabase.CreateFolder(parentPath, Path.GetFileName(path));
+        }
+
+        public static void CreatePrefab(GameObject go, string path)
+        {
+            CreateFolder(path);
+            string localPath = path + go.name + ".prefab";
+
+            PrefabUtility.SaveAsPrefabAsset(go, localPath);
+        }
+
+        public static string CombinePath(string path_1, string path_2)
+        {
+            return Path.Combine(path_1, path_2).Replace('\\', '/');
+        }
+
+        public static void CopyTexture(string srcPath, string destPath)
+        {
+            CreateFolder(destPath.Remove(destPath.LastIndexOf("/")));
+            CopyAsset(srcPath, destPath);
+            var srcImporter = AssetImporter.GetAtPath(srcPath);
+            var destImporter = AssetImporter.GetAtPath(destPath);
+            EditorUtility.CopySerialized(srcImporter, destImporter);
+            destImporter.SaveAndReimport();
         }
     }
 }
