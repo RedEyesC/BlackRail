@@ -246,7 +246,6 @@ namespace GameEditor.ModelEditor
                     }
 
                     Material newMat = GameObject.Instantiate<Material>(mat);
-                    mat.name = mats[j].name + "_" + k + "_" + j;
 
                     string newMatPath = textureResPath + mat.name + ".mat";
 
@@ -268,11 +267,12 @@ namespace GameEditor.ModelEditor
                                 continue;
 
 
-                            ExportTextureAsset(newMat, propertyName, tex, rawPath, textureResPath);
+                            ExportTextureAsset(newMat, propertyName, tex, textureResPath);
                         }
                     }
 
                     newMat = AssetDatabase.LoadAssetAtPath<Material>(newMatPath);
+                    ClearUnusedProperties(newMat);
                     newMats[j] = newMat;
                     exportedMaterials.Add(mat, newMat);
 
@@ -283,7 +283,45 @@ namespace GameEditor.ModelEditor
             AssetDatabase.Refresh();
         }
 
-        static bool ExportTextureAsset(Material mat, string propertyName, Texture tex, string rawPath, string textureResPath)
+
+        static void ClearUnusedProperties(Material mat)
+        {
+
+            if (mat)
+            {
+                SerializedObject psSource = new SerializedObject(mat);
+                SerializedProperty emissionProperty = psSource.FindProperty("m_SavedProperties");
+                SerializedProperty texEnvs = emissionProperty.FindPropertyRelative("m_TexEnvs");
+                SerializedProperty floats = emissionProperty.FindPropertyRelative("m_Floats");
+                SerializedProperty colos = emissionProperty.FindPropertyRelative("m_Colors");
+                CleanMaterialSerializedProperty(texEnvs, mat); 
+                CleanMaterialSerializedProperty(floats, mat); 
+                CleanMaterialSerializedProperty(colos, mat);
+                psSource.ApplyModifiedProperties();
+                EditorUtility.SetDirty(mat);
+            }
+
+            AssetDatabase.SaveAssets();
+        }
+
+
+        static void CleanMaterialSerializedProperty(SerializedProperty property, Material mat)
+        {
+            var shader = mat.shader;
+            var count = property.arraySize;
+            for (int i = count - 1; i >= 0; i--)
+            {
+                //在shader内找不到的属性，删除
+                var prop = property.GetArrayElementAtIndex(i);
+                if (shader.FindPropertyIndex(prop.FindPropertyRelative("first").stringValue) < 0)
+                {
+                    property.DeleteArrayElementAtIndex(i);
+                }
+
+            }
+        }
+
+        static bool ExportTextureAsset(Material mat, string propertyName, Texture tex, string textureResPath)
         {
 
             var texPath = AssetDatabase.GetAssetPath(tex);
