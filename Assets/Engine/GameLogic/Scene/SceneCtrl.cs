@@ -1,18 +1,11 @@
 ﻿using GameFramework.Asset;
-using GameFramework.Input;
 using GameFramework.Moudule;
 using GameFramework.Scene;
 using System.Collections.Generic;
-using System.Threading;
-using UnityEngine;
+
 
 namespace GameLogic
 {
-    public enum BodyType
-    {
-        Role,
-        Monster
-    }
 
     internal class SceneCtrl : BaseModule
     {
@@ -58,7 +51,7 @@ namespace GameLogic
         {
             mainRole = new Role();
 
-            mainRole.SetModelID(1, 1000);
+            mainRole.SetModelID(ModelType.Body, 1000);
 
             AddObj(mainRole);
 

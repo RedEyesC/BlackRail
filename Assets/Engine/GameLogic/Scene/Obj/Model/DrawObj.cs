@@ -3,12 +3,25 @@ using System.Collections.Generic;
 using GameFramework.Scene;
 using Unity.Jobs;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace GameLogic
 {
+    public enum BodyType
+    {
+        Role,
+        Monster
+    }
+
+    [Flags]
+    public enum ModelType
+    {
+        Body = 1,
+    }
+
     internal class DrawObj
     {
-        private Dictionary<int, ModelObj> _modelList = new Dictionary<int, ModelObj>();
+        private Dictionary<ModelType, ModelObj> _modelList = new Dictionary<ModelType, ModelObj>();
         private GameObject _rootObj;
 
         private BodyType _bodyType;
@@ -38,7 +51,7 @@ namespace GameLogic
             SceneManager.AddToObjRoot(_rootObj.transform);
         }
 
-        public void SetModelID(int modelType, int id)
+        public void SetModelID(ModelType modelType, int id)
         {
             if (!_modelList.ContainsKey(modelType))
             {
@@ -50,7 +63,7 @@ namespace GameLogic
             model.ChangeModel(id, ChangeModelFunc);
         }
 
-        public ModelObj GetModelByType(int modelType)
+        public ModelObj GetModelByType(ModelType modelType)
         {
             return _modelList[modelType];
         }
@@ -70,21 +83,61 @@ namespace GameLogic
             _modelChangeCallback = callback;
         }
 
-        public void AddJobDependency(int modelType, JobHandle jobHandle)
+        public void PlayLayerAnim(ModelType modelType, string name, Action onEnd = null)
         {
-            ModelObj model = _modelList[modelType];
+            if (_rootObj == null)
+            {
+                onEnd?.Invoke();
+                return;
+            }
 
-            model.AddJobDependency(jobHandle);
+            bool callbackInvoked = false;
+            Action invokeOnce = onEnd == null
+                ? null
+                : () =>
+                {
+                    if (callbackInvoked)
+                    {
+                        return;
+                    }
+
+                    callbackInvoked = true;
+                    onEnd();
+                };
+
+            bool hasModel = false;
+            foreach (KeyValuePair<ModelType, ModelObj> kvp in _modelList)
+            {
+                if ((modelType & kvp.Key) == 0)
+                {
+                    continue;
+                }
+
+                hasModel = true;
+                kvp.Value.PlayAnim(name, invokeOnce);
+            }
+
+            if (!hasModel)
+            {
+                invokeOnce?.Invoke();
+            }
         }
 
-        public void PlayAnim(string name)
+        public void PlayLinearMixerAnim(
+            string name,
+            string[] clipNames,
+            float[] thresholds,
+            float parameter,
+            bool extrapolateSpeed = false)
         {
-            if (_rootObj != null)
+            if (_rootObj == null)
             {
-                foreach (KeyValuePair<int, ModelObj> kvp in _modelList)
-                {
-                    kvp.Value.PlayAnim(name);
-                }
+                return;
+            }
+
+            foreach (KeyValuePair<ModelType, ModelObj> kvp in _modelList)
+            {
+                kvp.Value.PlayLinearMixerAnim(name, clipNames, thresholds, parameter, extrapolateSpeed);
             }
         }
 

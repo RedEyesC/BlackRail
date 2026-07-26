@@ -1,5 +1,4 @@
-﻿using System;
-using GameFramework.Scene;
+using System;
 using Unity.Jobs;
 using UnityEngine;
 
@@ -11,9 +10,6 @@ namespace GameLogic
 
         protected Vector2 _dir = new Vector2();
         protected Vector3 _pos = new Vector3();
-
-        private float _targetDist = 0;
-        private float _CurDist = 0;
 
         public float speed = 0f;
 
@@ -38,15 +34,15 @@ namespace GameLogic
 
         public virtual void StateUpdate(float nowTime, float elapseSeconds)
         {
-            //UpdateMove(nowTime, elapseSeconds);
+
         }
 
-        public void SetModelID(int modelType, int id)
+        public void SetModelID(ModelType modelType, int id)
         {
             _drawObj.SetModelID(modelType, id);
         }
 
-        public void GetModelByType(int modelType)
+        public void GetModelByType(ModelType modelType)
         {
             _drawObj.GetModelByType(modelType);
         }
@@ -56,14 +52,25 @@ namespace GameLogic
             _drawObj.SetModelChangeCallback(callback);
         }
 
-        public void AddJobDependency(int modelType, JobHandle jobHandle)
+        public void PlayAnim(string name, Action onEnd = null)
         {
-            _drawObj.AddJobDependency(modelType, jobHandle);
+            PlayLayerAnim(ModelType.Body, name, onEnd);
         }
 
-        public void PlayAnim(string name)
+        public void PlayLayerAnim(ModelType modelType, string name, Action onEnd = null)
         {
-            _drawObj.PlayAnim(name);
+            _drawObj.PlayLayerAnim(modelType, name, onEnd);
+        }
+
+
+        public void PlayLinearMixerAnim(
+            string name,
+            string[] clipNames,
+            float[] thresholds,
+            float parameter,
+            bool extrapolateSpeed = false)
+        {
+            _drawObj.PlayLinearMixerAnim(name, clipNames, thresholds, parameter, extrapolateSpeed);
         }
 
         public bool IsLoade()
@@ -86,12 +93,6 @@ namespace GameLogic
             _drawObj.root.position = _pos;
         }
 
-        public void SetPosition(float x, float z)
-        {
-            float height = CalcMapHeight(x, z);
-            _pos.Set(x, height, z);
-            _drawObj.root.position = _pos;
-        }
 
         public void SetDir(float x, float y)
         {
@@ -103,46 +104,5 @@ namespace GameLogic
             }
         }
 
-        public void DoMove(float x, float y, float div)
-        {
-            _targetDist = div;
-            _CurDist = 0;
-
-            SetDir(x, y);
-        }
-
-        public virtual void UpdateMove(float nowTime, float elapseSeconds)
-        {
-            if (_targetDist > 0 && _drawObj.root)
-            {
-                float deltaDist = elapseSeconds * speed;
-
-                if (_CurDist + deltaDist > _targetDist)
-                {
-                    _targetDist = 0;
-                    _CurDist = 0;
-                    deltaDist = _targetDist - _CurDist;
-                    PlayAnim("Idle");
-                }
-                else
-                {
-                    _CurDist += deltaDist;
-                    PlayAnim("RunFwd");
-                }
-
-                float x = _drawObj.root.position.x;
-                float y = _drawObj.root.position.z;
-
-                x += deltaDist * _dir.x;
-                y += deltaDist * _dir.y;
-
-                SetPosition(x, y);
-            }
-        }
-
-        public float CalcMapHeight(float x, float z)
-        {
-            return SceneManager.GetHeightByRayCast(x, z);
-        }
     }
 }

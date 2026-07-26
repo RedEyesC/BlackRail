@@ -30,43 +30,8 @@ namespace GameLogic
 
         public void InitModel(int monsterId)
         {
-            speed = 2;
-            _monsterId = monsterId;
-            SetModelID(1, 1001);
+  
         }
 
-
-        public void InitAI()
-        {
-
-        }
-
-
-        public void UpdateAI(float nowTime, float elapseSeconds)
-        {
-            if (nowTime > nextTime)
-            {
-                nextTime = nowTime + cd;
-
-                Role role  =  SceneCtrl.GetMainRole();
-
-                _tempVector.Set( role.root.position.x - root.position.x,role.root.position.z - root.position.z);
-
-                if(_tempVector.magnitude > attackRange)
-                {
-                    DoMove(_tempVector.x, _tempVector.y, 0.5f);
-                }
-
-
-            }
-        }
-
-
-        public override void StateUpdate(float nowTime, float elapseSeconds)
-        {
-            UpdateAI(nowTime, elapseSeconds);
-
-            base.StateUpdate(nowTime, elapseSeconds);
-        }
     }
 }
