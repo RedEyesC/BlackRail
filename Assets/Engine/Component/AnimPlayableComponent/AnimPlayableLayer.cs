@@ -42,10 +42,7 @@ public partial class AnimPlayableComponent
                 state.Time = 0f;
             }
 
-            if (Index > 0)
-            {
-                owner.SetLayerWeight(Index, 1f);
-            }
+            owner.SetLayerWeight(Index, 1f);
 
             if (fadeDuration <= 0f)
             {

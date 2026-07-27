@@ -8,9 +8,7 @@ namespace GameLogic
     {
 
         private MovementController _movementController;
-        private bool _isMoveLocked;
-        private Transform _lockTarget;
-        private float _moveSpeed = 2f;
+        private float _moveSpeed = 4f;
 
         public float MoveSpeed
         {
@@ -37,16 +35,6 @@ namespace GameLogic
 
             _movementController = new MovementController(this);
             HandleMoveSpeedChanged();
-        }
-
-        public void SetMoveLocked(bool locked, Transform lockTarget = null)
-        {
-            _isMoveLocked = locked;
-            _lockTarget = lockTarget;
-            if (_movementController != null)
-            {
-                _movementController.SetLocked(locked, lockTarget);
-            }
         }
 
         public void PlayAction()
