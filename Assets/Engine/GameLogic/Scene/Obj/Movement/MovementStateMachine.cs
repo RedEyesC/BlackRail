@@ -12,7 +12,9 @@ namespace GameLogic
             }
 
             public virtual void Enter() { }
+
             public virtual void Exit() { }
+
             public abstract void Update(float deltaTime);
         }
 

@@ -7,7 +7,20 @@ namespace GameLogic
 {
     internal sealed partial class MovementController
     {
-        private readonly MovementSettings settings = new MovementSettings();
+        public float inputDeadZone = 0.05f;
+        public float inputResponsePower = 1.6f;
+        public float runInputThreshold = 0.65f;
+        public float walkForwardSpeed = 1.75f;
+        public float walkSideSpeed = 1.5f;
+        public float runForwardSpeed = 4f;
+        public float runSideSpeed = 3f;
+        public float velocityHalflife = 0.27f;
+        public float rotationHalflife = 0.27f;
+        public float locomotionDampTime = 0.12f;
+        public float stateFadeTime = 0.12f;
+        public float turnBackAngle = 135f;
+        public bool rotateToMoveDirection = true;
+
         private readonly MovementAnimationNames animationNames = new MovementAnimationNames();
         private readonly string[] locomotionClips = new string[3];
         private readonly float[] locomotionThresholds = { 0f, 1f, 2f };
@@ -38,12 +51,10 @@ namespace GameLogic
         public float LocomotionValue => locomotionValue;
         public Vector3 Velocity => velocity;
         public Vector3 DesiredMoveDirection => desiredMoveDirection;
-        public MovementSettings Config => settings;
-        public MovementAnimationNames AnimationNames => animationNames;
 
         private bool HasMoveInput => HasRawMoveInput && desiredMoveDirection != Vector3.zero;
-        private bool HasRawMoveInput => rawMoveInputAmount > settings.inputDeadZone;
-        private bool WantsRun => rawMoveInputAmount >= settings.runInputThreshold;
+        private bool HasRawMoveInput => rawMoveInputAmount > inputDeadZone;
+        private bool WantsRun => rawMoveInputAmount >= runInputThreshold;
         private bool HasLocomotionInput => HasMoveInput;
 
         public void SetMoveInput(Vector3 worldMoveDirection, float inputAmount)
@@ -87,9 +98,7 @@ namespace GameLogic
 
         private void UpdateLocomotion(float deltaTime, float targetValue)
         {
-            float lerp = settings.locomotionDampTime <= 0f
-                ? 1f
-                : 1f - Mathf.Exp(-deltaTime / settings.locomotionDampTime);
+            float lerp = locomotionDampTime <= 0f ? 1f : 1f - Mathf.Exp(-deltaTime / locomotionDampTime);
             locomotionValue = Mathf.Lerp(locomotionValue, targetValue, lerp);
         }
 
@@ -106,11 +115,7 @@ namespace GameLogic
                 return;
             }
 
-            owner.PlayLinearMixerAnim(
-                animationNames.locomotion,
-                BuildLocomotionClips(),
-                locomotionThresholds,
-                locomotionValue);
+            owner.PlayLinearMixerAnim(animationNames.locomotion, BuildLocomotionClips(), locomotionThresholds, locomotionValue);
         }
 
         private bool PlayMovementAnimation(string animationName, Action onEnd = null)
@@ -150,7 +155,9 @@ namespace GameLogic
 
         private float GetTargetLocomotionValue()
         {
-            return !HasLocomotionInput ? 0f : WantsRun ? 2f : 1f;
+            return !HasLocomotionInput ? 0f
+                : WantsRun ? 2f
+                : 1f;
         }
 
         private float GetTargetMoveSpeed()
@@ -179,19 +186,9 @@ namespace GameLogic
         {
             Vector3 targetVelocity = desiredMoveDirection * GetTargetMoveSpeed();
 
-            Spring.SimpleSpringDamperExact(
-                ref velocity.x,
-                ref velocitySpringVelocity.x,
-                targetVelocity.x,
-                settings.velocityHalflife,
-                deltaTime);
+            Spring.SimpleSpringDamperExact(ref velocity.x, ref velocitySpringVelocity.x, targetVelocity.x, velocityHalflife, deltaTime);
 
-            Spring.SimpleSpringDamperExact(
-                ref velocity.z,
-                ref velocitySpringVelocity.z,
-                targetVelocity.z,
-                settings.velocityHalflife,
-                deltaTime);
+            Spring.SimpleSpringDamperExact(ref velocity.z, ref velocitySpringVelocity.z, targetVelocity.z, velocityHalflife, deltaTime);
 
             velocity.y = 0f;
             velocitySpringVelocity.y = 0f;
@@ -199,7 +196,7 @@ namespace GameLogic
 
         private void ApplyRotation(float deltaTime)
         {
-            if (!settings.rotateToMoveDirection || desiredMoveDirection == Vector3.zero)
+            if (!rotateToMoveDirection || desiredMoveDirection == Vector3.zero)
             {
                 return;
             }
@@ -207,12 +204,7 @@ namespace GameLogic
             float targetYaw = DirectionToYaw(desiredMoveDirection);
             targetYaw = facingYaw + Mathf.DeltaAngle(facingYaw, targetYaw);
 
-            Spring.SimpleSpringDamperExact(
-                ref facingYaw,
-                ref facingYawVelocity,
-                targetYaw,
-                settings.rotationHalflife,
-                deltaTime);
+            Spring.SimpleSpringDamperExact(ref facingYaw, ref facingYawVelocity, targetYaw, rotationHalflife, deltaTime);
 
             facingForward = YawToDirection(facingYaw);
             owner.SetDir(facingForward.x, facingForward.z);
@@ -250,13 +242,13 @@ namespace GameLogic
 
         private float GetEffectiveInputAmount(float inputAmount)
         {
-            if (inputAmount <= settings.inputDeadZone)
+            if (inputAmount <= inputDeadZone)
             {
                 return 0f;
             }
 
-            float normalizedInput = Mathf.InverseLerp(settings.inputDeadZone, 1f, inputAmount);
-            return Mathf.Pow(normalizedInput, Mathf.Max(0.01f, settings.inputResponsePower));
+            float normalizedInput = Mathf.InverseLerp(inputDeadZone, 1f, inputAmount);
+            return Mathf.Pow(normalizedInput, Mathf.Max(0.01f, inputResponsePower));
         }
 
         private float GetDirectionalMoveSpeed(Vector3 worldDirection)
@@ -282,31 +274,31 @@ namespace GameLogic
         private float GetForwardSpeed()
         {
             float speedScale = GetMoveSpeedScale();
-            return (WantsRun ? settings.runForwardSpeed : settings.walkForwardSpeed) * speedScale;
+            return (WantsRun ? runForwardSpeed : walkForwardSpeed) * speedScale;
         }
 
         private float GetSideSpeed()
         {
             float speedScale = GetMoveSpeedScale();
-            return (WantsRun ? settings.runSideSpeed : settings.walkSideSpeed) * speedScale;
+            return (WantsRun ? runSideSpeed : walkSideSpeed) * speedScale;
         }
 
         private float GetMoveSpeedScale()
         {
-            if (moveSpeed <= 0f || settings.runForwardSpeed <= 0f)
+            if (moveSpeed <= 0f || runForwardSpeed <= 0f)
             {
                 return 1f;
             }
 
-            return moveSpeed / settings.runForwardSpeed;
+            return moveSpeed / runForwardSpeed;
         }
 
         private bool ShouldPlayTurnBack()
         {
-            return !string.IsNullOrEmpty(animationNames.turnBack) &&
-                   HasLocomotionInput &&
-                   desiredMoveDirection != Vector3.zero &&
-                   Vector3.Angle(facingForward, desiredMoveDirection) >= settings.turnBackAngle;
+            return !string.IsNullOrEmpty(animationNames.turnBack)
+                && HasLocomotionInput
+                && desiredMoveDirection != Vector3.zero
+                && Vector3.Angle(facingForward, desiredMoveDirection) >= turnBackAngle;
         }
     }
 }

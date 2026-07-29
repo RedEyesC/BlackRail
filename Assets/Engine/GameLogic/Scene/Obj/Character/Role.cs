@@ -6,25 +6,9 @@ namespace GameLogic
 {
     internal class Role : Obj
     {
-
-        private MovementController _movementController;
         private float _moveSpeed = 4f;
 
-        public float MoveSpeed
-        {
-            get { return _moveSpeed; }
-            set
-            {
-                float moveSpeed = Mathf.Max(0f, value);
-                if (Mathf.Approximately(_moveSpeed, moveSpeed))
-                {
-                    return;
-                }
-
-                _moveSpeed = moveSpeed;
-                HandleMoveSpeedChanged();
-            }
-        }
+        private MovementController _movementController;
 
         public Role()
             : base(BodyType.Role) { }
@@ -37,9 +21,7 @@ namespace GameLogic
             HandleMoveSpeedChanged();
         }
 
-        public void PlayAction()
-        {
-        }
+        public void PlayAction() { }
 
         private void HandleMoveSpeedChanged()
         {

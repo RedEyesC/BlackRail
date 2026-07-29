@@ -4,7 +4,8 @@ namespace GameLogic
     {
         private sealed class IdleState : MovementState
         {
-            public IdleState(MovementController controller) : base(controller) { }
+            public IdleState(MovementController controller)
+                : base(controller) { }
 
             public override void Enter()
             {
@@ -22,7 +23,8 @@ namespace GameLogic
 
         private sealed class MoveStartState : MovementState
         {
-            public MoveStartState(MovementController controller) : base(controller) { }
+            public MoveStartState(MovementController controller)
+                : base(controller) { }
 
             public override void Enter()
             {
@@ -32,9 +34,7 @@ namespace GameLogic
                     return;
                 }
 
-                string animationName = controller.WantsRun
-                    ? controller.animationNames.runStart
-                    : controller.animationNames.walkStart;
+                string animationName = controller.WantsRun ? controller.animationNames.runStart : controller.animationNames.walkStart;
                 bool started = controller.PlayMovementAnimation(animationName, OnStartEnd);
                 if (!started)
                 {
@@ -50,16 +50,15 @@ namespace GameLogic
             private void OnStartEnd()
             {
                 controller.stateMachine.ChangeState(
-                    controller.HasLocomotionInput
-                        ? controller.stateMachine.MoveLoopState
-                        : controller.stateMachine.MoveEndState
+                    controller.HasLocomotionInput ? controller.stateMachine.MoveLoopState : controller.stateMachine.MoveEndState
                 );
             }
         }
 
         private sealed class MoveLoopState : MovementState
         {
-            public MoveLoopState(MovementController controller) : base(controller) { }
+            public MoveLoopState(MovementController controller)
+                : base(controller) { }
 
             public override void Enter()
             {
@@ -87,7 +86,8 @@ namespace GameLogic
 
         private sealed class TurnBackState : MovementState
         {
-            public TurnBackState(MovementController controller) : base(controller) { }
+            public TurnBackState(MovementController controller)
+                : base(controller) { }
 
             public override void Enter()
             {
@@ -106,23 +106,20 @@ namespace GameLogic
             private void OnTurnBackEnd()
             {
                 controller.stateMachine.ChangeState(
-                    controller.HasLocomotionInput
-                        ? controller.stateMachine.MoveLoopState
-                        : controller.stateMachine.MoveEndState
+                    controller.HasLocomotionInput ? controller.stateMachine.MoveLoopState : controller.stateMachine.MoveEndState
                 );
             }
         }
 
         private sealed class MoveEndState : MovementState
         {
-            public MoveEndState(MovementController controller) : base(controller) { }
+            public MoveEndState(MovementController controller)
+                : base(controller) { }
 
             public override void Enter()
             {
                 bool fromRun = controller.locomotionValue >= 1.5f;
-                string animationName = fromRun
-                    ? controller.animationNames.runEnd
-                    : controller.animationNames.walkEnd;
+                string animationName = fromRun ? controller.animationNames.runEnd : controller.animationNames.walkEnd;
                 bool started = controller.PlayMovementAnimation(animationName, OnMoveEnd);
                 if (!started)
                 {
