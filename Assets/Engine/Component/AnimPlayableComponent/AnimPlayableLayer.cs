@@ -76,10 +76,13 @@ public partial class AnimPlayableComponent
             }
         }
 
-        public void Update(float deltaTime)
+        public void UpdateFade(float deltaTime)
         {
             fadeGroup.Update(deltaTime);
+        }
 
+        public void UpdateEndEvents()
+        {
             for (int i = states.Count - 1; i >= 0; i--)
             {
                 State state = states[i];
@@ -127,11 +130,13 @@ public partial class AnimPlayableComponent
 
         private static void UpdateEndEvent(State state)
         {
-            if (!(state is LinearMixerState) &&
-                !state.endTriggered &&
-                state.OnEnd != null &&
-                (state.Clip == null || !state.Clip.isLooping) &&
-                state.NormalizedTime >= state.EndNormalizedTime)
+            if (
+                !(state is LinearMixerState)
+                && !state.endTriggered
+                && state.OnEnd != null
+                && (state.Clip == null || !state.Clip.isLooping)
+                && state.NormalizedTime >= state.EndNormalizedTime
+            )
             {
                 state.endTriggered = true;
                 System.Action callback = state.OnEnd;

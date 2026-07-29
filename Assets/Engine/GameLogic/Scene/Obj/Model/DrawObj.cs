@@ -10,7 +10,7 @@ namespace GameLogic
     public enum BodyType
     {
         Role,
-        Monster
+        Monster,
     }
 
     [Flags]
@@ -83,29 +83,14 @@ namespace GameLogic
             _modelChangeCallback = callback;
         }
 
-        public void PlayLayerAnim(ModelType modelType, string name, Action onEnd = null)
+        public AnimPlayableComponent.State PlayAnim(ModelType modelType, string name)
         {
             if (_rootObj == null)
             {
-                onEnd?.Invoke();
-                return;
+                return null;
             }
 
-            bool callbackInvoked = false;
-            Action invokeOnce = onEnd == null
-                ? null
-                : () =>
-                {
-                    if (callbackInvoked)
-                    {
-                        return;
-                    }
-
-                    callbackInvoked = true;
-                    onEnd();
-                };
-
-            bool hasModel = false;
+            AnimPlayableComponent.State firstState = null;
             foreach (KeyValuePair<ModelType, ModelObj> kvp in _modelList)
             {
                 if ((modelType & kvp.Key) == 0)
@@ -113,31 +98,46 @@ namespace GameLogic
                     continue;
                 }
 
-                hasModel = true;
-                kvp.Value.PlayAnim(name, invokeOnce);
+                AnimPlayableComponent.State state = kvp.Value.PlayAnim(name);
+                if (firstState == null)
+                {
+                    firstState = state;
+                }
             }
 
-            if (!hasModel)
-            {
-                invokeOnce?.Invoke();
-            }
+            return firstState;
         }
 
-        public void PlayLinearMixerAnim(
-            string name,
-            string[] clipNames,
-            float[] thresholds,
-            float parameter,
-            bool extrapolateSpeed = false)
+        public AnimPlayableComponent.State PlayAnim(AnimPlayableComponent.LinearMixerTransition transition)
         {
-            if (_rootObj == null)
+            if (_rootObj == null || transition == null)
+            {
+                return null;
+            }
+
+            AnimPlayableComponent.State firstState = null;
+            foreach (KeyValuePair<ModelType, ModelObj> kvp in _modelList)
+            {
+                AnimPlayableComponent.State state = kvp.Value.PlayAnim(transition);
+                if (firstState == null)
+                {
+                    firstState = state;
+                }
+            }
+
+            return firstState;
+        }
+
+        public void Update(float nowTime, float elapseSeconds)
+        {
+            if (_rootObj == null || elapseSeconds <= 0f)
             {
                 return;
             }
 
             foreach (KeyValuePair<ModelType, ModelObj> kvp in _modelList)
             {
-                kvp.Value.PlayLinearMixerAnim(name, clipNames, thresholds, parameter, extrapolateSpeed);
+                kvp.Value.Update(nowTime, elapseSeconds);
             }
         }
 

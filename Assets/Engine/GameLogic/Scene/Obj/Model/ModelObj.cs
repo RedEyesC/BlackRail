@@ -17,15 +17,12 @@ namespace GameLogic
 
         private Action<ModelObj> _loadCallBack;
         private Dictionary<string, AssetRequest> _reqAnimDict = new Dictionary<string, AssetRequest>();
-        private Dictionary<string, Action> _pendingAnimEndCallbackDict = new Dictionary<string, Action>();
-        private Dictionary<string, PendingLinearMixerAnim> _pendingLinearMixerAnimDict = new Dictionary<string, PendingLinearMixerAnim>();
-        private HashSet<string> _pendingClipPlaySet = new HashSet<string>();
+        private Dictionary<object, PendingLinearMixerAnim> _pendingLinearMixerAnimDict = new Dictionary<object, PendingLinearMixerAnim>();
         private AssetRequest _req;
         private GameObject _obj;
 
         private Animator _animator;
-        private PlayableGraph _graph;
-        private AnimationPlayableOutput _animationOutput;
+        private AnimPlayableComponent _animationPlayer;
 
         public ModelType modelType => _modelType;
         public Animator animator => _animator;
@@ -38,11 +35,7 @@ namespace GameLogic
 
         private sealed class PendingLinearMixerAnim
         {
-            public string name;
-            public string[] clipNames;
-            public float[] thresholds;
-            public float parameter;
-            public bool extrapolateSpeed;
+            public AnimPlayableComponent.LinearMixerTransition transition;
         }
 
         private void OnLoadResFinish(Request req)
@@ -65,31 +58,7 @@ namespace GameLogic
             AssetRequest assetRequest = req as AssetRequest;
             if (req.isDone)
             {
-                AnimationClip clip = AssetManager.GetAssetObjWithType<AnimationClip>(assetRequest.bundleName, assetRequest.assetName);
-                Action onEnd = null;
-                bool shouldPlayClip = _pendingClipPlaySet.Remove(assetRequest.assetName);
-                if (_pendingAnimEndCallbackDict.TryGetValue(assetRequest.assetName, out onEnd))
-                {
-                    _pendingAnimEndCallbackDict.Remove(assetRequest.assetName);
-                    shouldPlayClip = true;
-                }
-
-                if (shouldPlayClip)
-                {
-                    PlayLoadedAnim(clip, onEnd);
-                }
-
                 TryPlayPendingLinearMixerAnims();
-            }
-            else if (assetRequest != null)
-            {
-                Action onEnd = null;
-                _pendingClipPlaySet.Remove(assetRequest.assetName);
-                if (_pendingAnimEndCallbackDict.TryGetValue(assetRequest.assetName, out onEnd))
-                {
-                    _pendingAnimEndCallbackDict.Remove(assetRequest.assetName);
-                    onEnd?.Invoke();
-                }
             }
         }
 
@@ -121,34 +90,11 @@ namespace GameLogic
             parent.AddChild(this._obj.transform);
         }
 
-        public Transform[] GetComponentsInChildrenTransform()
-        {
-            return _obj.GetComponentsInChildren<Transform>();
-        }
-
-        public void CreatePlayableGraph<T>(T job)
-            where T : struct, IAnimationJob
-        {
-            if (_graph.IsValid())
-            {
-                return;
-            }
-
-            _animator = _obj.GetComponent<Animator>();
-
-            _graph = PlayableGraph.Create("PlayableGraph");
-            _animationOutput = AnimationPlayableOutput.Create(_graph, "AnimationOutput", _animator);
-
-            var playable = AnimationScriptPlayable.Create(_graph, job);
-            _animationOutput.SetSourcePlayable(playable);
-        }
-
-        public void PlayAnim(string clipName, Action onEnd = null)
+        public AnimPlayableComponent.State PlayAnim(string clipName)
         {
             if (string.IsNullOrEmpty(clipName))
             {
-                onEnd?.Invoke();
-                return;
+                return null;
             }
 
             if (_reqAnimDict.TryGetValue(clipName, out AssetRequest _reqAnim))
@@ -156,109 +102,87 @@ namespace GameLogic
                 if (_reqAnim.isDone)
                 {
                     AnimationClip clip = AssetManager.GetAssetObjWithType<AnimationClip>(_reqAnim.bundleName, _reqAnim.assetName);
-                    PlayLoadedAnim(clip, onEnd);
-                }
-                else if (onEnd != null)
-                {
-                    _pendingAnimEndCallbackDict[clipName] = onEnd;
-                    _pendingClipPlaySet.Add(clipName);
-                }
-                else
-                {
-                    _pendingClipPlaySet.Add(clipName);
-                }
-            }
-            else
-            {
-                string clipPath = GetAnimPath(_bodyType, _modelType, _modelID, clipName);
-                _pendingClipPlaySet.Add(clipName);
-                if (onEnd != null)
-                {
-                    _pendingAnimEndCallbackDict[clipName] = onEnd;
+                    return PlayLoadedAnim(clip);
                 }
 
-                _reqAnim = AssetManager.LoadAssetAsync(clipPath, clipName, OnLoadAnimFinish);
-                _reqAnimDict[clipName] = _reqAnim;
+                return null;
             }
+
+            string clipPath = GetAnimPath(_bodyType, _modelType, _modelID, clipName);
+            _reqAnim = AssetManager.LoadAssetAsync(clipPath, clipName, OnLoadAnimFinish);
+            _reqAnimDict[clipName] = _reqAnim;
+            return null;
         }
 
-        private void PlayLoadedAnim(AnimationClip clip, Action onEnd)
+        private AnimPlayableComponent.State PlayLoadedAnim(AnimationClip clip)
         {
             if (_obj == null || clip == null)
             {
-                onEnd?.Invoke();
-                return;
+                return null;
             }
 
-            AnimPlayableComponent animationPlayer = _obj.GetComponent<AnimPlayableComponent>();
-            if (animationPlayer == null)
+            if (_animationPlayer == null)
             {
-                animationPlayer = _obj.AddComponent<AnimPlayableComponent>();
+                _animationPlayer = _obj.AddComponent<AnimPlayableComponent>();
             }
 
-            if (!animationPlayer.IsGraphInitialized)
+            if (!_animationPlayer.IsGraphInitialized)
             {
-                animationPlayer.Initialize();
+                _animationPlayer.Initialize();
             }
 
-            AnimPlayableComponent.State state = animationPlayer.Play(clip, 0f, true);
-            if (state != null && onEnd != null)
-            {
-                state.EndNormalizedTime = 1f;
-                state.OnEnd = onEnd;
-            }
-            else if (state == null)
-            {
-                onEnd?.Invoke();
-            }
+            return _animationPlayer.Play(clip, 0f, true);
         }
 
-        public void PlayLinearMixerAnim(
-            string name,
-            string[] clipNames,
-            float[] thresholds,
-            float parameter,
-            bool extrapolateSpeed = false)
+        public AnimPlayableComponent.State PlayAnim(AnimPlayableComponent.LinearMixerTransition transition)
         {
-            if (string.IsNullOrEmpty(name) ||
-                clipNames == null ||
-                thresholds == null ||
-                clipNames.Length == 0 ||
-                clipNames.Length != thresholds.Length)
+            if (transition == null || !CanPlayLinearMixerTransition(transition))
             {
-                return;
+                return null;
             }
 
-            for (int i = 0; i < clipNames.Length; i++)
+            RequestAnimClips(transition.Children);
+            if (!AreAnimClipsLoaded(transition.Children))
             {
-                if (string.IsNullOrEmpty(clipNames[i]))
+                _pendingLinearMixerAnimDict[transition.Key] = new PendingLinearMixerAnim
                 {
-                    return;
+                    transition = CopyLinearMixerTransition(transition),
+                };
+                return null;
+            }
+
+            return PlayLoadedLinearMixerAnim(transition);
+        }
+
+        private bool CanPlayLinearMixerTransition(AnimPlayableComponent.LinearMixerTransition transition)
+        {
+            AnimPlayableComponent.LinearMixerChild[] children = transition.Children;
+            if (children == null || children.Length == 0)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < children.Length; i++)
+            {
+                if (children[i].clip == null && string.IsNullOrEmpty(children[i].name))
+                {
+                    return false;
                 }
             }
 
-            RequestAnimClips(clipNames);
-            if (!AreAnimClipsLoaded(clipNames))
-            {
-                _pendingLinearMixerAnimDict[name] = new PendingLinearMixerAnim
-                {
-                    name = name,
-                    clipNames = CopyStringArray(clipNames),
-                    thresholds = CopyFloatArray(thresholds),
-                    parameter = parameter,
-                    extrapolateSpeed = extrapolateSpeed
-                };
-                return;
-            }
-
-            PlayLoadedLinearMixerAnim(name, clipNames, thresholds, parameter, extrapolateSpeed);
+            return true;
         }
 
-        private void RequestAnimClips(string[] clipNames)
+        private void RequestAnimClips(AnimPlayableComponent.LinearMixerChild[] children)
         {
-            for (int i = 0; i < clipNames.Length; i++)
+            for (int i = 0; i < children.Length; i++)
             {
-                string clipName = clipNames[i];
+                if (children[i].clip != null)
+                {
+                    continue;
+                }
+
+                string clipName = children[i].name;
                 if (_reqAnimDict.ContainsKey(clipName))
                 {
                     continue;
@@ -269,11 +193,16 @@ namespace GameLogic
             }
         }
 
-        private bool AreAnimClipsLoaded(string[] clipNames)
+        private bool AreAnimClipsLoaded(AnimPlayableComponent.LinearMixerChild[] children)
         {
-            for (int i = 0; i < clipNames.Length; i++)
+            for (int i = 0; i < children.Length; i++)
             {
-                if (!_reqAnimDict.TryGetValue(clipNames[i], out AssetRequest req) || !req.isDone)
+                if (children[i].clip != null)
+                {
+                    continue;
+                }
+
+                if (!_reqAnimDict.TryGetValue(children[i].name, out AssetRequest req) || !req.isDone)
                 {
                     return false;
                 }
@@ -282,51 +211,45 @@ namespace GameLogic
             return true;
         }
 
-        private void PlayLoadedLinearMixerAnim(
-            string name,
-            string[] clipNames,
-            float[] thresholds,
-            float parameter,
-            bool extrapolateSpeed)
+        private AnimPlayableComponent.State PlayLoadedLinearMixerAnim(AnimPlayableComponent.LinearMixerTransition sourceTransition)
         {
             if (_obj == null)
             {
-                return;
+                return null;
             }
 
-            AnimPlayableComponent animationPlayer = _obj.GetComponent<AnimPlayableComponent>();
-            if (animationPlayer == null)
+            if (_animationPlayer == null)
             {
-                animationPlayer = _obj.AddComponent<AnimPlayableComponent>();
+                _animationPlayer = _obj.AddComponent<AnimPlayableComponent>();
             }
 
-            if (!animationPlayer.IsGraphInitialized)
+            if (!_animationPlayer.IsGraphInitialized)
             {
-                animationPlayer.Initialize();
+                _animationPlayer.Initialize();
             }
 
-            AnimPlayableComponent.LinearMixerChild[] children = new AnimPlayableComponent.LinearMixerChild[clipNames.Length];
-            for (int i = 0; i < clipNames.Length; i++)
+            AnimPlayableComponent.LinearMixerChild[] sourceChildren = sourceTransition.Children;
+            for (int i = 0; i < sourceChildren.Length; i++)
             {
-                AssetRequest req = _reqAnimDict[clipNames[i]];
-                AnimationClip clip = AssetManager.GetAssetObjWithType<AnimationClip>(req.bundleName, req.assetName);
+                AnimPlayableComponent.LinearMixerChild sourceChild = sourceChildren[i];
+                AnimationClip clip = sourceChild.clip;
                 if (clip == null)
                 {
-                    return;
+                    AssetRequest req = _reqAnimDict[sourceChild.name];
+                    clip = AssetManager.GetAssetObjWithType<AnimationClip>(req.bundleName, req.assetName);
                 }
 
-                children[i] = new AnimPlayableComponent.LinearMixerChild(clip, thresholds[i]);
+                if (clip == null)
+                {
+                    return null;
+                }
+
+                sourceChild.clip = clip;
+
+                sourceChildren[i] = sourceChild;
             }
 
-            var transition = new AnimPlayableComponent.LinearMixerTransition(
-                children,
-                parameter,
-                extrapolateSpeed,
-                name)
-            {
-                Restart = false
-            };
-            animationPlayer.Play(transition);
+            return _animationPlayer.Play(sourceTransition);
         }
 
         private void TryPlayPendingLinearMixerAnims()
@@ -336,38 +259,55 @@ namespace GameLogic
                 return;
             }
 
-            List<string> keys = new List<string>(_pendingLinearMixerAnimDict.Keys);
+            List<object> keys = new List<object>(_pendingLinearMixerAnimDict.Keys);
             for (int i = 0; i < keys.Count; i++)
             {
-                string key = keys[i];
+                object key = keys[i];
                 PendingLinearMixerAnim pending = _pendingLinearMixerAnimDict[key];
-                if (!AreAnimClipsLoaded(pending.clipNames))
+                if (pending.transition == null || !AreAnimClipsLoaded(pending.transition.Children))
                 {
                     continue;
                 }
 
                 _pendingLinearMixerAnimDict.Remove(key);
-                PlayLoadedLinearMixerAnim(
-                    pending.name,
-                    pending.clipNames,
-                    pending.thresholds,
-                    pending.parameter,
-                    pending.extrapolateSpeed);
+                PlayLoadedLinearMixerAnim(pending.transition);
             }
         }
 
-        private static string[] CopyStringArray(string[] source)
+        public void Update(float nowTime, float elapseSeconds)
         {
-            string[] result = new string[source.Length];
+            if (_obj == null || elapseSeconds <= 0f)
+            {
+                return;
+            }
+
+            if (_animationPlayer)
+            {
+                _animationPlayer.UpdateGraph(elapseSeconds);
+            }
+        }
+
+        private static AnimPlayableComponent.LinearMixerChild[] CopyLinearMixerChildren(AnimPlayableComponent.LinearMixerChild[] source)
+        {
+            AnimPlayableComponent.LinearMixerChild[] result = new AnimPlayableComponent.LinearMixerChild[source.Length];
             Array.Copy(source, result, source.Length);
             return result;
         }
 
-        private static float[] CopyFloatArray(float[] source)
+        private static AnimPlayableComponent.LinearMixerTransition CopyLinearMixerTransition(
+            AnimPlayableComponent.LinearMixerTransition source
+        )
         {
-            float[] result = new float[source.Length];
-            Array.Copy(source, result, source.Length);
-            return result;
+            return new AnimPlayableComponent.LinearMixerTransition(
+                CopyLinearMixerChildren(source.Children),
+                source.DefaultParameter,
+                source.ExtrapolateSpeed,
+                source.Key
+            )
+            {
+                FadeDuration = source.FadeDuration,
+                Restart = source.Restart,
+            };
         }
 
         public void AddJobDependency(JobHandle jobHandle)
@@ -410,7 +350,7 @@ namespace GameLogic
             switch (bodyType)
             {
                 case BodyType.Role:
-                    path = string.Format("Anim", clipName);
+                    path = string.Format("Anim/0", clipName);
                     ;
                     break;
                 case BodyType.Monster:

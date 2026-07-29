@@ -26,11 +26,7 @@ public partial class AnimPlayableComponent
 
         public bool IsActive => owner != null;
 
-        public void Start(
-            AnimPlayableComponent owner,
-            State fadeInState,
-            IReadOnlyList<State> states,
-            float duration)
+        public void Start(AnimPlayableComponent owner, State fadeInState, IReadOnlyList<State> states, float duration)
         {
             Cancel();
 

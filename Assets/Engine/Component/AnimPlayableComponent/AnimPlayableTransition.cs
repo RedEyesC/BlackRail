@@ -1,4 +1,4 @@
-using System;
+using TrackEditor;
 using UnityEngine;
 
 public partial class AnimPlayableComponent
@@ -10,6 +10,7 @@ public partial class AnimPlayableComponent
         public virtual object Key => this;
 
         internal abstract State CreateState(AnimPlayableComponent owner);
+
         internal virtual void Apply(State state) { }
     }
 
@@ -31,15 +32,24 @@ public partial class AnimPlayableComponent
         }
     }
 
-    [Serializable]
     public struct LinearMixerChild
     {
+        public string name;
         public AnimationClip clip;
         public float threshold;
         public float speed;
 
-        public LinearMixerChild(AnimationClip clip, float threshold, float speed = 1f)
+        public LinearMixerChild(string name, float threshold, float speed = 1f)
         {
+            this.name = name;
+            this.clip = null;
+            this.threshold = threshold;
+            this.speed = speed;
+        }
+
+        public LinearMixerChild(string name, AnimationClip clip, float threshold, float speed = 1f)
+        {
+            this.name = name;
             this.clip = clip;
             this.threshold = threshold;
             this.speed = speed;
@@ -53,11 +63,7 @@ public partial class AnimPlayableComponent
         private readonly object key;
         private float defaultParameter;
 
-        public LinearMixerTransition(
-            LinearMixerChild[] children,
-            float defaultParameter,
-            bool extrapolateSpeed = false,
-            object key = null)
+        public LinearMixerTransition(LinearMixerChild[] children, float defaultParameter, bool extrapolateSpeed = false, object key = null)
         {
             this.children = children;
             this.defaultParameter = defaultParameter;
@@ -66,6 +72,8 @@ public partial class AnimPlayableComponent
         }
 
         public override object Key => key ?? this;
+        public LinearMixerChild[] Children => children;
+        public bool ExtrapolateSpeed => extrapolateSpeed;
 
         public float DefaultParameter
         {

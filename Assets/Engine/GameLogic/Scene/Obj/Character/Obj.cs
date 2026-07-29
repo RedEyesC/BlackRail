@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.Jobs;
 using UnityEngine;
 
@@ -32,9 +33,9 @@ namespace GameLogic
 
         public virtual void EarlyUpdate() { }
 
-        public virtual void StateUpdate(float nowTime, float elapseSeconds)
+        public virtual void Update(float nowTime, float elapseSeconds)
         {
-
+            _drawObj.Update(nowTime, elapseSeconds);
         }
 
         public void SetModelID(ModelType modelType, int id)
@@ -52,25 +53,19 @@ namespace GameLogic
             _drawObj.SetModelChangeCallback(callback);
         }
 
-        public void PlayAnim(string name, Action onEnd = null)
+        public AnimPlayableComponent.State PlayAnim(string name)
         {
-            PlayLayerAnim(ModelType.Body, name, onEnd);
+            return PlayAnim(ModelType.Body, name);
         }
 
-        public void PlayLayerAnim(ModelType modelType, string name, Action onEnd = null)
+        public AnimPlayableComponent.State PlayAnim(ModelType modelType, string name)
         {
-            _drawObj.PlayLayerAnim(modelType, name, onEnd);
+            return _drawObj.PlayAnim(modelType, name);
         }
 
-
-        public void PlayLinearMixerAnim(
-            string name,
-            string[] clipNames,
-            float[] thresholds,
-            float parameter,
-            bool extrapolateSpeed = false)
+        public AnimPlayableComponent.State PlayAnim(AnimPlayableComponent.LinearMixerTransition transition)
         {
-            _drawObj.PlayLinearMixerAnim(name, clipNames, thresholds, parameter, extrapolateSpeed);
+            return _drawObj.PlayAnim(transition);
         }
 
         public bool IsLoade()
@@ -93,7 +88,6 @@ namespace GameLogic
             _drawObj.root.position = _pos;
         }
 
-
         public void SetDir(float x, float y)
         {
             if (x != 0 || y != 0)
@@ -103,6 +97,5 @@ namespace GameLogic
                 _drawObj.root.SetLookDir(_dir.x, 0, _dir.y);
             }
         }
-
     }
 }

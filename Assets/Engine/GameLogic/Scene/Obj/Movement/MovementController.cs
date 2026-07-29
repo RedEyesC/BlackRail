@@ -1,7 +1,7 @@
-using System;
 using GameFramework.Common;
 using GameFramework.Scene;
 using UnityEngine;
+using static AnimPlayableComponent;
 
 namespace GameLogic
 {
@@ -21,9 +21,18 @@ namespace GameLogic
         public float turnBackAngle = 135f;
         public bool rotateToMoveDirection = true;
 
-        private readonly MovementAnimationNames animationNames = new MovementAnimationNames();
-        private readonly string[] locomotionClips = new string[3];
-        private readonly float[] locomotionThresholds = { 0f, 1f, 2f };
+        public string locomotion = "Locomotion";
+        public string walkStart = "WalkStart";
+        public string runStart = "RunStart";
+        public string walk = "Walk";
+        public string run = "Run";
+        public string walkEnd = "WalkEnd";
+        public string runEnd = "RunEnd";
+        public string turnBack = "TurnBack";
+        public string idle = "Idle";
+
+        private AnimPlayableComponent.LinearMixerState _locomotionState;
+
         private readonly MovementStateMachine stateMachine;
         private readonly Obj owner;
 
@@ -86,11 +95,6 @@ namespace GameLogic
             ApplyCodeDrivenMovement(deltaTime);
         }
 
-        public void RefreshState()
-        {
-            stateMachine.RefreshCurrentState();
-        }
-
         private void ChangeToDefaultState()
         {
             stateMachine.ChangeState(HasLocomotionInput ? stateMachine.MoveStartState : stateMachine.IdleState);
@@ -105,52 +109,74 @@ namespace GameLogic
         private void PlayLocomotion(float parameter)
         {
             locomotionValue = parameter;
-            PlayLinearMixerLocomotion();
+            EnsureLocomotionPlaying(parameter);
+            UpdateLocomotionParameter(parameter);
         }
 
-        private void PlayLinearMixerLocomotion()
+        private void EnsureLocomotionPlaying(float parameter)
         {
-            if (owner == null || string.IsNullOrEmpty(animationNames.locomotion))
+            if (_locomotionState != null && _locomotionState.IsValid && _locomotionState.IsCurrent)
             {
                 return;
             }
 
-            owner.PlayLinearMixerAnim(animationNames.locomotion, BuildLocomotionClips(), locomotionThresholds, locomotionValue);
+            LinearMixerTransition linearMixerTransition = InitLocomotionChildren();
+            linearMixerTransition.DefaultParameter = parameter;
+            _locomotionState = owner.PlayAnim(linearMixerTransition) as AnimPlayableComponent.LinearMixerState;
         }
 
-        private bool PlayMovementAnimation(string animationName, Action onEnd = null)
+        private void UpdateLocomotionParameter(float parameter)
+        {
+            if (_locomotionState == null || !_locomotionState.IsValid)
+            {
+                EnsureLocomotionPlaying(parameter);
+                return;
+            }
+
+            _locomotionState.Parameter = parameter;
+        }
+
+        private AnimPlayableComponent.State PlayMovementAnimation(string animationName)
         {
             if (string.IsNullOrEmpty(animationName))
             {
-                return false;
+                return null;
             }
 
-            PlayAnimationName(animationName, true, onEnd);
-            return true;
+            return PlayAnimationName(animationName, true);
         }
 
-        private void PlayAnimationName(string animationName, bool restart, Action onEnd = null)
+        private AnimPlayableComponent.State PlayAnimationName(string animationName, bool restart)
         {
             if (owner == null || string.IsNullOrEmpty(animationName))
             {
-                return;
+                return null;
             }
 
             if (!restart && currentAnimationName == animationName)
             {
-                return;
+                return null;
             }
 
             currentAnimationName = animationName;
-            owner.PlayAnim(animationName, onEnd);
+            return owner.PlayAnim(animationName);
         }
 
-        private string[] BuildLocomotionClips()
+        private AnimPlayableComponent.LinearMixerTransition InitLocomotionChildren()
         {
-            locomotionClips[0] = animationNames.idle;
-            locomotionClips[1] = animationNames.walk;
-            locomotionClips[2] = animationNames.run;
-            return locomotionClips;
+            AnimPlayableComponent.LinearMixerChild[] locomotionChildren = new AnimPlayableComponent.LinearMixerChild[3];
+            locomotionChildren[0] = new AnimPlayableComponent.LinearMixerChild(idle, 0f);
+            locomotionChildren[1] = new AnimPlayableComponent.LinearMixerChild(walk, 1f);
+            locomotionChildren[2] = new AnimPlayableComponent.LinearMixerChild(run, 2f);
+
+            AnimPlayableComponent.LinearMixerTransition transition = new AnimPlayableComponent.LinearMixerTransition(
+                locomotionChildren,
+                locomotionValue,
+                false,
+                locomotion
+            );
+
+            return transition;
         }
 
         private float GetTargetLocomotionValue()
@@ -295,7 +321,7 @@ namespace GameLogic
 
         private bool ShouldPlayTurnBack()
         {
-            return !string.IsNullOrEmpty(animationNames.turnBack)
+            return !string.IsNullOrEmpty(turnBack)
                 && HasLocomotionInput
                 && desiredMoveDirection != Vector3.zero
                 && Vector3.Angle(facingForward, desiredMoveDirection) >= turnBackAngle;

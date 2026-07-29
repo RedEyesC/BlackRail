@@ -1,4 +1,5 @@
-﻿using GameFramework.Input;
+﻿using System;
+using GameFramework.Input;
 using GameFramework.Scene;
 using UnityEngine;
 
@@ -17,18 +18,21 @@ namespace GameLogic
         {
             base.Init(bodyType);
 
-            _movementController = new MovementController(this);
-            HandleMoveSpeedChanged();
+            SetModelChangeCallback(
+                (obj) =>
+                {
+                    _movementController = new MovementController(this);
+                    HandleMoveSpeedChanged();
+                }
+            );
         }
-
-        public void PlayAction() { }
 
         private void HandleMoveSpeedChanged()
         {
             _movementController?.SetMoveSpeed(_moveSpeed);
         }
 
-        public override void StateUpdate(float nowTime, float elapseSeconds)
+        public override void Update(float nowTime, float elapseSeconds)
         {
             float horizontal = InputManager.GetAxis("Action", "Horizontal");
             float vertical = InputManager.GetAxis("Action", "Vertical");
@@ -41,6 +45,8 @@ namespace GameLogic
 
                 _movementController.Update(elapseSeconds);
             }
+
+            base.Update(nowTime, elapseSeconds);
         }
 
         private Vector3 GetCameraRelativeMoveDirection(Vector2 moveInput)
