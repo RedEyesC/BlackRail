@@ -1,18 +1,17 @@
-﻿
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
 
 namespace GameEditor.ModelEditor
-
 {
     public class ModelEditor
     {
-
         static readonly string ModelRawPath = "Assets/RawData/Model/";
         static readonly string ModelResPath = "Assets/Resource/Model/";
+
+        static readonly string AnimRawPath = "Assets/RawData/Anim/";
+        static readonly string AnimResPath = "Assets/Resource/Anim/";
 
         [MenuItem("Assets/Game Editor/导出模型", false, 900)]
         static void ExportModelInfo()
@@ -41,7 +40,6 @@ namespace GameEditor.ModelEditor
             }
             return true;
         }
-
 
         [MenuItem("Assets/Game Editor/导出动画", false, 900)]
         static void ExportModelAnim()
@@ -80,6 +78,8 @@ namespace GameEditor.ModelEditor
 
         public static void ExportModelAnim(string path)
         {
+            string animType = GetAnimType(path);
+            string savePath = AnimResPath + animType;
 
             DirectoryInfo dirInfo = new DirectoryInfo(path);
             foreach (var file in dirInfo.GetFiles())
@@ -87,19 +87,46 @@ namespace GameEditor.ModelEditor
                 if (file.Extension.ToLower() == ".fbx")
                 {
                     string rawPath = path + "/" + file.Name;
-                    string savePath = path.Replace("RawData", "Resources") + "/Anim/";
-                    ExportAnim(rawPath, savePath);
+
+                    UnityEngine.Object[] objs = AssetDatabase.LoadAllAssetsAtPath(rawPath);
+                    foreach (UnityEngine.Object o in objs)
+                    {
+                        if (o is AnimationClip)
+                        {
+                            //fbx内存在一部分不会在unity显示的，需要剔除
+                            if (o.name.Contains("_preview"))
+                            {
+                                continue;
+                            }
+
+                            AnimationClip clip = (AnimationClip)o;
+                            AnimationClip newClip = new AnimationClip();
+
+                            EditorUtility.CopySerialized(clip, newClip);
+                            CreateFolder(savePath);
+                            string resAnimPath = savePath + "/" + clip.name + ".anim";
+                            CreateAsset(newClip, resAnimPath);
+                        }
+                    }
                 }
             }
 
             Debug.LogFormat("{0} Export Anim Success！！", path);
         }
 
+        static string GetAnimType(string path)
+        {
+            if (!path.Contains(AnimRawPath))
+                return null;
 
+            path = path.Replace(AnimRawPath, "");
+
+            int index = path.IndexOf("/");
+            return index >= 0 ? path.Substring(0, index) : path;
+        }
 
         public static void ExportModelInfo(string path)
         {
-
             GameObject go = null;
 
             string modelType = GetModelType(path);
@@ -119,7 +146,6 @@ namespace GameEditor.ModelEditor
                 }
             }
 
-
             string avatarResPath = ModelResPath + modelType + "/" + modelName + "/Avatar/";
             ExportAvatar(go, avatarResPath);
 
@@ -137,7 +163,6 @@ namespace GameEditor.ModelEditor
             Debug.LogFormat("{0} Export Model Success！！", modelType + "/" + modelName);
         }
 
-
         public static string GetModelName(string path)
         {
             if (path.Contains(ModelRawPath))
@@ -149,11 +174,9 @@ namespace GameEditor.ModelEditor
                     path = path.Remove(path.IndexOf("/"));
 
                 return path;
-
             }
             return null;
         }
-
 
         static string GetModelType(string path)
         {
@@ -167,7 +190,6 @@ namespace GameEditor.ModelEditor
             }
             return null;
         }
-
 
         static void ExportAvatar(GameObject go, string savePath)
         {
@@ -183,14 +205,11 @@ namespace GameEditor.ModelEditor
             Avatar newAvatar = GameObject.Instantiate<Avatar>(avatar);
             string newAvPath = savePath + avatar.name + ".asset";
 
-
             CreateFolder(newAvPath.Remove(newAvPath.LastIndexOf("/")));
             CreateAsset(newAvatar, newAvPath);
 
             anim.avatar = AssetDatabase.LoadAssetAtPath<Avatar>(newAvPath);
         }
-
-
 
         static void ExportMesh(GameObject go, string savePath)
         {
@@ -237,7 +256,6 @@ namespace GameEditor.ModelEditor
                 Material[] newMats = new Material[mats.Length];
                 for (int j = 0; j < mats.Length; j++)
                 {
-
                     Material mat = mats[j];
                     if (exportedMaterials.ContainsKey(mat))
                     {
@@ -266,7 +284,6 @@ namespace GameEditor.ModelEditor
                             if (tex == null)
                                 continue;
 
-
                             ExportTextureAsset(newMat, propertyName, tex, textureResPath);
                         }
                     }
@@ -275,7 +292,6 @@ namespace GameEditor.ModelEditor
                     ClearUnusedProperties(newMat);
                     newMats[j] = newMat;
                     exportedMaterials.Add(mat, newMat);
-
                 }
                 rendererArr[k].sharedMaterials = newMats;
             }
@@ -283,10 +299,8 @@ namespace GameEditor.ModelEditor
             AssetDatabase.Refresh();
         }
 
-
         static void ClearUnusedProperties(Material mat)
         {
-
             if (mat)
             {
                 SerializedObject psSource = new SerializedObject(mat);
@@ -294,8 +308,8 @@ namespace GameEditor.ModelEditor
                 SerializedProperty texEnvs = emissionProperty.FindPropertyRelative("m_TexEnvs");
                 SerializedProperty floats = emissionProperty.FindPropertyRelative("m_Floats");
                 SerializedProperty colos = emissionProperty.FindPropertyRelative("m_Colors");
-                CleanMaterialSerializedProperty(texEnvs, mat); 
-                CleanMaterialSerializedProperty(floats, mat); 
+                CleanMaterialSerializedProperty(texEnvs, mat);
+                CleanMaterialSerializedProperty(floats, mat);
                 CleanMaterialSerializedProperty(colos, mat);
                 psSource.ApplyModifiedProperties();
                 EditorUtility.SetDirty(mat);
@@ -303,7 +317,6 @@ namespace GameEditor.ModelEditor
 
             AssetDatabase.SaveAssets();
         }
-
 
         static void CleanMaterialSerializedProperty(SerializedProperty property, Material mat)
         {
@@ -317,13 +330,11 @@ namespace GameEditor.ModelEditor
                 {
                     property.DeleteArrayElementAtIndex(i);
                 }
-
             }
         }
 
         static bool ExportTextureAsset(Material mat, string propertyName, Texture tex, string textureResPath)
         {
-
             var texPath = AssetDatabase.GetAssetPath(tex);
             texPath = texPath.Replace("\\", "/");
 
@@ -340,10 +351,8 @@ namespace GameEditor.ModelEditor
 
             mat.SetTexture(propertyName, releaseTex);
 
-
             return false;
         }
-
 
         static void ExportModel(GameObject go, string rawPath, string savePath)
         {
@@ -357,9 +366,7 @@ namespace GameEditor.ModelEditor
                 rendererArr[i].shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 rendererArr[i].lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
                 rendererArr[i].reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-
             }
-
 
             Animator anim = go.GetComponent<Animator>();
             if (!anim)
@@ -376,32 +383,6 @@ namespace GameEditor.ModelEditor
             string modelPath = savePath;
             CreatePrefab(go, modelPath);
             AssetDatabase.Refresh();
-        }
-
-        static void ExportAnim(string rawPath, string savePath)
-        {
-            UnityEngine.Object[] objs = AssetDatabase.LoadAllAssetsAtPath(rawPath);
-            foreach (UnityEngine.Object o in objs)
-            {
-                if (o is AnimationClip)
-                {
-
-                    //fbx内存在一部分不会在unity显示的，需要剔除
-                    if (o.name.Contains("_preview"))
-                    {
-                        continue;
-                    }
-
-                    AnimationClip clip = (AnimationClip)o;
-                    AnimationClip newClip = new AnimationClip();
-
-                    EditorUtility.CopySerialized(clip, newClip);
-                    CreateFolder(savePath);
-                    string resAnimPath = savePath + clip.name + ".anim";
-                    CreateAsset(newClip, resAnimPath);
-                }
-            }
-
         }
 
         public static void CopyAsset(string srcPath, string destPath)
