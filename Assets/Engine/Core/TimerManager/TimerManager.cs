@@ -25,21 +25,17 @@ namespace GameFramework.Timers
         private static readonly List<TimerEvent> _toRemove = new List<TimerEvent>();
         private static readonly Dictionary<int, TimerEvent> _toAdd = new Dictionary<int, TimerEvent>();
 
-        public new int priority = 10;
+        public override int priority => 10;
 
         public override void Destroy()
         {
             ClearAllTimer();
         }
 
-        public override void Start()
-        {
-
-        }
+        public override void Start() { }
 
         public override void Update(float nowTime, float elapseSeconds)
         {
-
             Dictionary<int, TimerEvent>.Enumerator iter;
 
             if (_timerMap.Count > 0)
@@ -79,11 +75,9 @@ namespace GameFramework.Timers
                 iter.Dispose();
             }
 
-
             int len = _toRemove.Count;
             if (len > 0)
             {
-
                 for (int k = 0; k < len; k++)
                 {
                     TimerEvent i = _toRemove[k];
@@ -93,7 +87,6 @@ namespace GameFramework.Timers
                 _toRemove.Clear();
             }
 
-
             if (_toAdd.Count > 0)
             {
                 iter = _toAdd.GetEnumerator();
@@ -101,11 +94,10 @@ namespace GameFramework.Timers
                 {
                     _timerMap.Add(iter.Current.Key, iter.Current.Value);
                 }
-                    
+
                 iter.Dispose();
                 _toAdd.Clear();
             }
-
         }
 
         public static int Add(System.Action callback, float interval, int repeat)
@@ -120,7 +112,6 @@ namespace GameFramework.Timers
 
             return info.id;
         }
-
 
         public static int SetTimeout(System.Action callback, float timeout)
         {
@@ -163,7 +154,7 @@ namespace GameFramework.Timers
         public static void ClearTimer(int id)
         {
             TimerEvent t;
-            if (_toAdd.TryGetValue(id,out t))
+            if (_toAdd.TryGetValue(id, out t))
             {
                 _toAdd.Remove(id);
                 ReturnToPool(t);
@@ -174,7 +165,6 @@ namespace GameFramework.Timers
             {
                 t.deleted = true;
             }
-                
         }
 
         public static void ClearAllTimer()
@@ -182,13 +172,11 @@ namespace GameFramework.Timers
             foreach (KeyValuePair<int, TimerEvent> kvp in _timerMap)
             {
                 kvp.Value.callBack = null;
-
             }
 
             foreach (KeyValuePair<int, TimerEvent> kvp in _toAdd)
             {
                 kvp.Value.callBack = null;
-
             }
 
             _timerMap.Clear();
@@ -199,6 +187,5 @@ namespace GameFramework.Timers
 
             _idCounter = 0;
         }
-
     }
 }

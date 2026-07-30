@@ -1,8 +1,7 @@
 ﻿using GameFramework.Common;
 using GameFramework.Scene;
-using GameLogic;
 
-namespace GameFramework.AppLoop
+namespace GameLogic
 {
     internal class AppLoopPlay : StateBase
     {

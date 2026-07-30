@@ -24,18 +24,22 @@ namespace GameFramework.Asset
             {
                 var item = _queue.Dequeue();
                 _processing.Add(item);
-                if (item.status == Request.Status.Wait) item.Start();
-                if (AssetManager.busy) return false;
+                if (item.status == Request.Status.Wait)
+                    item.Start();
+                if (AssetManager.busy)
+                    return false;
             }
 
             for (var index = 0; index < _processing.Count; index++)
             {
                 var item = _processing[index];
-                if (item.Update()) continue;
+                if (item.Update())
+                    continue;
                 _processing.RemoveAt(index);
                 index--;
                 item.Complete();
-                if (AssetManager.busy) return false;
+                if (AssetManager.busy)
+                    return false;
             }
 
             return true;

@@ -1,17 +1,15 @@
-using GameFramework.Asset;
 using System.Collections.Generic;
+using GameFramework.Asset;
 
 namespace GameFramework.Config
 {
-
     public class ConfigManager : GameModule
     {
-
         private static readonly string bundName = "Config";
 
         private static Dictionary<string, ConfigBase> configMap = new Dictionary<string, ConfigBase>();
 
-        public new int priority = 7;
+        public override int priority => 7;
 
         public static ConfigBase Get(string key)
         {
@@ -22,24 +20,15 @@ namespace GameFramework.Config
             }
 
             return configMap[key];
-
         }
 
-
-        public override void Destroy()
-        {
-
-        }
+        public override void Destroy() { }
 
         public override void Start()
         {
             AssetManager.LoadAllAssetAsync(bundName);
         }
 
-
-        public static void LoadConfig()
-        {
-
-        }
+        public static void LoadConfig() { }
     }
 }

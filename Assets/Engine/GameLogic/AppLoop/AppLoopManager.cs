@@ -1,12 +1,13 @@
-﻿using GameFramework.Common;
+﻿using GameFramework;
+using GameFramework.Common;
 
-namespace GameFramework.AppLoop
+namespace GameLogic
 {
     public class AppLoopManager : GameModule
     {
         private static StateMachine _stateMachine;
 
-        public new int priority = 2;
+        public override int priority => 2;
 
         public override void Start()
         {

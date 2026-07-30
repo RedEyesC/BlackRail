@@ -1,5 +1,4 @@
-﻿using GameFramework.AppLoop;
-using GameFramework.UI;
+﻿using GameFramework.UI;
 using UnityEngine;
 
 namespace GameLogic

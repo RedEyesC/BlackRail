@@ -1,11 +1,11 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
+﻿using System;
+using System.Collections.Generic;
+using GameFramework.Asset;
+using GameFramework.Scene;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Rendering.Universal;
-using System;
-using System.Collections.Generic;
-using GameFramework.Scene;
-using GameFramework.Asset;
+using UnityEngine.UI;
 
 namespace GameFramework.UI
 {
@@ -36,7 +36,8 @@ namespace GameFramework.UI
 
         private static Dictionary<int, GameObject> _orderNodeMap = new Dictionary<int, GameObject>();
 
-        public new int priority = 6;
+        public override int priority => 6;
+
         public override void Start()
         {
             //创建ui相机
@@ -50,13 +51,9 @@ namespace GameFramework.UI
 
             //初始化order
             InitOrderNode();
-
         }
 
-        public override void Destroy()
-        {
-
-        }
+        public override void Destroy() { }
 
         private void CreateEventSystem()
         {
@@ -65,7 +62,6 @@ namespace GameFramework.UI
             ev.AddComponent<StandaloneInputModule>();
             ev.SetParent(GameObject.Find("_AppRoot"), false);
         }
-
 
         private Camera CreateUICamera()
         {
@@ -97,7 +93,6 @@ namespace GameFramework.UI
             return cam;
         }
 
-
         public Camera GetCamera()
         {
             return _Camera;
@@ -105,7 +100,6 @@ namespace GameFramework.UI
 
         private void InitUIRoot()
         {
-
             _UIRoot = new GameObject("UIRoot");
             _UIRoot.layer = LayerMask.NameToLayer("UI");
 
@@ -116,7 +110,6 @@ namespace GameFramework.UI
 
             float screenWidth = Screen.width;
             float screenHeight = Screen.height;
-
 
             float scaleX = screenWidth / resolutionSize.x;
             float scaleY = screenHeight / resolutionSize.y;
@@ -133,7 +126,6 @@ namespace GameFramework.UI
             _UIRootTrans.position = Vector3.zero;
 
             _UIRoot.SetParent(GameObject.Find("_AppRoot"), false);
-
 
             //float aspectRatio = screenWidth / screenHeight;
             //float designedAspectRatio = ResolutionSize.x / ResolutionSize.y;
@@ -154,7 +146,6 @@ namespace GameFramework.UI
             //}
         }
 
-
         public static GComponent CreateLayout(string bundleName, string assetName)
         {
             GameObject viewObj = AssetManager.GetAssetObjWithType<GameObject>(bundleName, assetName, true);
@@ -167,7 +158,6 @@ namespace GameFramework.UI
 
             return root;
         }
-
 
         public void AddToRoot(Transform t, Transform root)
         {
@@ -185,7 +175,6 @@ namespace GameFramework.UI
             AddToRoot(t, _UIRootTrans);
         }
 
-
         public void GetUIScaleFactor(out float factor)
         {
             factor = _ScaleFactor;
@@ -195,7 +184,6 @@ namespace GameFramework.UI
         {
             _Camera.backgroundColor = c;
         }
-
 
         #region order
 
@@ -211,7 +199,6 @@ namespace GameFramework.UI
 
                 _orderNodeMap.Add(name, obj);
             }
-
         }
 
         public static void AddViewRoot(BaseView view)
@@ -224,7 +211,6 @@ namespace GameFramework.UI
                 GComponent root = view.GetRoot();
                 root.SetParent(orderNode, false);
             }
-
         }
 
         #endregion
@@ -239,7 +225,6 @@ namespace GameFramework.UI
                 _viewDefines.Add(viewName, viewType);
             }
         }
-
 
         public static void OpenView(string viewName, params object[] paramList)
         {
@@ -267,8 +252,6 @@ namespace GameFramework.UI
             {
                 return null;
             }
-
-
         }
 
         #endregion

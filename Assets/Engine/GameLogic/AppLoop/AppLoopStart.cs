@@ -1,7 +1,6 @@
 ﻿using GameFramework.Common;
-using GameLogic;
 
-namespace GameFramework.AppLoop
+namespace GameLogic
 {
     public class AppLoopStart : StateBase
     {
@@ -10,16 +9,12 @@ namespace GameFramework.AppLoop
             return "Start";
         }
 
-        public override void StateUpdate(float nowTime, float elapseSeconds)
-        {
-
-        }
+        public override void StateUpdate(float nowTime, float elapseSeconds) { }
 
         public override void StateEnter(params object[] paramList)
         {
             SysSettingCtrl.InitSysSetting();
             LoginCtrl.OpenLoginView();
         }
-
     }
 }

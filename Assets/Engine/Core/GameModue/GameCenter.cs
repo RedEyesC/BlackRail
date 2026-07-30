@@ -1,6 +1,6 @@
-﻿using GameFramework.Common;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using GameFramework.Common;
 using UnityEngine;
 
 namespace GameFramework
@@ -11,7 +11,6 @@ namespace GameFramework
 
         public static void Start()
         {
-
             foreach (GameModule module in _gameModules)
             {
                 module.Start();
@@ -42,7 +41,6 @@ namespace GameFramework
             }
         }
 
-
         public static void Destroy()
         {
             for (LinkedListNode<GameModule> current = _gameModules.Last; current != null; current = current.Previous)
@@ -53,15 +51,15 @@ namespace GameFramework
             _gameModules.Clear();
         }
 
-
-        public static T CreateModule<T>() where T : class
+        public static T CreateModule<T>()
+            where T : class
         {
             Type interfaceType = typeof(T);
 
-            if (!interfaceType.FullName.StartsWith("GameFramework.", StringComparison.Ordinal))
-            {
-                Debug.LogErrorFormat("You must get a Game Framework module, but '{0}' is not.", interfaceType.FullName);
-            }
+            //if (!interfaceType.FullName.StartsWith("GameFramework.", StringComparison.Ordinal))
+            //{
+            //    Debug.LogErrorFormat("You must get a Game Framework module, but '{0}' is not.", interfaceType.FullName);
+            //}
 
             string moduleName = String.Format("{0}.{1}", interfaceType.Namespace, interfaceType.Name);
             Type moduleType = Type.GetType(moduleName);
@@ -71,7 +69,6 @@ namespace GameFramework
             }
 
             return CreateModule(moduleType) as T;
-
         }
 
         private static GameModule CreateModule(Type moduleType)

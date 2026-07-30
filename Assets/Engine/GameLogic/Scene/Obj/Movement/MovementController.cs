@@ -238,13 +238,13 @@ namespace GameLogic
 
         private void ApplyPosition(float deltaTime)
         {
+            Vector3 position = owner.root.position;
             Vector3 delta = velocity * deltaTime;
-            if (delta.sqrMagnitude <= 0.000001f)
+            if (delta.sqrMagnitude > 0.000001f)
             {
-                return;
+                position += delta;
             }
 
-            Vector3 position = owner.root.position + delta;
             position.y = SceneManager.GetHeightByRayCast(position.x, position.z);
             owner.SetPosition(position.x, position.y, position.z);
         }

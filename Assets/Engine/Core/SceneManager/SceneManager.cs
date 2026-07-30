@@ -1,6 +1,4 @@
-﻿
-
-using GameFramework.Asset;
+﻿using GameFramework.Asset;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -14,7 +12,6 @@ namespace GameFramework.Scene
         private static Transform _objLayerTrans = null;
         private static Camera _camera = null;
         public static Vector2 resolutionSize = new Vector2(1280.0f, 720.0f);
-
 
         private RaycastHit _hitResult;
 
@@ -36,15 +33,14 @@ namespace GameFramework.Scene
         public float _sphereCastRadius = 0.2f;
         public float _colliderPointOffset = 0.12f;
         private float _colliderDistt = 0f;
+
         //private float _colliderFadeOutSpeed = 2;
 
-        public new int priority = 6;
+        public override int priority => 6;
 
         private static Transform _appRoot;
-        public override void Destroy()
-        {
 
-        }
+        public override void Destroy() { }
 
         public override void Start()
         {
@@ -58,12 +54,10 @@ namespace GameFramework.Scene
             UnityEngine.EventSystems.PhysicsRaycaster ray = camObj.AddComponent<UnityEngine.EventSystems.PhysicsRaycaster>();
             ray.eventMask = ~LayerMask.NameToLayer("UI");
 
-
             _objLayer = new GameObject("ObjLayer");
             _objLayerTrans = _objLayer.transform;
             _objLayerTrans.position = Vector3.zero;
             _objLayer.SetParent(_appRoot, false);
-
         }
 
         public override void Update(float nowTime, float elapseSeconds)
@@ -143,16 +137,13 @@ namespace GameFramework.Scene
             float screenWidth = Screen.width;
             float screenHeight = Screen.height;
 
-
             float scaleX = screenWidth / resolutionSize.x;
             float scaleY = screenHeight / resolutionSize.y;
 
             float scale = Mathf.Max(scaleX, scaleY);
 
             return (resolutionSize.y * scale) / screenWidth;
-
         }
-
 
         public static void AddToObjRoot(Transform t)
         {
@@ -163,7 +154,6 @@ namespace GameFramework.Scene
         {
             UnityEngine.GameObject.Destroy(go);
         }
-
 
         public static void SetTarget(Transform tran, float dist, float fov, float rx, float ry, float rz)
         {
@@ -184,7 +174,6 @@ namespace GameFramework.Scene
             }
         }
 
-
         public static Camera GetMainCamera()
         {
             return _camera;
@@ -194,7 +183,6 @@ namespace GameFramework.Scene
         {
             return _camera.transform.forward;
         }
-
 
         public static SceneRequest LoadSceneAsync(int mapId)
         {
@@ -215,7 +203,7 @@ namespace GameFramework.Scene
 
         public static float GetHeightByRayCast(float x, float z)
         {
-            int layerMask =  1 << LayerMask.NameToLayer("Default");
+            int layerMask = 1 << LayerMask.NameToLayer("Default");
 
             tempVec3.Set(x, 1000, z);
             Ray ray = new Ray(tempVec3, Vector3.down);
@@ -225,6 +213,5 @@ namespace GameFramework.Scene
             }
             return -9999f;
         }
-
     }
 }

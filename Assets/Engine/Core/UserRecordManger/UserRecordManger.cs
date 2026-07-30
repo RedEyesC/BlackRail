@@ -1,30 +1,23 @@
-﻿using GameFramework.Common;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using GameFramework.Common;
 using UnityEngine;
 
 namespace GameFramework.Moudule
 {
     internal class UserRecordManger : GameModule
     {
-
-
-        public new int priority = 9;
+        public override int priority => 9;
 
         private static Dictionary<string, string> _clientConfigMap = new Dictionary<string, string>();
 
-        public override void Destroy()
-        {
-
-        }
+        public override void Destroy() { }
 
         public override void Start()
         {
             string configPath = FileUtils.CombinePath(Application.streamingAssetsPath, "config.game");
             byte[] data = FileUtils.GetFileData(configPath);
             JsonConverter.ParseJson(data, ref _clientConfigMap);
-
         }
-
 
         public static string GetClientConfig(string key, string defaultValue = "")
         {
@@ -58,5 +51,4 @@ namespace GameFramework.Moudule
             return defaultValue;
         }
     }
-
 }

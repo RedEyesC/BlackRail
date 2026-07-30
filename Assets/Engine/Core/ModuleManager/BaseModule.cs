@@ -1,19 +1,13 @@
-﻿using GameFramework.UI;
-using System;
+﻿using System;
+using GameFramework.UI;
 
 namespace GameFramework.Moudule
 {
     internal class BaseModule
     {
-
         public virtual void EarlyUpdate() { }
 
-
-        public virtual void Update(float nowTime, float elapseSeconds)
-        {
-
-        }
-
+        public virtual void Update(float nowTime, float elapseSeconds) { }
 
         public virtual void PostLateUpdate() { }
 
@@ -22,22 +16,14 @@ namespace GameFramework.Moudule
             UIManager.RegisterView(viewName, viewType);
         }
 
-
         public static void OpenView(string viewName, params object[] paramList)
         {
             UIManager.OpenView(viewName, paramList);
         }
 
-
         public static BaseView GetView(string name)
         {
             return UIManager.GetView(name);
         }
-
-
     }
-
 }
-
-
-

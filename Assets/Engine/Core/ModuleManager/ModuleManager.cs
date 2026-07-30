@@ -1,15 +1,14 @@
-﻿using GameLogic;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using GameLogic;
 
 namespace GameFramework.Moudule
 {
     internal class ModuleManager : GameModule
     {
-
         private static Dictionary<string, BaseModule> _ctrlMap = new Dictionary<string, BaseModule>();
 
-        public new int priority = 4;
+        public override int priority => 4;
 
         private static List<Type> _ctrlList = new List<Type>
         {
@@ -18,9 +17,7 @@ namespace GameFramework.Moudule
             typeof(SysSettingCtrl),
             typeof(MainCtrl),
             typeof(SceneCtrl),
-
         };
-
 
         public override void Destroy()
         {
@@ -29,18 +26,15 @@ namespace GameFramework.Moudule
 
         public override void Start()
         {
-
             foreach (Type ctrl in _ctrlList)
             {
-
                 BaseModule Cls = (BaseModule)Activator.CreateInstance(ctrl);
                 _ctrlMap[ctrl.Name] = Cls;
-
             }
-
         }
 
-        public static T GetModule<T>() where T : BaseModule
+        public static T GetModule<T>()
+            where T : BaseModule
         {
             Type interfaceType = typeof(T);
             if (_ctrlMap.ContainsKey(interfaceType.Name))
@@ -51,7 +45,6 @@ namespace GameFramework.Moudule
             return null;
         }
 
-
         public override void EarlyUpdate()
         {
             foreach (var kv in _ctrlMap)
@@ -60,7 +53,6 @@ namespace GameFramework.Moudule
             }
         }
 
-
         public override void Update(float nowTime, float elapseSeconds)
         {
             foreach (var kv in _ctrlMap)
@@ -68,10 +60,5 @@ namespace GameFramework.Moudule
                 kv.Value.Update(nowTime, elapseSeconds);
             }
         }
-
-
-
-
     }
-
 }

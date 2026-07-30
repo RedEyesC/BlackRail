@@ -6,7 +6,7 @@ namespace GameFramework.Input
 {
     internal class InputManager : GameModule
     {
-        public new int priority = 6;
+        public override int priority => 6;
 
         private bool _ignoreTimescale = true;
 

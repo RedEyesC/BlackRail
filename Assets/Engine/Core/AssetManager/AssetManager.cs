@@ -1,5 +1,3 @@
-
-
 using System.Collections.Generic;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -9,7 +7,7 @@ namespace GameFramework.Asset
     public enum ResMod
     {
         Raw,
-        Bundle
+        Bundle,
     }
 
     public interface IRecyclable
@@ -34,8 +32,7 @@ namespace GameFramework.Asset
         public static bool autoslicing { get; set; } = true;
         public static bool Working => _queues.Exists(o => o.working);
 
-        public static bool busy =>
-            autoslicing && _elapseSeconds > autoslicingTimestep;
+        public static bool busy => autoslicing && _elapseSeconds > autoslicingTimestep;
 
         //注意假如长期处于这个标准的帧率以下反而会造成卡顿，此时建议下调标准
         //这种分帧无法处理因为自身导致的update过长时间运行的卡顿，可以通过限制任务数处理
@@ -46,12 +43,9 @@ namespace GameFramework.Asset
         private static readonly List<IRecyclable> Recyclables = new List<IRecyclable>();
         private static readonly List<IRecyclable> Progressing = new List<IRecyclable>();
 
-        public new int priority = 8;
+        public override int priority => 8;
 
-        public override void Start()
-        {
-
-        }
+        public override void Start() { }
 
         public override void Update(float nowTime, float elapseSeconds)
         {
@@ -89,13 +83,15 @@ namespace GameFramework.Asset
             for (var index = 0; index < Recyclables.Count; index++)
             {
                 var request = Recyclables[index];
-                if (!request.CanRecycle()) continue;
+                if (!request.CanRecycle())
+                    continue;
 
                 Recyclables.RemoveAt(index);
                 index--;
 
                 // 卸载的资源加载好后，可能会被再次使用
-                if (!request.IsUnused()) continue;
+                if (!request.IsUnused())
+                    continue;
                 request.RecycleAsync();
                 Progressing.Add(request);
             }
@@ -103,13 +99,15 @@ namespace GameFramework.Asset
             for (var index = 0; index < Progressing.Count; index++)
             {
                 var request = Progressing[index];
-                if (request.Recycling()) continue;
+                if (request.Recycling())
+                    continue;
                 Progressing.RemoveAt(index);
                 index--;
-                if (request.CanRecycle() && request.IsUnused()) request.EndRecycle();
-                if (busy) return;
+                if (request.CanRecycle() && request.IsUnused())
+                    request.EndRecycle();
+                if (busy)
+                    return;
             }
-
         }
 
         #region scheduler
@@ -121,9 +119,11 @@ namespace GameFramework.Asset
 
         private static void ResizeIfNeed()
         {
-            if (_updateMaxRequests == maxRequests) return;
+            if (_updateMaxRequests == maxRequests)
+                return;
 
-            foreach (var queue in _queues) queue.maxRequests = maxRequests;
+            foreach (var queue in _queues)
+                queue.maxRequests = maxRequests;
 
             _updateMaxRequests = maxRequests;
         }
@@ -133,7 +133,12 @@ namespace GameFramework.Asset
             var key = request.GetType().Name;
             if (!_queuesMap.TryGetValue(key, out var queue))
             {
-                queue = new RequestQueue { key = key, maxRequests = maxRequests, priority = request.priority };
+                queue = new RequestQueue
+                {
+                    key = key,
+                    maxRequests = maxRequests,
+                    priority = request.priority,
+                };
                 _queuesMap.Add(key, queue);
                 _append.Enqueue(queue);
             }
@@ -141,16 +146,9 @@ namespace GameFramework.Asset
             queue.Enqueue(request);
         }
 
-        public override void Destroy()
-        {
+        public override void Destroy() { }
 
-        }
-
-
-        public void Restart()
-        {
-
-        }
+        public void Restart() { }
 
         #endregion
 
@@ -172,12 +170,15 @@ namespace GameFramework.Asset
             req.Release();
         }
 
-
-        public static SceneRequest LoadSceneAsync(string bundleName, string assetName, System.Action<Request> callback = null, bool withAdditive = false)
+        public static SceneRequest LoadSceneAsync(
+            string bundleName,
+            string assetName,
+            System.Action<Request> callback = null,
+            bool withAdditive = false
+        )
         {
             return SceneRequest.LoadInternal(bundleName, assetName, withAdditive, callback);
         }
-
 
         #endregion
 
@@ -188,7 +189,6 @@ namespace GameFramework.Asset
         {
             UnusedAssets.Enqueue(asset);
         }
-
 
         public static void RecycleAsync(IRecyclable recyclable)
         {
@@ -208,8 +208,8 @@ namespace GameFramework.Asset
             return AssetRequest.Get<Object>(bundleName, assetName, isAll);
         }
 
-
-        public static T GetAssetObjWithType<T>(string bundleName, string assetName, bool isAll = false) where T : Object
+        public static T GetAssetObjWithType<T>(string bundleName, string assetName, bool isAll = false)
+            where T : Object
         {
             return AssetRequest.Get<T>(bundleName, assetName, isAll);
         }
@@ -226,7 +226,5 @@ namespace GameFramework.Asset
         }
 
         #endregion
-
     }
-
 }

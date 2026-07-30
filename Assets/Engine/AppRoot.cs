@@ -1,5 +1,3 @@
-
-using GameFramework.AppLoop;
 using GameFramework.Asset;
 using GameFramework.Common;
 using GameFramework.Config;
@@ -10,6 +8,7 @@ using GameFramework.Moudule;
 using GameFramework.Scene;
 using GameFramework.Timers;
 using GameFramework.UI;
+using GameLogic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.LowLevel;
@@ -20,15 +19,10 @@ namespace GameFramework.Runtime
 {
     public class AppRoot : MonoBehaviour
     {
-
-        void Awake()
-        {
-
-        }
+        void Awake() { }
 
         void Start()
         {
-
             InitInterface();
 
             InitGameCenter();
@@ -39,21 +33,17 @@ namespace GameFramework.Runtime
 #else
             RegisterUpdateFunctions();
 #endif
-
         }
-
 
         void OnEarlyUpdate()
         {
             GameCenter.EarlyUpdate();
         }
 
-
         void Update()
         {
             GameCenter.Update(Time.time, Time.deltaTime);
         }
-
 
         void OnPostLateUpdate()
         {
@@ -96,7 +86,6 @@ namespace GameFramework.Runtime
             GameCenter.Start();
         }
 
-
         #region updateSystem
 
 #if UNITY_EDITOR
@@ -111,7 +100,6 @@ namespace GameFramework.Runtime
                 UnregisterUpdateFunctions();
             }
         }
-
 #endif
 
         void RegisterUpdateFunctions()
@@ -190,7 +178,6 @@ namespace GameFramework.Runtime
             return false;
         }
 
-        #endregion 
+        #endregion
     }
 }
-

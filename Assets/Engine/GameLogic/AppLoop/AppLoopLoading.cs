@@ -1,12 +1,11 @@
 ﻿using GameFramework.Common;
-using GameFramework.Scene;
-using GameLogic;
 
-namespace GameFramework.AppLoop
+namespace GameLogic
 {
     internal class AppLoopLoading : StateBase
     {
         private int _state;
+
         public override string GetID()
         {
             return "Loading";
@@ -14,13 +13,11 @@ namespace GameFramework.AppLoop
 
         public override void StateEnter(params object[] paramList)
         {
-
             _state = 0;
         }
 
         public override void StateUpdate(float nowTime, float elapseSeconds)
         {
-
             switch (_state)
             {
                 case 0:
@@ -48,7 +45,6 @@ namespace GameFramework.AppLoop
                     AppLoopManager.ChangeState("Play");
                     break;
             }
-
         }
     }
 }
