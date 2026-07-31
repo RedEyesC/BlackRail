@@ -68,8 +68,8 @@ namespace GameLogic
                 cameraForward.Normalize();
             }
 
-            Vector3 cameraRight = Vector3.Cross(Vector3.up, cameraForward).normalized;
-            Vector3 direction = cameraRight * moveInput.x + cameraForward * moveInput.y;
+            Vector3 cameraLeft = Vector3.Cross(cameraForward, Vector3.up).normalized;
+            Vector3 direction = cameraLeft * moveInput.x + cameraForward * moveInput.y;
             direction.y = 0f;
 
             return direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.zero;
