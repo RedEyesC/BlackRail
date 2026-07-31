@@ -22,12 +22,12 @@ namespace GameLogic
         public bool rotateToMoveDirection = true;
 
         public string locomotion = "Locomotion";
-        public string walkStart = "WalkStart";
-        public string runStart = "RunStart";
+        public string walkStart = "Walk_Start";
+        public string runStart = "Run_Start";
         public string walk = "Walk";
         public string run = "Run";
-        public string walkEnd = "WalkEnd";
-        public string runEnd = "RunEnd";
+        public string walkEnd = "Walk_End";
+        public string runEnd = "Run_End";
         public string turnBack = "TurnBack";
         public string idle = "Idle";
 
