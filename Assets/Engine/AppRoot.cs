@@ -79,7 +79,6 @@ namespace GameFramework.Runtime
             GameCenter.CreateModule<SceneManager>();
             GameCenter.CreateModule<UIManager>();
             GameCenter.CreateModule<InputManager>();
-            GameCenter.CreateModule<ModuleManager>();
 
             GameCenter.CreateModule<AppLoopManager>();
 

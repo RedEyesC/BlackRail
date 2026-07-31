@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using GameFramework.Asset;
+using GameFramework.Interface;
 using GameFramework.Scene;
 using UnityEngine;
 using UnityEngine.EventSystems;

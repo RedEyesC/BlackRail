@@ -1,13 +1,9 @@
-﻿
-using UnityEngine;
-
+﻿using UnityEngine;
 
 namespace GameLogic
 {
-
     internal class Monster : Obj
     {
-
         private int _monsterId;
         private float nextTime = 0;
 
@@ -21,17 +17,9 @@ namespace GameLogic
             get { return _monsterId; }
         }
 
+        public Monster()
+            : base(BodyType.Monster) { }
 
-        public Monster() : base(BodyType.Monster)
-        {
-
-        }
-
-
-        public void InitModel(int monsterId)
-        {
-  
-        }
-
+        public void InitModel(int monsterId) { }
     }
 }

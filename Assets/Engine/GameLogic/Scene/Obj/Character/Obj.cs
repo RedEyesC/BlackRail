@@ -1,6 +1,5 @@
 using System;
-using System.Collections.Generic;
-using Unity.Jobs;
+using GameFramework.Interface;
 using UnityEngine;
 
 namespace GameLogic

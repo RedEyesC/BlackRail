@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using GameFramework.Asset;
+using GameFramework.Interface;
 using GameFramework.Scene;
 using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Animations;
-using UnityEngine.Playables;
 
 namespace GameLogic
 {

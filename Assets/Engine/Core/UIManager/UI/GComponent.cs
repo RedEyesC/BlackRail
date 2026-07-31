@@ -6,7 +6,6 @@ namespace GameFramework.UI
 {
     public class GComponent : GObject
     {
-
         internal List<GObject> _children = new List<GObject>();
 
         public int numChildren
@@ -14,12 +13,9 @@ namespace GameFramework.UI
             get { return _children.Count; }
         }
 
-        public GComponent()
-        {
+        public GComponent() { }
 
-        }
-
-        override public void ConstructUI()
+        public override void ConstructUI()
         {
             GObject child;
 
@@ -33,7 +29,6 @@ namespace GameFramework.UI
                 child.SetParent(this);
                 _children.Add(child);
             }
-
         }
 
         public GObject AddChild(GObject child)
@@ -42,7 +37,7 @@ namespace GameFramework.UI
             return child;
         }
 
-        virtual public GObject AddChildAt(GObject child, int index)
+        public virtual GObject AddChildAt(GObject child, int index)
         {
             int numChildren = _children.Count;
 
@@ -64,7 +59,6 @@ namespace GameFramework.UI
                     child.SetParent(this);
 
                     _children.Insert(numChildren, child);
-
                 }
                 return child;
             }
@@ -79,7 +73,6 @@ namespace GameFramework.UI
             return RemoveChild(child, false);
         }
 
-
         public GObject RemoveChild(GObject child, bool dispose)
         {
             int childIndex = _children.IndexOf(child);
@@ -90,7 +83,7 @@ namespace GameFramework.UI
             return child;
         }
 
-        virtual public GObject RemoveChildAt(int index, bool dispose)
+        public virtual GObject RemoveChildAt(int index, bool dispose)
         {
             if (index >= 0 && index < numChildren)
             {
@@ -98,15 +91,12 @@ namespace GameFramework.UI
 
                 child.SetParent(null);
 
-
                 _children.RemoveAt(index);
-
 
                 if (dispose)
                 {
                     child.Dispose();
                 }
-
 
                 return child;
             }
@@ -114,9 +104,7 @@ namespace GameFramework.UI
             {
                 throw new Exception("Invalid child index: " + index + ">" + numChildren);
             }
-          
         }
-
 
         public GObject GetChild(string name)
         {
@@ -129,7 +117,7 @@ namespace GameFramework.UI
             return null;
         }
 
-        override public void Destroy()
+        public override void Destroy()
         {
             if (_children.Count > 0)
             {

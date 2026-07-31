@@ -2,7 +2,7 @@
 
 namespace GameFramework.UI
 {
-    public class GText:GObject
+    public class GText : GObject
     {
         public string _text;
 
@@ -16,14 +16,11 @@ namespace GameFramework.UI
             get { return _text; }
         }
 
-        public  void SetText()
+        public void SetText()
         {
             obj.GetComponent<Text>().text = _text;
         }
 
-        override public void Destroy()
-        {
-
-        }
+        public override void Destroy() { }
     }
 }

@@ -7,12 +7,11 @@ namespace GameFramework.UI
         Open,
         Close,
         Caching,
-        Loading
+        Loading,
     }
 
     public abstract class BaseTemple
     {
-
         protected enum Layer
         {
             UI = 5,
@@ -33,10 +32,7 @@ namespace GameFramework.UI
 
         protected bool isOpen
         {
-            get
-            {
-                return _state == UIState.Open;
-            }
+            get { return _state == UIState.Open; }
         }
 
         protected void SetLayer(Layer layer)
@@ -52,7 +48,6 @@ namespace GameFramework.UI
 
         protected void CreateLayout()
         {
-
             if (_root == null)
             {
                 string bundleName = GetUIBundlePath(_packageName);
@@ -60,7 +55,6 @@ namespace GameFramework.UI
             }
 
             OnLayoutCreated();
-
         }
 
         public void Open(params object[] paramList)
@@ -74,10 +68,8 @@ namespace GameFramework.UI
 
         protected abstract void OnOpen(params object[] paramList);
 
-
         public void Close(bool immediately = false)
         {
-
             if (isOpen)
             {
                 OnClose();
@@ -89,10 +81,8 @@ namespace GameFramework.UI
 
         protected abstract void OnClose();
 
-
         protected void DestroyLayout()
         {
-
             ClearTemplates();
 
             if (_root != null)
@@ -114,7 +104,8 @@ namespace GameFramework.UI
             OnOpen(_openParams);
         }
 
-        protected T GetChild<T>(string name) where T : GObject
+        protected T GetChild<T>(string name)
+            where T : GObject
         {
             if (_root != null)
             {
@@ -127,7 +118,6 @@ namespace GameFramework.UI
                 }
 
                 return obj.GetChild(nameList[count]) as T;
-
             }
 
             return null;
@@ -157,17 +147,16 @@ namespace GameFramework.UI
             _root = obj;
         }
 
-
-        public T GetTemplate<T>(string objPath, params object[] paramList) where T : BaseTemple, new()
+        public T GetTemplate<T>(string objPath, params object[] paramList)
+            where T : BaseTemple, new()
         {
             GComponent obj = GetChild<GComponent>(objPath);
             return GetTemplateByObj<T>(obj, paramList);
-
         }
 
-        public T GetTemplateByObj<T>(GComponent obj, params object[] paramList) where T : BaseTemple, new()
+        public T GetTemplateByObj<T>(GComponent obj, params object[] paramList)
+            where T : BaseTemple, new()
         {
-
             if (_templateList == null)
             {
                 _templateList = new Dictionary<int, BaseTemple>();
@@ -188,9 +177,7 @@ namespace GameFramework.UI
             }
 
             return null;
-
         }
-
 
         public void ClearTemplates()
         {
@@ -199,13 +186,10 @@ namespace GameFramework.UI
                 foreach (KeyValuePair<int, BaseTemple> kvp in _templateList)
                 {
                     kvp.Value.Close();
-
                 }
 
                 _templateList = null;
+            }
         }
-        }
-
     }
-
 }

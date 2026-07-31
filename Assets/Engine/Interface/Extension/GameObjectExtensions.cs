@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+
 public static class GameObjectExtensions
 {
     public static void SetParent(this GameObject go, Transform parent, bool posStay)
@@ -10,5 +11,4 @@ public static class GameObjectExtensions
     {
         go.transform.SetParent(parentObj.transform, posStay);
     }
-
 }

@@ -1,26 +1,20 @@
-﻿
-
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using GameEditor.Utility;
+using GameFramework.Detour;
+using GameFramework.Recast;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using System.Collections.Generic;
-using System.IO;
-using System;
-using GameEditor.Utility;
-using GameFramework.Recast;
-using GameFramework.Detour;
+
 namespace GameEditor.RecastEditor
-
 {
-
     public class RecastEditor
     {
-
-
         public static readonly string MapResPath = "Assets/Resources/Map/";
         public static readonly string MapElement = "MapElement";
-
 
         [MenuItem("Assets/Game Editor/导出地图navmesh", false, 900)]
         public static void ExportRecast()
@@ -52,17 +46,16 @@ namespace GameEditor.RecastEditor
 
         public static void ExportRecastInfo(string path)
         {
-
             CommonUtility.ResetTimers();
             CommonUtility.DoStartTimer("build NavMesh");
-
 
             DirectoryInfo dirInfo = new DirectoryInfo(path);
             foreach (var file in dirInfo.GetFiles())
             {
                 if (file.Extension.ToLower() == ".unity")
                 {
-                    EditorSceneManager.OpenScene(path + "/" + file.Name); ;
+                    EditorSceneManager.OpenScene(path + "/" + file.Name);
+                    ;
                     break;
                 }
             }
@@ -80,7 +73,6 @@ namespace GameEditor.RecastEditor
 
             for (int i = 0; i < mesh.vertexCount; i++)
             {
-
                 vertices[i * 3 + 0] = mesh.vertices[i].x;
                 vertices[i * 3 + 1] = mesh.vertices[i].y;
                 vertices[i * 3 + 2] = mesh.vertices[i].z;
@@ -89,7 +81,6 @@ namespace GameEditor.RecastEditor
             int[] triangles = mesh.triangles;
 
             SoleMeshBuild(vertices, triangles);
-
         }
 
         private static Mesh CombineMesh(Transform navRoot)
@@ -113,12 +104,22 @@ namespace GameEditor.RecastEditor
 
         public static void SoleMeshBuild(float[] vertices, int[] triangles)
         {
-
             RecastUtility.CalcBounds(vertices, out float[] meshMinBounds, out float[] meshMaxBounds);
 
             RecastUtility.CalcGridSize(meshMinBounds, meshMaxBounds, RecastConfig.CellSize, out int meshWidth, out int meshHeight);
 
-            RcHeightfield hf = new RcHeightfield(meshMinBounds, meshMaxBounds, meshWidth, meshHeight, RecastConfig.AgentMaxSlope, RecastConfig.AgentMaxClimb, RecastConfig.AgentHeight, RecastConfig.AgentRadius, RecastConfig.CellSize, RecastConfig.CellHeight);
+            RcHeightfield hf = new RcHeightfield(
+                meshMinBounds,
+                meshMaxBounds,
+                meshWidth,
+                meshHeight,
+                RecastConfig.AgentMaxSlope,
+                RecastConfig.AgentMaxClimb,
+                RecastConfig.AgentHeight,
+                RecastConfig.AgentRadius,
+                RecastConfig.CellSize,
+                RecastConfig.CellHeight
+            );
 
             //判断三角形是否可行走
             AREATYPE[] areas = RecastUtility.RcMarkWalkableTriangles(hf.walkableSlopeAngle, vertices, triangles);
@@ -160,7 +161,7 @@ namespace GameEditor.RecastEditor
             //构建距离场
             RecastHeightField.RcBuildDistanceField(chf);
 
-            //分水岭算法构建区域 
+            //分水岭算法构建区域
             RecastContour.RcBuildRegions(chf);
 
             //DrawCompactHeightField(chf, 3);
@@ -211,7 +212,6 @@ namespace GameEditor.RecastEditor
             param.detailTris = dmesh.tris;
             param.detailVertsCount = dmesh.nverts;
 
-
             //寻路相关测试
             DetourNavMeshBuild.DtCreateNavMeshData(param);
 
@@ -224,11 +224,9 @@ namespace GameEditor.RecastEditor
             //DrawPath(path);
         }
 
-
         //用于绘制计算出来的高度场,并标记可行走区域
         public static void DrawHeightfield(RcHeightfield hf, bool showWalk = false)
         {
-
             float[] hfBBMin = hf.minBounds;
             float cellSize = hf.cellSize;
             float cellHeight = hf.cellHeight;
@@ -244,7 +242,6 @@ namespace GameEditor.RecastEditor
 
                 while (currentSpan != null)
                 {
-
                     for (int y = currentSpan.min; y < currentSpan.max; y++)
                     {
                         //只绘制最上层方便观察
@@ -282,28 +279,23 @@ namespace GameEditor.RecastEditor
                             param.Add(0);
                             param.Add(1);
                         }
-
                     }
 
                     currentSpan = currentSpan.next;
                 }
             }
 
-
             SetNavDebug(param.ToArray());
         }
-
 
         //用于绘制计算出来的空心高度场，绘制距离场参数,并标记区域 ,type 1 距离场,type 2 可行走区域,type 3 划分区域
         public static void DrawCompactHeightField(RcCompactHeightfield chf, int type = 1)
         {
-
             float[] hfBBMin = chf.minBounds;
             float cellSize = chf.cellSize;
             float cellHeight = chf.cellHeight;
 
-            Color[] colorMap = {Color.green, Color.blue, Color.white, Color.black,
-                Color.yellow, Color.cyan, Color.magenta, Color.gray };
+            Color[] colorMap = { Color.green, Color.blue, Color.white, Color.black, Color.yellow, Color.cyan, Color.magenta, Color.gray };
 
             int w = chf.width;
             int h = chf.height;
@@ -328,7 +320,6 @@ namespace GameEditor.RecastEditor
 
                     for (int i = c.index, ni = (c.index + c.count); i < ni; ++i)
                     {
-
                         CompactSpan span = chf.spans[i];
 
                         //为了方便观察，CompactSpan只构建一个cellHeight，实际不止
@@ -347,7 +338,6 @@ namespace GameEditor.RecastEditor
                         param.Add(cellSize);
                         param.Add(cellHeight);
                         param.Add(cellSize);
-
 
                         if (chf.distanceToBoundary != null && type == 1)
                         {
@@ -376,7 +366,6 @@ namespace GameEditor.RecastEditor
                             param.Add(0);
                             param.Add(1);
                         }
-
                     }
                 }
             }
@@ -384,11 +373,9 @@ namespace GameEditor.RecastEditor
             SetNavDebug(param.ToArray());
         }
 
-
         //用于绘制计算出来的区域边缘
         public static void DrawFieldContour(RcContourSet rcContourSet)
         {
-
             float[] hfBBMin = rcContourSet.minBounds;
             float cellSize = rcContourSet.cellSize;
             float cellHeight = rcContourSet.cellHeight;
@@ -398,7 +385,6 @@ namespace GameEditor.RecastEditor
             for (int i = 0; i < rcContourSet.numConts; ++i)
             {
                 RcContour cont = rcContourSet.conts[i];
-
 
                 int len = 4 + cont.nverts * 3;
 
@@ -416,13 +402,11 @@ namespace GameEditor.RecastEditor
                     param.Add(cellX);
                     param.Add(cellY);
                     param.Add(cellZ);
-
                 }
             }
 
             SetNavDebug(param.ToArray());
         }
-
 
         //用于绘制计算出来的分割的多边形
         public static void DrawMesh(RcPolyMesh pmesh)
@@ -438,7 +422,6 @@ namespace GameEditor.RecastEditor
 
             for (int i = 0; i < pmesh.npolys; ++i)
             {
-
                 int count = 0;
 
                 po1y[0] = 2;
@@ -447,7 +430,6 @@ namespace GameEditor.RecastEditor
 
                 for (int j = 0; j < RecastConfig.MaxVertsPerPoly; j++)
                 {
-
                     int vertIndex = pmesh.polys[i * RecastConfig.MaxVertsPerPoly * 2 + j];
 
                     if (vertIndex == RecastConfig.RC_MESH_NULL_IDX)
@@ -464,7 +446,6 @@ namespace GameEditor.RecastEditor
                     po1y[4 + count * 3 + 2] = cellZ;
 
                     count++;
-
                 }
 
                 po1y[3] = count;
@@ -473,22 +454,18 @@ namespace GameEditor.RecastEditor
                 {
                     param.Add(po1y[j]);
                 }
-
             }
 
             SetNavDebug(param.ToArray());
         }
 
-
         //用于绘制计算出来的细化后的多边形
         public static void DrawMeshDetail(RcPolyMeshDetail dmesh)
         {
-
             List<float> param = new List<float>();
 
             for (int i = 0; i < dmesh.nmeshes; i++)
             {
-
                 int startVert = dmesh.meshes[i * 4 + 0];
                 int startTri = dmesh.meshes[i * 4 + 2];
                 int ntris = dmesh.meshes[i * 4 + 3];
@@ -500,13 +477,10 @@ namespace GameEditor.RecastEditor
                 param.Add(i);
                 param.Add(ntris * 3);
 
-
                 for (int j = 0; j < ntris; ++j)
                 {
-
                     for (int k = 0; k < 3; k++)
                     {
-
                         int vertIndex = dmesh.tris[(startTri + j) * 4 + k];
 
                         float cellX = dmesh.verts[(startVert + vertIndex) * 3];
@@ -516,10 +490,8 @@ namespace GameEditor.RecastEditor
                         param.Add(cellX);
                         param.Add(cellY);
                         param.Add(cellZ);
-
                     }
                 }
-
             }
 
             SetNavDebug(param.ToArray());
@@ -528,14 +500,12 @@ namespace GameEditor.RecastEditor
         //用于绘制计算出来的寻路结果
         public static void DrawPath(float[] path)
         {
-
             List<float> param = new List<float>();
 
-            int count = path.Length/3;
+            int count = path.Length / 3;
 
             for (int i = 0; i < count - 1; i++)
             {
-
                 int i1 = (i + 1) % count;
 
                 param.Add(3);
@@ -549,7 +519,6 @@ namespace GameEditor.RecastEditor
                 param.Add(path[i1 * 3]);
                 param.Add(path[i1 * 3 + 1]);
                 param.Add(path[i1 * 3 + 2]);
-
             }
 
             SetNavDebug(param.ToArray());
@@ -596,25 +565,21 @@ namespace GameEditor.RecastEditor
 
         //    Vector3 cubeSize = new Vector3(cellSize, cellHeight, cellSize);
 
-
-
         //}
 
         public static void SetNavDebug(float[] val)
         {
-            Scene activeScene = SceneManager.GetActiveScene();
-            string activeSceneName = activeScene.name;
+            //Scene activeScene = SceneManager.GetActiveScene();
+            //string activeSceneName = activeScene.name;
 
-            GameObject root = GameObject.Find("/" + activeSceneName);
+            //GameObject root = GameObject.Find("/" + activeSceneName);
 
-            if (root.GetComponent<NavDebugComponent>() == null)
-            {
-                root.AddComponent<NavDebugComponent>();
-            }
+            //if (root.GetComponent<NavDebugComponent>() == null)
+            //{
+            //    root.AddComponent<NavDebugComponent>();
+            //}
 
-            root.GetComponent<NavDebugComponent>().SetDrawParam(val);
+            //root.GetComponent<NavDebugComponent>().SetDrawParam(val);
         }
     }
-
 }
-

@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
+using GameFramework.Interface;
 using GameFramework.Scene;
-using Unity.Jobs;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace GameLogic
 {

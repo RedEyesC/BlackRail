@@ -1,10 +1,10 @@
-﻿using UnityEngine.UI;
+﻿using GameFramework.Interface;
+using UnityEngine.UI;
 
 namespace GameFramework.UI
 {
     public class GButton : GComponent
     {
-
         public GObject _titleObject;
 
         public string _title;
@@ -19,12 +19,11 @@ namespace GameFramework.UI
             get { return _title; }
         }
 
-        override public void ConstructUI()
+        public override void ConstructUI()
         {
             base.ConstructUI();
 
             _titleObject = GetChild("txt");
-
         }
 
         public void AddClickCallback(ClickComponent.EventPosDelegate action)
@@ -49,9 +48,6 @@ namespace GameFramework.UI
             }
         }
 
-        override public void Destroy()
-        {
-
-        }
+        public override void Destroy() { }
     }
 }

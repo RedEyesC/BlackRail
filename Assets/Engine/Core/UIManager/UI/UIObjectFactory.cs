@@ -9,7 +9,7 @@ namespace GameFramework.UI
         public static GObject NewObject(GameObject go)
         {
             int childCount = go.transform.childCount;
-            
+
             if (go.GetComponent<Button>() != null)
             {
                 return new GButton();
@@ -30,7 +30,6 @@ namespace GameFramework.UI
             {
                 return new GComponent();
             }
-
         }
     }
 }

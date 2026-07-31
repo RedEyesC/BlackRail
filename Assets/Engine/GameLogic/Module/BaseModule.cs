@@ -1,7 +1,7 @@
 ﻿using System;
 using GameFramework.UI;
 
-namespace GameFramework.Moudule
+namespace GameLogic
 {
     internal class BaseModule
     {

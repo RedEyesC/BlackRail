@@ -1,7 +1,7 @@
 using GameFramework.Common;
+using GameFramework.Interface;
 using GameFramework.Scene;
 using UnityEngine;
-using static AnimPlayableComponent;
 
 namespace GameLogic
 {
@@ -120,7 +120,7 @@ namespace GameLogic
                 return;
             }
 
-            LinearMixerTransition linearMixerTransition = InitLocomotionChildren();
+            AnimPlayableComponent.LinearMixerTransition linearMixerTransition = InitLocomotionChildren();
             linearMixerTransition.DefaultParameter = parameter;
             _locomotionState = owner.PlayAnim(linearMixerTransition) as AnimPlayableComponent.LinearMixerState;
         }

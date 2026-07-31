@@ -1,3 +1,5 @@
+using GameFramework.Interface;
+
 namespace GameLogic
 {
     internal sealed partial class MovementController

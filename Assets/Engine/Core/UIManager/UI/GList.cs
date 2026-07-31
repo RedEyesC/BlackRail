@@ -1,12 +1,7 @@
 ﻿namespace GameFramework.UI
 {
-    public class GList:GComponent
+    public class GList : GComponent
     {
-        override public void Destroy()
-        {
-
-        }
+        public override void Destroy() { }
     }
-
-
 }
