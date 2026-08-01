@@ -7,7 +7,7 @@ Avatar:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: anbiAvatar(Clone)
-  m_AvatarSize: 18072
+  m_AvatarSize: 18168
   m_Avatar:
     serializedVersion: 3
     m_AvatarSkeleton:
@@ -1349,20 +1349,24 @@ Avatar:
         m_HasTDoF: 0
     m_HumanSkeletonIndexArray: 
     m_HumanSkeletonReverseIndexArray: 
-    m_RootMotionBoneIndex: -1
+    m_RootMotionBoneIndex: 6
     m_RootMotionBoneX:
       t: {x: 0, y: 0, z: 0}
-      q: {x: 0, y: 0, z: 0, w: 1}
+      q: {x: -0.49569696, y: 0.49569625, z: 0.5042663, w: 0.50426704}
       s: {x: 1, y: 1, z: 1}
     m_RootMotionSkeleton:
       data:
-        m_Node: []
-        m_ID: 
+        m_Node:
+        - m_ParentId: -1
+          m_AxesId: -1
+        - m_ParentId: 0
+          m_AxesId: -1
+        m_ID: 000000003d6cbca6
         m_AxesArray: []
     m_RootMotionSkeletonPose:
       data:
         m_X: []
-    m_RootMotionSkeletonIndexArray: 
+    m_RootMotionSkeletonIndexArray: 0000000006000000
   m_TOS:
     1294485142: Bip001/Bip001 Pelvis/Bip001 L Thigh/Bone043
     355696040: Bip001/Bip001 Pelvis/Bip001 Spine/Bip001 Spine1/Bip001 Spine2/Bip001
@@ -1627,7 +1631,7 @@ Avatar:
     m_LegStretch: 0.05
     m_FeetSpacing: 0
     m_GlobalScale: 1
-    m_RootMotionBoneName: 
+    m_RootMotionBoneName: Bip001
     m_HasTranslationDoF: 0
     m_HasExtraRoot: 0
     m_SkeletonHasParents: 1
