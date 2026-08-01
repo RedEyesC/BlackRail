@@ -1,15 +1,11 @@
-﻿
-using GameFramework.Moudule;
-
-namespace GameLogic
+﻿namespace GameLogic
 {
-    internal  class MainCtrl:BaseModule
+    internal class MainCtrl : BaseModule
     {
         public MainCtrl()
         {
             RegisterView("MainView", typeof(MainView));
         }
-
 
         public static void OpenMainView()
         {

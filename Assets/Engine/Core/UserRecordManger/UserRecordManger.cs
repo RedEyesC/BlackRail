@@ -2,7 +2,7 @@
 using GameFramework.Common;
 using UnityEngine;
 
-namespace GameFramework.Moudule
+namespace GameFramework.UserRecord
 {
     internal class UserRecordManger : GameModule
     {

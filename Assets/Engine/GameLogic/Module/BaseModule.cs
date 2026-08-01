@@ -5,6 +5,8 @@ namespace GameLogic
 {
     internal class BaseModule
     {
+        public virtual void Init() { }
+
         public virtual void EarlyUpdate() { }
 
         public virtual void Update(float nowTime, float elapseSeconds) { }

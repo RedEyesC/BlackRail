@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using GameFramework.Asset;
 using GameFramework.Interface;
-using GameFramework.Scene;
 using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Animations;
@@ -74,7 +73,7 @@ namespace GameLogic
             if (_obj != null)
             {
                 AssetManager.UnLoadAssetAsync(_req);
-                SceneManager.DestroyLayout(_obj);
+                CameraCtrl.DestroyLayout(_obj);
             }
 
             string modelPath = GetModelPath(_bodyType, _modelType, _modelID);

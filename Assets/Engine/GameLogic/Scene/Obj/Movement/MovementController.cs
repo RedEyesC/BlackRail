@@ -1,12 +1,12 @@
 using GameFramework.Common;
 using GameFramework.Interface;
-using GameFramework.Scene;
 using UnityEngine;
 
 namespace GameLogic
 {
     internal sealed partial class MovementController
     {
+        static Vector3 tempVec3 = new Vector3();
         public float inputDeadZone = 0.05f;
         public float inputResponsePower = 1.6f;
         public float runInputThreshold = 0.65f;
@@ -245,8 +245,21 @@ namespace GameLogic
                 position += delta;
             }
 
-            position.y = SceneManager.GetHeightByRayCast(position.x, position.z);
+            position.y = GetHeightByRayCast(position.x, position.z);
             owner.SetPosition(position.x, position.y, position.z);
+        }
+
+        public static float GetHeightByRayCast(float x, float z)
+        {
+            int layerMask = 1 << LayerMask.NameToLayer("Default");
+
+            tempVec3.Set(x, 1000, z);
+            Ray ray = new Ray(tempVec3, Vector3.down);
+            if (Physics.Raycast(ray, out RaycastHit hit, 1500f, layerMask))
+            {
+                return hit.point.y;
+            }
+            return -9999f;
         }
 
         private static Vector3 NormalizePlanar(Vector3 vector)

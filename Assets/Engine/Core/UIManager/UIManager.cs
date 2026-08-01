@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using GameFramework.Asset;
-using GameFramework.Interface;
-using GameFramework.Scene;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Rendering.Universal;
@@ -88,13 +86,10 @@ namespace GameFramework.UI
             cam.useOcclusionCulling = false;
             cam.backgroundColor = new Color(0.0f, 0.0f, 0.0f, 1.0f);
 
-            Camera main = SceneManager.GetMainCamera();
-            main.GetUniversalAdditionalCameraData().cameraStack.Add(cam);
-
             return cam;
         }
 
-        public Camera GetCamera()
+        public static Camera GetCamera()
         {
             return _Camera;
         }

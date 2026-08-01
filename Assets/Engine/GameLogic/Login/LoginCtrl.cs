@@ -1,15 +1,11 @@
-﻿
-using GameFramework.Moudule;
-
-namespace GameLogic
+﻿namespace GameLogic
 {
-    internal  class LoginCtrl:BaseModule
+    internal class LoginCtrl : BaseModule
     {
         public LoginCtrl()
         {
             RegisterView("loginView", typeof(LoginView));
         }
-
 
         public static void OpenLoginView()
         {

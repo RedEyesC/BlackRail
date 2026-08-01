@@ -4,10 +4,9 @@ using GameFramework.Config;
 using GameFramework.Event;
 using GameFramework.Input;
 using GameFramework.Logger;
-using GameFramework.Moudule;
-using GameFramework.Scene;
 using GameFramework.Timers;
 using GameFramework.UI;
+using GameFramework.UserRecord;
 using GameLogic;
 using UnityEditor;
 using UnityEngine;
@@ -76,7 +75,6 @@ namespace GameFramework.Runtime
             GameCenter.CreateModule<LoggerManager>();
 
             GameCenter.CreateModule<ConfigManager>();
-            GameCenter.CreateModule<SceneManager>();
             GameCenter.CreateModule<UIManager>();
             GameCenter.CreateModule<InputManager>();
 

@@ -14,6 +14,7 @@ namespace GameLogic
             typeof(SysSettingCtrl),
             typeof(MainCtrl),
             typeof(SceneCtrl),
+            typeof(CameraCtrl),
         };
 
         public void Destroy()
@@ -27,6 +28,8 @@ namespace GameLogic
             {
                 BaseModule Cls = (BaseModule)Activator.CreateInstance(ctrl);
                 _ctrlMap[ctrl.Name] = Cls;
+
+                Cls.Init();
             }
         }
 

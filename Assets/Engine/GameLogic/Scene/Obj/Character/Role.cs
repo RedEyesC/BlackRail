@@ -1,6 +1,4 @@
-﻿using System;
-using GameFramework.Input;
-using GameFramework.Scene;
+﻿using GameFramework.Input;
 using UnityEngine;
 
 namespace GameLogic
@@ -56,7 +54,7 @@ namespace GameLogic
                 return Vector3.zero;
             }
 
-            var cameraForwardValue = SceneManager.GetMainCameraForward();
+            var cameraForwardValue = CameraCtrl.GetMainCameraForward();
             Vector3 cameraForward = new Vector3(cameraForwardValue.x, cameraForwardValue.y, cameraForwardValue.z);
             cameraForward.y = 0f;
             if (cameraForward.sqrMagnitude <= 0.0001f)

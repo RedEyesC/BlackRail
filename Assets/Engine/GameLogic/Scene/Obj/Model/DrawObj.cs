@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using GameFramework.Interface;
-using GameFramework.Scene;
 using UnityEngine;
 
 namespace GameLogic
@@ -47,7 +46,7 @@ namespace GameLogic
         protected void InitRootObj()
         {
             _rootObj = new GameObject();
-            SceneManager.AddToObjRoot(_rootObj.transform);
+            CameraCtrl.AddToObjRoot(_rootObj.transform);
         }
 
         public void SetModelID(ModelType modelType, int id)
@@ -175,7 +174,7 @@ namespace GameLogic
         {
             if (_rootObj != null)
             {
-                SceneManager.DestroyLayout(_rootObj);
+                CameraCtrl.DestroyLayout(_rootObj);
                 _rootObj = null;
             }
         }

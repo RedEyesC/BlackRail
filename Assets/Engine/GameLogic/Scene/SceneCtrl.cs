@@ -1,7 +1,5 @@
 ﻿using System.Collections.Generic;
 using GameFramework.Asset;
-using GameFramework.Moudule;
-using GameFramework.Scene;
 
 namespace GameLogic
 {
@@ -30,7 +28,19 @@ namespace GameLogic
         public static void LoadScene(int mapId)
         {
             _mapId = mapId;
-            _request = SceneManager.LoadSceneAsync(mapId);
+            _request = LoadSceneAsync(mapId);
+        }
+
+        public static SceneRequest LoadSceneAsync(int mapId)
+        {
+            string bundleName = GetSceneBundlePath(mapId);
+            string assetName = mapId.ToString();
+            return AssetManager.LoadSceneAsync(bundleName, assetName);
+        }
+
+        public static string GetSceneBundlePath(int mapId)
+        {
+            return string.Format("Map/{0}.ab", mapId);
         }
 
         public static bool IsLoadedScene()

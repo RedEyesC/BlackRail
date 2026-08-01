@@ -1,5 +1,4 @@
 ﻿using GameFramework.Common;
-using GameFramework.Scene;
 
 namespace GameLogic
 {
@@ -15,7 +14,7 @@ namespace GameLogic
             Role mainRole = SceneCtrl.GetMainRole();
 
             //// 远景 28，50，35，0，0，中景 20，50，35，0，0， 近景 10，60，20，0，0
-            SceneManager.SetTarget(mainRole.root, 15f, 35, 25, 0, 0);
+            CameraCtrl.SetTarget(mainRole.root, 15f, 35, 25, 0, 0);
 
             //mainRole.SetPosition(0, 0);
             //mainRole.PlayAnim("Idle");

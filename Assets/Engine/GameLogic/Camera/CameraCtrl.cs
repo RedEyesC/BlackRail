@@ -1,19 +1,17 @@
 ﻿using GameFramework.Asset;
+using GameFramework.UI;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
-namespace GameFramework.Scene
+namespace GameLogic
 {
-    public class SceneManager : GameModule
+    internal class CameraCtrl : BaseModule
     {
-        static Vector3 tempVec3 = new Vector3();
-
         private static GameObject _objLayer = null;
         private static Transform _objLayerTrans = null;
         private static Camera _camera = null;
         public static Vector2 resolutionSize = new Vector2(1280.0f, 720.0f);
-
-        private RaycastHit _hitResult;
 
         public static float _distance = 10.0f;
         public static float _minDist = 2;
@@ -28,21 +26,14 @@ namespace GameFramework.Scene
 
         private static Vector3 _tmpVector = new Vector3();
 
-        //private bool _colliderCheckEnable = true;
         public Vector3 _colliderOffset = new Vector3(0, 0.5f, 0);
         public float _sphereCastRadius = 0.2f;
         public float _colliderPointOffset = 0.12f;
         private float _colliderDistt = 0f;
 
-        //private float _colliderFadeOutSpeed = 2;
-
-        public override int priority => 6;
-
         private static Transform _appRoot;
 
-        public override void Destroy() { }
-
-        public override void Start()
+        public override void Init()
         {
             _appRoot = GameObject.Find("_AppRoot").transform;
 
@@ -51,13 +42,14 @@ namespace GameFramework.Scene
             _camera = CreateSceneCamera(camObj);
             camObj.SetParent(_appRoot, false);
 
-            UnityEngine.EventSystems.PhysicsRaycaster ray = camObj.AddComponent<UnityEngine.EventSystems.PhysicsRaycaster>();
-            ray.eventMask = ~LayerMask.NameToLayer("UI");
-
             _objLayer = new GameObject("ObjLayer");
             _objLayerTrans = _objLayer.transform;
             _objLayerTrans.position = Vector3.zero;
             _objLayer.SetParent(_appRoot, false);
+
+            //连接上ui相机
+            Camera uiCamera = UIManager.GetCamera();
+            _camera.GetUniversalAdditionalCameraData().cameraStack.Add(uiCamera);
         }
 
         public override void Update(float nowTime, float elapseSeconds)
@@ -184,34 +176,9 @@ namespace GameFramework.Scene
             return _camera.transform.forward;
         }
 
-        public static SceneRequest LoadSceneAsync(int mapId)
-        {
-            string bundleName = GetSceneBundlePath(mapId);
-            string assetName = mapId.ToString();
-            return AssetManager.LoadSceneAsync(bundleName, assetName);
-        }
-
         public static void UnLoadAssetAsync(int mapId)
         {
             //TODO
-        }
-
-        public static string GetSceneBundlePath(int mapId)
-        {
-            return string.Format("Map/{0}.ab", mapId);
-        }
-
-        public static float GetHeightByRayCast(float x, float z)
-        {
-            int layerMask = 1 << LayerMask.NameToLayer("Default");
-
-            tempVec3.Set(x, 1000, z);
-            Ray ray = new Ray(tempVec3, Vector3.down);
-            if (Physics.Raycast(ray, out RaycastHit hit, 1500f, layerMask))
-            {
-                return hit.point.y;
-            }
-            return -9999f;
         }
     }
 }
