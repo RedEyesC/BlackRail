@@ -6,85 +6,99 @@ namespace GameLogic
 {
     internal sealed partial class MovementController
     {
-        static Vector3 tempVec3 = new Vector3();
+        private static Vector3 tempVec3 = new Vector3();
+
+        // Input.
         public float inputDeadZone = 0.05f;
         public float inputResponsePower = 1.6f;
         public float runInputThreshold = 0.65f;
+
+        // Direction-dependent movement speed.
         public float walkForwardSpeed = 1.75f;
         public float walkSideSpeed = 1.5f;
         public float runForwardSpeed = 4f;
         public float runSideSpeed = 3f;
+
+        // Code-driven movement.
         public float acceleration = 28f;
         public float brakingDeceleration = 34f;
         public float directionChangeAccelerationMultiplier = 2f;
-        public float locomotionExitSpeed = 0.12f;
         public float rotationSpeed = 1080f;
+        public bool rotateToMoveDirection = true;
+
+        // Locomotion and animation transitions.
+        public float locomotionExitSpeed = 0.12f;
         public float locomotionDampTime = 0.12f;
+        public float stopEnterSpeed = 1.25f;
         public float turnBackAngle = 135f;
         public float turnBackExitAngle = 55f;
         public float turnBackMaxEnterSpeed = 1.4f;
-        public bool rotateToMoveDirection = true;
-        public bool exitTurnBackWhenAligned = true;
+
+        // Animation speed matching.
         public bool syncAnimationPlaybackSpeed = true;
         public float animationVelocityScale = 1f;
         public float minAnimationPlaybackSpeed = 0.25f;
         public float maxAnimationPlaybackSpeed = 1.6f;
         public float animationSpeedEpsilon = 0.05f;
+
+        // Diagnostics.
         public bool debugLocomotion = false;
         public bool drawLocomotionDebug = false;
         public float debugLocomotionInterval = 0.5f;
 
+        // Animation names.
         public string locomotion = "Locomotion";
         public string walk = "Walk";
         public string run = "Run";
+        public string walkStop = "Walk_End";
+        public string runStop = "Run_End";
         public string turnBack = "TurnBack";
         public string idle = "Idle";
 
         private AnimPlayableComponent.LinearMixerState _locomotionState;
         private AnimPlayableComponent.State _movementAnimationState;
 
-        private readonly MovementStateMachine stateMachine;
         private readonly Obj owner;
 
+        private Vector3 velocity;
+        private Vector3 previousPosition;
         private Vector3 desiredMoveDirection;
         private Vector3 facingForward = Vector3.forward;
-        private Vector3 velocity;
         private float desiredYaw;
         private float facingToDesiredAngle;
-        private float velocityYaw;
         private float facingToVelocityAngle;
         private float facingYaw;
-        private float facingYawVelocity;
         private float rawMoveInputAmount;
         private float moveInputAmount;
         private float locomotionValue;
         private float moveSpeed;
-        private string currentAnimationName;
-        private Vector3 previousPosition;
         private float measuredPlanarSpeed;
         private float targetMoveSpeed;
-        private float effectiveTargetMoveSpeed;
         private float animatedPlanarSpeed;
         private float animationPlaybackSpeed = 1f;
         private float debugLocomotionTimer;
-        private bool isTurnBackActive;
         private bool hasPreviousPosition;
+
+        private bool isTurnBackActive;
+        private bool isStopTransitionActive;
+
+        private bool previousHasLocomotionInput;
+        private bool lastWantsRun;
+        private bool stopRequested;
+        private bool stopWasRun;
 
         public MovementController(Obj owner)
         {
             this.owner = owner;
-            stateMachine = new MovementStateMachine(this);
-            ChangeToDefaultState();
+            PlayLocomotion(0f);
         }
 
-        public bool IsMoving => HasMoveInput;
-        public string CurrentStateName => stateMachine.CurrentStateName;
+        public string CurrentStateName => GetCurrentLocomotionDebugStateName();
         public float LocomotionValue => locomotionValue;
         public Vector3 Velocity => velocity;
         public Vector3 DesiredMoveDirection => desiredMoveDirection;
         public float MeasuredPlanarSpeed => measuredPlanarSpeed;
         public float TargetMoveSpeed => targetMoveSpeed;
-        public float EffectiveTargetMoveSpeed => effectiveTargetMoveSpeed;
         public float FacingToDesiredAngle => facingToDesiredAngle;
         public float FacingToVelocityAngle => facingToVelocityAngle;
         public float AnimatedPlanarSpeed => animatedPlanarSpeed;
@@ -109,7 +123,6 @@ namespace GameLogic
             {
                 facingForward = planarForward;
                 facingYaw = DirectionToYaw(facingForward);
-                facingYawVelocity = 0f;
             }
         }
 
@@ -120,23 +133,52 @@ namespace GameLogic
 
         public void Update(float deltaTime)
         {
-            RefreshTurnData();
+            PrepareMovementFrame();
             ApplyCodeDrivenMovement(deltaTime);
-            RefreshTurnData();
-            stateMachine.Update(deltaTime);
-            UpdateAnimationPlaybackSpeed();
+            UpdateAnimationFromMovement(deltaTime);
             UpdateLocomotionDiagnostics(deltaTime);
         }
 
-        private void ChangeToDefaultState()
+        private void PrepareMovementFrame()
         {
-            stateMachine.ChangeState(ShouldEnterLocomotion() ? stateMachine.MoveLoopState : stateMachine.IdleState);
+            RefreshTurnData();
+            UpdateInputTransitions();
         }
 
+        private void UpdateAnimationFromMovement(float deltaTime)
+        {
+            RefreshTurnData();
+            ClearFinishedMovementTransition();
+            UpdateLocomotionFromSnapshot(deltaTime);
+            PlayQueuedAnimationTransition();
+            UpdateAnimationPlaybackSpeed();
+        }
+
+        // Locomotion mixer.
         private void UpdateLocomotion(float deltaTime, float targetValue)
         {
             float lerp = locomotionDampTime <= 0f ? 1f : 1f - Mathf.Exp(-deltaTime / locomotionDampTime);
             locomotionValue = Mathf.Lerp(locomotionValue, targetValue, lerp);
+        }
+
+        private void UpdateLocomotionFromSnapshot(float deltaTime)
+        {
+            float targetValue = GetTargetLocomotionValue();
+            UpdateLocomotion(deltaTime, targetValue);
+
+            if (IsMovementTransitionActive())
+            {
+                UpdateCachedLocomotionParameter();
+                if (ShouldInterruptMovementTransition())
+                {
+                    ReturnToLocomotion();
+                }
+
+                return;
+            }
+
+            EnsureLocomotionPlaying(locomotionValue);
+            UpdateLocomotionParameter(locomotionValue);
         }
 
         private void PlayLocomotion(float parameter)
@@ -171,6 +213,14 @@ namespace GameLogic
             _locomotionState.Parameter = parameter;
         }
 
+        private void UpdateCachedLocomotionParameter()
+        {
+            if (_locomotionState != null && _locomotionState.IsValid)
+            {
+                _locomotionState.Parameter = locomotionValue;
+            }
+        }
+
         private AnimPlayableComponent.State PlayMovementAnimation(string animationName)
         {
             if (string.IsNullOrEmpty(animationName))
@@ -178,22 +228,11 @@ namespace GameLogic
                 return null;
             }
 
-            return PlayAnimationName(animationName, true);
-        }
-
-        private AnimPlayableComponent.State PlayAnimationName(string animationName, bool restart)
-        {
-            if (owner == null || string.IsNullOrEmpty(animationName))
+            if (owner == null)
             {
                 return null;
             }
 
-            if (!restart && currentAnimationName == animationName)
-            {
-                return null;
-            }
-
-            currentAnimationName = animationName;
             AnimPlayableComponent.State state = owner.PlayAnim(animationName);
             if (state != null)
             {
@@ -228,7 +267,7 @@ namespace GameLogic
                 return WantsRun ? 2f : 1f;
             }
 
-            return GetLocomotionValueFromSpeed(measuredPlanarSpeed);
+            return GetLocomotionValueFromSpeed(GetCurrentPlanarSpeed());
         }
 
         private float GetTargetMoveSpeed()
@@ -241,14 +280,9 @@ namespace GameLogic
             return GetDirectionalMoveSpeed(desiredMoveDirection) * moveInputAmount;
         }
 
-        private bool ShouldEnterLocomotion()
-        {
-            return HasLocomotionInput || measuredPlanarSpeed > locomotionExitSpeed;
-        }
-
         private bool ShouldReturnToIdle()
         {
-            return !HasLocomotionInput && measuredPlanarSpeed <= locomotionExitSpeed;
+            return !HasLocomotionInput && GetCurrentPlanarSpeed() <= locomotionExitSpeed;
         }
 
         private float GetLocomotionValueFromSpeed(float speed)
@@ -269,6 +303,7 @@ namespace GameLogic
             return Mathf.Lerp(1f, 2f, Mathf.InverseLerp(walkSpeed, runSpeed, speed));
         }
 
+        // Playback speed matching.
         private void UpdateAnimationPlaybackSpeed()
         {
             if (!syncAnimationPlaybackSpeed)
@@ -343,7 +378,8 @@ namespace GameLogic
 
             animatedPlanarSpeed = GetStateAnimatedPlanarSpeed(state);
 
-            float targetSpeed = measuredPlanarSpeed > animationSpeedEpsilon ? measuredPlanarSpeed : targetMoveSpeed;
+            float currentPlanarSpeed = GetCurrentPlanarSpeed();
+            float targetSpeed = currentPlanarSpeed > animationSpeedEpsilon ? currentPlanarSpeed : targetMoveSpeed;
             if (targetSpeed <= animationSpeedEpsilon || animatedPlanarSpeed <= animationSpeedEpsilon)
             {
                 return 1f;
@@ -380,6 +416,32 @@ namespace GameLogic
             return Mathf.Lerp(walkForwardSpeed, runForwardSpeed, Mathf.Clamp01(locomotionValue - 1f));
         }
 
+        // Input edge detection for transition requests.
+        private void UpdateInputTransitions()
+        {
+            if (HasLocomotionInput)
+            {
+                ClearQueuedStopTransition();
+                lastWantsRun = WantsRun;
+                previousHasLocomotionInput = true;
+                return;
+            }
+
+            if (previousHasLocomotionInput)
+            {
+                float releaseSpeed = GetCurrentPlanarSpeed();
+                stopWasRun = lastWantsRun || releaseSpeed >= GetRunStopSpeedThreshold();
+                stopRequested = releaseSpeed >= stopEnterSpeed;
+            }
+            else if (GetCurrentPlanarSpeed() <= locomotionExitSpeed)
+            {
+                ClearQueuedStopTransition();
+            }
+
+            previousHasLocomotionInput = false;
+        }
+
+        // Code-driven movement.
         private void ApplyCodeDrivenMovement(float deltaTime)
         {
             if (deltaTime <= 0f || owner == null || owner.root == null)
@@ -395,8 +457,7 @@ namespace GameLogic
         private void UpdateVelocity(float deltaTime)
         {
             targetMoveSpeed = GetTargetMoveSpeed();
-            effectiveTargetMoveSpeed = targetMoveSpeed;
-            Vector3 targetVelocity = desiredMoveDirection * effectiveTargetMoveSpeed;
+            Vector3 targetVelocity = desiredMoveDirection * targetMoveSpeed;
 
             float currentAcceleration = GetVelocityAcceleration(targetVelocity);
             velocity = Vector3.MoveTowards(velocity, targetVelocity, currentAcceleration * deltaTime);
@@ -443,8 +504,6 @@ namespace GameLogic
             float yawStep = Mathf.Clamp(yawDelta, -rotationSpeed * deltaTime, rotationSpeed * deltaTime);
 
             facingYaw += yawStep;
-            facingYawVelocity = deltaTime > 0f ? yawStep / deltaTime : 0f;
-
             facingForward = YawToDirection(facingYaw);
             owner.SetDir(facingForward.x, facingForward.z);
             RefreshTurnData();
@@ -474,6 +533,7 @@ namespace GameLogic
             hasPreviousPosition = true;
         }
 
+        // Diagnostics.
         private void UpdateLocomotionDiagnostics(float deltaTime)
         {
             if (owner == null || owner.root == null)
@@ -486,7 +546,7 @@ namespace GameLogic
                 Vector3 position = owner.root.position + Vector3.up * 0.08f;
                 Debug.DrawLine(position, position + desiredMoveDirection * Mathf.Max(0.1f, targetMoveSpeed), Color.cyan);
                 Debug.DrawLine(position, position + velocity, Color.green);
-                Debug.DrawLine(position, position + facingForward * Mathf.Max(0.1f, effectiveTargetMoveSpeed), Color.yellow);
+                Debug.DrawLine(position, position + facingForward * Mathf.Max(0.1f, targetMoveSpeed), Color.yellow);
             }
 
             if (!debugLocomotion)
@@ -502,10 +562,11 @@ namespace GameLogic
 
             debugLocomotionTimer = Mathf.Max(0.02f, debugLocomotionInterval);
             Debug.Log(
-                $"[Locomotion] state={CurrentStateName} input={rawMoveInputAmount:F2}/{moveInputAmount:F2} target={targetMoveSpeed:F2} actual={measuredPlanarSpeed:F2} anim={animatedPlanarSpeed:F2} playRate={animationPlaybackSpeed:F2} blend={locomotionValue:F2} turn={facingToDesiredAngle:F1}"
+                $"[Locomotion] state={CurrentStateName} input={rawMoveInputAmount:F2}/{moveInputAmount:F2} target={targetMoveSpeed:F2} actual={GetCurrentPlanarSpeed():F2} anim={animatedPlanarSpeed:F2} playRate={animationPlaybackSpeed:F2} blend={locomotionValue:F2} turn={facingToDesiredAngle:F1} stop={stopRequested}"
             );
         }
 
+        // Snapshot data derived from input, velocity and facing.
         private void RefreshTurnData()
         {
             if (desiredMoveDirection != Vector3.zero)
@@ -522,7 +583,7 @@ namespace GameLogic
             planarVelocity.y = 0f;
             if (planarVelocity.sqrMagnitude > 0.0001f)
             {
-                velocityYaw = DirectionToYaw(planarVelocity);
+                float velocityYaw = DirectionToYaw(planarVelocity);
                 facingToVelocityAngle = Mathf.Abs(Mathf.DeltaAngle(facingYaw, velocityYaw));
             }
             else
@@ -531,16 +592,12 @@ namespace GameLogic
             }
         }
 
-        private void SetTurnBackActive(bool active)
-        {
-            isTurnBackActive = active;
-        }
-
         private bool ShouldExitTurnBack()
         {
-            return exitTurnBackWhenAligned && (!HasLocomotionInput || facingToDesiredAngle <= turnBackExitAngle);
+            return !HasLocomotionInput || facingToDesiredAngle <= turnBackExitAngle;
         }
 
+        // World helpers.
         public static float GetHeightByRayCast(float x, float z)
         {
             int layerMask = 1 << LayerMask.NameToLayer("Default");
@@ -582,6 +639,7 @@ namespace GameLogic
             return Mathf.Pow(normalizedInput, Mathf.Max(0.01f, inputResponsePower));
         }
 
+        // Direction-dependent speed calculation.
         private float GetDirectionalMoveSpeed(Vector3 worldDirection)
         {
             Vector3 forward = NormalizePlanar(facingForward);
@@ -624,13 +682,152 @@ namespace GameLogic
             return moveSpeed / runForwardSpeed;
         }
 
+        // Queued animation transitions.
         private bool ShouldPlayTurnBack()
         {
             return !string.IsNullOrEmpty(turnBack)
+                && !IsMovementTransitionActive()
                 && HasLocomotionInput
                 && desiredMoveDirection != Vector3.zero
                 && Mathf.Max(measuredPlanarSpeed, targetMoveSpeed) <= turnBackMaxEnterSpeed
                 && facingToDesiredAngle >= turnBackAngle;
+        }
+
+        private bool ShouldPlayStop()
+        {
+            return stopRequested
+                && !HasLocomotionInput
+                && GetCurrentPlanarSpeed() > locomotionExitSpeed
+                && !string.IsNullOrEmpty(GetStopAnimationName());
+        }
+
+        private void PlayQueuedAnimationTransition()
+        {
+            if (IsMovementTransitionActive())
+            {
+                return;
+            }
+
+            if (ShouldPlayTurnBack())
+            {
+                PlayTurnBackTransition();
+                return;
+            }
+
+            PlayQueuedStopTransition();
+        }
+
+        private void PlayTurnBackTransition()
+        {
+            AnimPlayableComponent.State state = PlayMovementAnimation(turnBack);
+            if (state == null)
+            {
+                return;
+            }
+
+            isTurnBackActive = true;
+            state.EndNormalizedTime = 1f;
+            state.OnEnd = OnMovementTransitionEnd;
+        }
+
+        private void PlayQueuedStopTransition()
+        {
+            if (!ShouldPlayStop())
+            {
+                return;
+            }
+
+            ClearQueuedStopTransition();
+            AnimPlayableComponent.State state = PlayMovementAnimation(GetStopAnimationName());
+            if (state == null)
+            {
+                return;
+            }
+
+            isStopTransitionActive = true;
+            state.EndNormalizedTime = 0.7f;
+            state.OnEnd = OnMovementTransitionEnd;
+        }
+
+        private string GetStopAnimationName()
+        {
+            return stopWasRun ? runStop : walkStop;
+        }
+
+        private float GetRunStopSpeedThreshold()
+        {
+            return (walkForwardSpeed + runForwardSpeed) * 0.5f * GetMoveSpeedScale();
+        }
+
+        private float GetCurrentPlanarSpeed()
+        {
+            Vector3 planarVelocity = velocity;
+            planarVelocity.y = 0f;
+            return Mathf.Max(measuredPlanarSpeed, planarVelocity.magnitude);
+        }
+
+        private void ClearQueuedStopTransition()
+        {
+            stopRequested = false;
+        }
+
+        private bool IsMovementTransitionActive()
+        {
+            return (isTurnBackActive || isStopTransitionActive)
+                && _movementAnimationState != null
+                && _movementAnimationState.IsValid
+                && _movementAnimationState.IsCurrent;
+        }
+
+        private bool ShouldInterruptMovementTransition()
+        {
+            return (isStopTransitionActive && HasLocomotionInput)
+                || (isTurnBackActive && ShouldExitTurnBack());
+        }
+
+        private void ReturnToLocomotion()
+        {
+            ClearMovementTransition();
+            PlayLocomotion(GetTargetLocomotionValue());
+        }
+
+        private void ClearMovementTransition()
+        {
+            if (_movementAnimationState != null)
+            {
+                _movementAnimationState.OnEnd = null;
+            }
+
+            isStopTransitionActive = false;
+            isTurnBackActive = false;
+        }
+
+        private void ClearFinishedMovementTransition()
+        {
+            if ((isStopTransitionActive || isTurnBackActive) && !IsMovementTransitionActive())
+            {
+                ClearMovementTransition();
+            }
+        }
+
+        private void OnMovementTransitionEnd()
+        {
+            ReturnToLocomotion();
+        }
+
+        private string GetCurrentLocomotionDebugStateName()
+        {
+            if (isStopTransitionActive)
+            {
+                return "StopTransition";
+            }
+
+            if (isTurnBackActive)
+            {
+                return "TurnBackTransition";
+            }
+
+            return ShouldReturnToIdle() ? "Idle" : "Locomotion";
         }
     }
 }
