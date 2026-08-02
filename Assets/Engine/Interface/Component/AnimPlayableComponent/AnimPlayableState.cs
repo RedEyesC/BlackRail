@@ -16,6 +16,7 @@ namespace GameFramework.Interface
             internal object key;
             internal int inputIndex;
             internal float weight;
+            private float playbackSpeed = 1f;
             internal bool keepAliveWhenWeightless;
             internal bool endTriggered;
 
@@ -32,6 +33,26 @@ namespace GameFramework.Interface
             public bool IsCurrent => IsValid && ReferenceEquals(layer?.CurrentState, this);
             public float EndNormalizedTime { get; set; } = 1f;
             public System.Action OnEnd { get; set; }
+
+            public float PlaybackSpeed
+            {
+                get => playbackSpeed;
+                set
+                {
+                    playbackSpeed = Mathf.Max(0f, value);
+                    ApplyPlayableSpeed();
+                }
+            }
+
+            public virtual float AveragePlanarSpeed
+            {
+                get
+                {
+                    Vector3 averageSpeed = Clip != null ? Clip.averageSpeed : Vector3.zero;
+                    averageSpeed.y = 0f;
+                    return averageSpeed.magnitude;
+                }
+            }
 
             public float Weight
             {
@@ -110,6 +131,14 @@ namespace GameFramework.Interface
                 OnPlayingChanged(playing);
             }
 
+            protected virtual void ApplyPlayableSpeed()
+            {
+                if (playable.IsValid())
+                {
+                    playable.SetSpeed(playbackSpeed);
+                }
+            }
+
             internal virtual void DestroyOwnedPlayables(PlayableGraph graph) { }
 
             protected virtual void OnTimeChanged(float time) { }
@@ -124,6 +153,7 @@ namespace GameFramework.Interface
             private readonly float[] thresholds;
             private readonly bool extrapolateSpeed;
             private float parameter;
+            private float extrapolatedSpeed = 1f;
 
             internal LinearMixerState(
                 AnimPlayableComponent owner,
@@ -165,6 +195,8 @@ namespace GameFramework.Interface
 
             public int ChildCount => childClips.Length;
 
+            public override float AveragePlanarSpeed => GetAveragePlanarSpeed(parameter);
+
             public float Parameter
             {
                 get => parameter;
@@ -174,6 +206,32 @@ namespace GameFramework.Interface
                     UpdateWeights();
                     ApplyExtrapolatedSpeed();
                 }
+            }
+
+            public float GetAveragePlanarSpeed(float parameter)
+            {
+                if (ChildCount == 0)
+                {
+                    return 0f;
+                }
+
+                if (ChildCount == 1 || parameter <= thresholds[0])
+                {
+                    return GetChildAveragePlanarSpeed(0);
+                }
+
+                for (int i = 1; i < ChildCount; i++)
+                {
+                    float previousThreshold = thresholds[i - 1];
+                    float nextThreshold = thresholds[i];
+                    if (parameter > previousThreshold && parameter <= nextThreshold)
+                    {
+                        float t = Mathf.InverseLerp(previousThreshold, nextThreshold, parameter);
+                        return Mathf.Lerp(GetChildAveragePlanarSpeed(i - 1), GetChildAveragePlanarSpeed(i), t);
+                    }
+                }
+
+                return GetChildAveragePlanarSpeed(ChildCount - 1);
             }
 
             internal void ConnectChildren(PlayableGraph graph, AnimationMixerPlayable mixer)
@@ -216,6 +274,26 @@ namespace GameFramework.Interface
                         SetPlayablePlaying(childPlayables[i], playing);
                     }
                 }
+            }
+
+            protected override void ApplyPlayableSpeed()
+            {
+                if (playable.IsValid())
+                {
+                    playable.SetSpeed(PlaybackSpeed * extrapolatedSpeed);
+                }
+            }
+
+            private float GetChildAveragePlanarSpeed(int index)
+            {
+                if (index < 0 || index >= childClips.Length || childClips[index] == null)
+                {
+                    return 0f;
+                }
+
+                Vector3 averageSpeed = childClips[index].averageSpeed;
+                averageSpeed.y = 0f;
+                return averageSpeed.magnitude;
             }
 
             private void UpdateWeights()
@@ -286,14 +364,14 @@ namespace GameFramework.Interface
                     return;
                 }
 
-                float speed = 1f;
+                extrapolatedSpeed = 1f;
                 float maxThreshold = thresholds[thresholds.Length - 1];
                 if (extrapolateSpeed && parameter > maxThreshold && maxThreshold > 0f)
                 {
-                    speed *= parameter / maxThreshold;
+                    extrapolatedSpeed *= parameter / maxThreshold;
                 }
 
-                playable.SetSpeed(speed);
+                ApplyPlayableSpeed();
             }
         }
     }

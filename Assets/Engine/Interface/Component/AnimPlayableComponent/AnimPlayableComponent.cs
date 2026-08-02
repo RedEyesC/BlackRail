@@ -28,6 +28,14 @@ namespace GameFramework.Interface
             CacheAnimator();
         }
 
+        private void OnAnimatorMove()
+        {
+            if (animator != null && animator.applyRootMotion)
+            {
+                animator.ApplyBuiltinRootMotion();
+            }
+        }
+
         private void OnDestroy()
         {
             DestroyGraph();

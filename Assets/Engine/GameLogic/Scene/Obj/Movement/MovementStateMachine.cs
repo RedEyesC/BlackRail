@@ -27,16 +27,12 @@ namespace GameLogic
             public MovementStateMachine(MovementController controller)
             {
                 IdleState = new IdleState(controller);
-                MoveStartState = new MoveStartState(controller);
                 MoveLoopState = new MoveLoopState(controller);
-                MoveEndState = new MoveEndState(controller);
                 TurnBackState = new TurnBackState(controller);
             }
 
             public IdleState IdleState { get; }
-            public MoveStartState MoveStartState { get; }
             public MoveLoopState MoveLoopState { get; }
-            public MoveEndState MoveEndState { get; }
             public TurnBackState TurnBackState { get; }
             public string CurrentStateName => currentState?.GetType().Name ?? string.Empty;
 
@@ -70,48 +66,10 @@ namespace GameLogic
 
             public override void Update(float deltaTime)
             {
-                if (controller.HasLocomotionInput)
-                {
-                    controller.stateMachine.ChangeState(controller.stateMachine.MoveStartState);
-                }
-            }
-        }
-
-        private sealed class MoveStartState : MovementState
-        {
-            public MoveStartState(MovementController controller)
-                : base(controller) { }
-
-            public override void Enter()
-            {
-                if (!controller.HasLocomotionInput)
-                {
-                    controller.stateMachine.ChangeState(controller.stateMachine.IdleState);
-                    return;
-                }
-
-                string animationName = controller.WantsRun ? controller.runStart : controller.walkStart;
-                AnimPlayableComponent.State state = controller.PlayMovementAnimation(animationName);
-                if (state == null)
+                if (controller.ShouldEnterLocomotion())
                 {
                     controller.stateMachine.ChangeState(controller.stateMachine.MoveLoopState);
-                    return;
                 }
-
-                state.EndNormalizedTime = 1f;
-                state.OnEnd = OnStartEnd;
-            }
-
-            public override void Update(float deltaTime)
-            {
-                controller.UpdateLocomotion(deltaTime, controller.GetTargetLocomotionValue());
-            }
-
-            private void OnStartEnd()
-            {
-                controller.stateMachine.ChangeState(
-                    controller.HasLocomotionInput ? controller.stateMachine.MoveLoopState : controller.stateMachine.MoveEndState
-                );
             }
         }
 
@@ -127,9 +85,9 @@ namespace GameLogic
 
             public override void Update(float deltaTime)
             {
-                if (!controller.HasLocomotionInput)
+                if (controller.ShouldReturnToIdle())
                 {
-                    controller.stateMachine.ChangeState(controller.stateMachine.MoveEndState);
+                    controller.stateMachine.ChangeState(controller.stateMachine.IdleState);
                     return;
                 }
 
@@ -146,12 +104,15 @@ namespace GameLogic
 
         private sealed class TurnBackState : MovementState
         {
+            private AnimPlayableComponent.State state;
+
             public TurnBackState(MovementController controller)
                 : base(controller) { }
 
             public override void Enter()
             {
-                AnimPlayableComponent.State state = controller.PlayMovementAnimation(controller.turnBack);
+                controller.SetTurnBackActive(true);
+                state = controller.PlayMovementAnimation(controller.turnBack);
                 if (state == null)
                 {
                     controller.stateMachine.ChangeState(controller.stateMachine.MoveLoopState);
@@ -165,44 +126,26 @@ namespace GameLogic
             public override void Update(float deltaTime)
             {
                 controller.UpdateLocomotion(deltaTime, controller.GetTargetLocomotionValue());
+                if (controller.ShouldExitTurnBack())
+                {
+                    controller.stateMachine.ChangeState(controller.stateMachine.MoveLoopState);
+                }
+            }
+
+            public override void Exit()
+            {
+                if (state != null)
+                {
+                    state.OnEnd = null;
+                    state = null;
+                }
+
+                controller.SetTurnBackActive(false);
             }
 
             private void OnTurnBackEnd()
             {
-                controller.stateMachine.ChangeState(
-                    controller.HasLocomotionInput ? controller.stateMachine.MoveLoopState : controller.stateMachine.MoveEndState
-                );
-            }
-        }
-
-        private sealed class MoveEndState : MovementState
-        {
-            public MoveEndState(MovementController controller)
-                : base(controller) { }
-
-            public override void Enter()
-            {
-                bool fromRun = controller.locomotionValue >= 1.5f;
-                string animationName = fromRun ? controller.runEnd : controller.walkEnd;
-                AnimPlayableComponent.State state = controller.PlayMovementAnimation(animationName);
-                if (state == null)
-                {
-                    controller.stateMachine.ChangeState(controller.stateMachine.IdleState);
-                    return;
-                }
-
-                state.EndNormalizedTime = 1f;
-                state.OnEnd = OnMoveEnd;
-            }
-
-            public override void Update(float deltaTime)
-            {
-                controller.UpdateLocomotion(deltaTime, 0f);
-            }
-
-            private void OnMoveEnd()
-            {
-                controller.ChangeToDefaultState();
+                controller.stateMachine.ChangeState(controller.stateMachine.MoveLoopState);
             }
         }
     }
