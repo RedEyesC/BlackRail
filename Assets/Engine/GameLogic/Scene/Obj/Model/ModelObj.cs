@@ -8,6 +8,24 @@ using UnityEngine.Animations;
 
 namespace GameLogic
 {
+    internal enum AnimationResourceStatus
+    {
+        Invalid,
+        NotRequested,
+        Loading,
+        Ready,
+        Failed,
+    }
+
+    internal enum AnimationPlayResult
+    {
+        Invalid,
+        NotRequested,
+        NotReady,
+        Failed,
+        Played,
+    }
+
     internal class ModelObj
     {
         private BodyType _bodyType;
@@ -15,8 +33,7 @@ namespace GameLogic
         private int _modelID;
 
         private Action<ModelObj> _loadCallBack;
-        private Dictionary<string, AssetRequest> _reqAnimDict = new Dictionary<string, AssetRequest>();
-        private Dictionary<object, PendingLinearMixerAnim> _pendingLinearMixerAnimDict = new Dictionary<object, PendingLinearMixerAnim>();
+        private readonly Dictionary<string, AssetRequest> _reqAnimDict = new Dictionary<string, AssetRequest>();
         private AssetRequest _req;
         private GameObject _obj;
 
@@ -30,11 +47,6 @@ namespace GameLogic
         {
             _bodyType = bodyType;
             _modelType = modelType;
-        }
-
-        private sealed class PendingLinearMixerAnim
-        {
-            public AnimPlayableComponent.LinearMixerTransition transition;
         }
 
         private void OnLoadResFinish(Request req)
@@ -52,15 +64,6 @@ namespace GameLogic
             }
         }
 
-        private void OnLoadAnimFinish(Request req)
-        {
-            AssetRequest assetRequest = req as AssetRequest;
-            if (req.isDone)
-            {
-                TryPlayPendingLinearMixerAnims();
-            }
-        }
-
         public void ChangeModel(int id, Action<ModelObj> cb = null)
         {
             if (_modelID == id)
@@ -72,8 +75,12 @@ namespace GameLogic
 
             if (_obj != null)
             {
+                ReleaseAnimationRequests();
                 AssetManager.UnLoadAssetAsync(_req);
                 CameraCtrl.DestroyLayout(_obj);
+                _obj = null;
+                _animator = null;
+                _animationPlayer = null;
             }
 
             string modelPath = GetModelPath(_bodyType, _modelType, _modelID);
@@ -89,72 +96,115 @@ namespace GameLogic
             parent.AddChild(this._obj.transform);
         }
 
-        public AnimPlayableComponent.State PlayAnim(string clipName)
+        public AnimationResourceStatus RequestAnimation(string clipName)
         {
             if (string.IsNullOrEmpty(clipName))
             {
-                return null;
+                return AnimationResourceStatus.Invalid;
             }
 
-            if (_reqAnimDict.TryGetValue(clipName, out AssetRequest _reqAnim))
+            if (_reqAnimDict.TryGetValue(clipName, out AssetRequest request))
             {
-                if (_reqAnim.isDone)
-                {
-                    AnimationClip clip = AssetManager.GetAssetObjWithType<AnimationClip>(_reqAnim.bundleName, _reqAnim.assetName);
-                    return PlayLoadedAnim(clip);
-                }
-
-                return null;
+                return GetAnimationResourceStatus(request);
             }
 
             string clipPath = GetAnimPath(_bodyType, _modelType, _modelID, clipName);
-            _reqAnim = AssetManager.LoadAssetAsync(clipPath, clipName, OnLoadAnimFinish);
-            _reqAnimDict[clipName] = _reqAnim;
-            return null;
+            request = AssetManager.LoadAssetAsync(clipPath, clipName);
+            _reqAnimDict[clipName] = request;
+            return GetAnimationResourceStatus(request);
         }
 
-        private AnimPlayableComponent.State PlayLoadedAnim(AnimationClip clip)
+        public AnimationResourceStatus RequestAnimation(AnimPlayableComponent.LinearMixerTransition transition)
         {
-            if (_obj == null || clip == null)
+            if (!CanPlayLinearMixerTransition(transition))
             {
-                return null;
+                return AnimationResourceStatus.Invalid;
             }
 
-            if (_animationPlayer == null)
+            AnimationResourceStatus result = AnimationResourceStatus.Ready;
+            AnimPlayableComponent.LinearMixerChild[] children = transition.Children;
+            for (int i = 0; i < children.Length; i++)
             {
-                _animationPlayer = _obj.AddComponent<AnimPlayableComponent>();
-            }
-
-            if (!_animationPlayer.IsGraphInitialized)
-            {
-                _animationPlayer.Initialize();
-            }
-
-            return _animationPlayer.Play(clip, 0f, true);
-        }
-
-        public AnimPlayableComponent.State PlayAnim(AnimPlayableComponent.LinearMixerTransition transition)
-        {
-            if (transition == null || !CanPlayLinearMixerTransition(transition))
-            {
-                return null;
-            }
-
-            RequestAnimClips(transition.Children);
-            if (!AreAnimClipsLoaded(transition.Children))
-            {
-                _pendingLinearMixerAnimDict[transition.Key] = new PendingLinearMixerAnim
+                if (children[i].clip != null)
                 {
-                    transition = CopyLinearMixerTransition(transition),
-                };
-                return null;
+                    continue;
+                }
+
+                AnimationResourceStatus childStatus = RequestAnimation(children[i].name);
+                if (childStatus == AnimationResourceStatus.Invalid || childStatus == AnimationResourceStatus.Failed)
+                {
+                    result = childStatus;
+                }
+                else if (childStatus == AnimationResourceStatus.Loading && result == AnimationResourceStatus.Ready)
+                {
+                    result = AnimationResourceStatus.Loading;
+                }
             }
 
-            return PlayLoadedLinearMixerAnim(transition);
+            return result;
+        }
+
+        public AnimationPlayResult TryPlayAnimation(string clipName, out AnimPlayableComponent.State state)
+        {
+            state = null;
+            AnimationResourceStatus status = TryGetLoadedAnimationClip(clipName, out AnimationClip clip);
+            if (status != AnimationResourceStatus.Ready)
+            {
+                return GetAnimationPlayResult(status);
+            }
+
+            state = PlayLoadedAnim(clip);
+            return state != null ? AnimationPlayResult.Played : AnimationPlayResult.NotReady;
+        }
+
+        public AnimationPlayResult TryPlayAnimation(
+            AnimPlayableComponent.LinearMixerTransition transition,
+            out AnimPlayableComponent.State state
+        )
+        {
+            state = null;
+            if (!CanPlayLinearMixerTransition(transition))
+            {
+                return AnimationPlayResult.Invalid;
+            }
+
+            AnimPlayableComponent.LinearMixerTransition resolvedTransition = CopyLinearMixerTransition(transition);
+            AnimPlayableComponent.LinearMixerChild[] children = resolvedTransition.Children;
+            for (int i = 0; i < children.Length; i++)
+            {
+                AnimPlayableComponent.LinearMixerChild child = children[i];
+                if (child.clip != null)
+                {
+                    continue;
+                }
+
+                AnimationResourceStatus childStatus = TryGetLoadedAnimationClip(child.name, out AnimationClip clip);
+                if (childStatus != AnimationResourceStatus.Ready)
+                {
+                    return GetAnimationPlayResult(childStatus);
+                }
+
+                child.clip = clip;
+                children[i] = child;
+            }
+
+            AnimPlayableComponent animationPlayer = GetAnimationPlayer();
+            if (animationPlayer == null)
+            {
+                return AnimationPlayResult.NotReady;
+            }
+
+            state = animationPlayer.Play(resolvedTransition);
+            return state != null ? AnimationPlayResult.Played : AnimationPlayResult.Failed;
         }
 
         private bool CanPlayLinearMixerTransition(AnimPlayableComponent.LinearMixerTransition transition)
         {
+            if (transition == null)
+            {
+                return false;
+            }
+
             AnimPlayableComponent.LinearMixerChild[] children = transition.Children;
             if (children == null || children.Length == 0)
             {
@@ -172,45 +222,73 @@ namespace GameLogic
             return true;
         }
 
-        private void RequestAnimClips(AnimPlayableComponent.LinearMixerChild[] children)
+        private AnimationResourceStatus TryGetLoadedAnimationClip(string clipName, out AnimationClip clip)
         {
-            for (int i = 0; i < children.Length; i++)
+            clip = null;
+            if (string.IsNullOrEmpty(clipName))
             {
-                if (children[i].clip != null)
-                {
-                    continue;
-                }
+                return AnimationResourceStatus.Invalid;
+            }
 
-                string clipName = children[i].name;
-                if (_reqAnimDict.ContainsKey(clipName))
-                {
-                    continue;
-                }
+            if (!_reqAnimDict.TryGetValue(clipName, out AssetRequest request))
+            {
+                return AnimationResourceStatus.NotRequested;
+            }
 
-                string clipPath = GetAnimPath(_bodyType, _modelType, _modelID, clipName);
-                _reqAnimDict[clipName] = AssetManager.LoadAssetAsync(clipPath, clipName, OnLoadAnimFinish);
+            AnimationResourceStatus status = GetAnimationResourceStatus(request);
+            if (status != AnimationResourceStatus.Ready)
+            {
+                return status;
+            }
+
+            clip = GetLoadedAnimationClip(request);
+            return clip != null ? AnimationResourceStatus.Ready : AnimationResourceStatus.Failed;
+        }
+
+        private static AnimationPlayResult GetAnimationPlayResult(AnimationResourceStatus status)
+        {
+            switch (status)
+            {
+                case AnimationResourceStatus.NotRequested:
+                    return AnimationPlayResult.NotRequested;
+                case AnimationResourceStatus.Loading:
+                    return AnimationPlayResult.NotReady;
+                case AnimationResourceStatus.Failed:
+                    return AnimationPlayResult.Failed;
+                default:
+                    return AnimationPlayResult.Invalid;
             }
         }
 
-        private bool AreAnimClipsLoaded(AnimPlayableComponent.LinearMixerChild[] children)
+        private static AnimationResourceStatus GetAnimationResourceStatus(AssetRequest request)
         {
-            for (int i = 0; i < children.Length; i++)
+            if (request == null)
             {
-                if (children[i].clip != null)
-                {
-                    continue;
-                }
-
-                if (!_reqAnimDict.TryGetValue(children[i].name, out AssetRequest req) || !req.isDone)
-                {
-                    return false;
-                }
+                return AnimationResourceStatus.Invalid;
             }
 
-            return true;
+            if (!request.isDone)
+            {
+                return AnimationResourceStatus.Loading;
+            }
+
+            return request.result == Request.Result.Success
+                ? AnimationResourceStatus.Ready
+                : AnimationResourceStatus.Failed;
         }
 
-        private AnimPlayableComponent.State PlayLoadedLinearMixerAnim(AnimPlayableComponent.LinearMixerTransition sourceTransition)
+        private static AnimationClip GetLoadedAnimationClip(AssetRequest request)
+        {
+            return request?.asset as AnimationClip;
+        }
+
+        private AnimPlayableComponent.State PlayLoadedAnim(AnimationClip clip)
+        {
+            AnimPlayableComponent animationPlayer = GetAnimationPlayer();
+            return animationPlayer != null && clip != null ? animationPlayer.Play(clip, 0f, true) : null;
+        }
+
+        private AnimPlayableComponent GetAnimationPlayer()
         {
             if (_obj == null)
             {
@@ -227,50 +305,7 @@ namespace GameLogic
                 _animationPlayer.Initialize();
             }
 
-            AnimPlayableComponent.LinearMixerChild[] sourceChildren = sourceTransition.Children;
-            for (int i = 0; i < sourceChildren.Length; i++)
-            {
-                AnimPlayableComponent.LinearMixerChild sourceChild = sourceChildren[i];
-                AnimationClip clip = sourceChild.clip;
-                if (clip == null)
-                {
-                    AssetRequest req = _reqAnimDict[sourceChild.name];
-                    clip = AssetManager.GetAssetObjWithType<AnimationClip>(req.bundleName, req.assetName);
-                }
-
-                if (clip == null)
-                {
-                    return null;
-                }
-
-                sourceChild.clip = clip;
-
-                sourceChildren[i] = sourceChild;
-            }
-
-            return _animationPlayer.Play(sourceTransition);
-        }
-
-        private void TryPlayPendingLinearMixerAnims()
-        {
-            if (_pendingLinearMixerAnimDict.Count == 0)
-            {
-                return;
-            }
-
-            List<object> keys = new List<object>(_pendingLinearMixerAnimDict.Keys);
-            for (int i = 0; i < keys.Count; i++)
-            {
-                object key = keys[i];
-                PendingLinearMixerAnim pending = _pendingLinearMixerAnimDict[key];
-                if (pending.transition == null || !AreAnimClipsLoaded(pending.transition.Children))
-                {
-                    continue;
-                }
-
-                _pendingLinearMixerAnimDict.Remove(key);
-                PlayLoadedLinearMixerAnim(pending.transition);
-            }
+            return _animationPlayer;
         }
 
         public void Update(float nowTime, float elapseSeconds)
@@ -307,6 +342,19 @@ namespace GameLogic
                 FadeDuration = source.FadeDuration,
                 Restart = source.Restart,
             };
+        }
+
+        private void ReleaseAnimationRequests()
+        {
+            foreach (AssetRequest request in _reqAnimDict.Values)
+            {
+                if (request != null)
+                {
+                    AssetManager.UnLoadAssetAsync(request);
+                }
+            }
+
+            _reqAnimDict.Clear();
         }
 
         public void AddJobDependency(JobHandle jobHandle)

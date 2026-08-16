@@ -81,14 +81,15 @@ namespace GameLogic
             _modelChangeCallback = callback;
         }
 
-        public AnimPlayableComponent.State PlayAnim(ModelType modelType, string name)
+        public AnimationResourceStatus RequestAnimation(ModelType modelType, string name)
         {
             if (_rootObj == null)
             {
-                return null;
+                return AnimationResourceStatus.Invalid;
             }
 
-            AnimPlayableComponent.State firstState = null;
+            bool hasTargetModel = false;
+            AnimationResourceStatus result = AnimationResourceStatus.Ready;
             foreach (KeyValuePair<ModelType, ModelObj> kvp in _modelList)
             {
                 if ((modelType & kvp.Key) == 0)
@@ -96,34 +97,126 @@ namespace GameLogic
                     continue;
                 }
 
-                AnimPlayableComponent.State state = kvp.Value.PlayAnim(name);
-                if (firstState == null)
+                hasTargetModel = true;
+                AnimationResourceStatus status = kvp.Value.RequestAnimation(name);
+                if (status == AnimationResourceStatus.Invalid || status == AnimationResourceStatus.Failed)
                 {
-                    firstState = state;
+                    result = status;
+                }
+                else if (status == AnimationResourceStatus.Loading && result == AnimationResourceStatus.Ready)
+                {
+                    result = AnimationResourceStatus.Loading;
                 }
             }
 
-            return firstState;
+            return hasTargetModel ? result : AnimationResourceStatus.Invalid;
         }
 
-        public AnimPlayableComponent.State PlayAnim(AnimPlayableComponent.LinearMixerTransition transition)
+        public AnimationResourceStatus RequestAnimation(AnimPlayableComponent.LinearMixerTransition transition)
         {
             if (_rootObj == null || transition == null)
             {
-                return null;
+                return AnimationResourceStatus.Invalid;
             }
 
-            AnimPlayableComponent.State firstState = null;
+            bool hasTargetModel = false;
+            AnimationResourceStatus result = AnimationResourceStatus.Ready;
             foreach (KeyValuePair<ModelType, ModelObj> kvp in _modelList)
             {
-                AnimPlayableComponent.State state = kvp.Value.PlayAnim(transition);
-                if (firstState == null)
+                hasTargetModel = true;
+                AnimationResourceStatus status = kvp.Value.RequestAnimation(transition);
+                if (status == AnimationResourceStatus.Invalid || status == AnimationResourceStatus.Failed)
                 {
-                    firstState = state;
+                    result = status;
+                }
+                else if (status == AnimationResourceStatus.Loading && result == AnimationResourceStatus.Ready)
+                {
+                    result = AnimationResourceStatus.Loading;
                 }
             }
 
-            return firstState;
+            return hasTargetModel ? result : AnimationResourceStatus.Invalid;
+        }
+
+        public AnimationPlayResult TryPlayAnimation(
+            ModelType modelType,
+            string name,
+            out AnimPlayableComponent.State firstState
+        )
+        {
+            firstState = null;
+            AnimationPlayResult result = AnimationPlayResult.Invalid;
+            foreach (KeyValuePair<ModelType, ModelObj> kvp in _modelList)
+            {
+                if ((modelType & kvp.Key) == 0)
+                {
+                    continue;
+                }
+
+                AnimationPlayResult modelResult = kvp.Value.TryPlayAnimation(name, out AnimPlayableComponent.State state);
+                if (modelResult == AnimationPlayResult.Played && firstState == null)
+                {
+                    firstState = state;
+                }
+
+                result = MergePlayResult(result, modelResult);
+            }
+
+            return result;
+        }
+
+        public AnimationPlayResult TryPlayAnimation(
+            AnimPlayableComponent.LinearMixerTransition transition,
+            out AnimPlayableComponent.State firstState
+        )
+        {
+            firstState = null;
+            if (_rootObj == null || transition == null)
+            {
+                return AnimationPlayResult.Invalid;
+            }
+
+            AnimationPlayResult result = AnimationPlayResult.Invalid;
+            foreach (KeyValuePair<ModelType, ModelObj> kvp in _modelList)
+            {
+                AnimationPlayResult modelResult = kvp.Value.TryPlayAnimation(
+                    transition,
+                    out AnimPlayableComponent.State state
+                );
+                if (modelResult == AnimationPlayResult.Played && firstState == null)
+                {
+                    firstState = state;
+                }
+
+                result = MergePlayResult(result, modelResult);
+            }
+
+            return result;
+        }
+
+        private static AnimationPlayResult MergePlayResult(AnimationPlayResult current, AnimationPlayResult next)
+        {
+            if (current == AnimationPlayResult.Played || next == AnimationPlayResult.Played)
+            {
+                return AnimationPlayResult.Played;
+            }
+
+            if (current == AnimationPlayResult.NotReady || next == AnimationPlayResult.NotReady)
+            {
+                return AnimationPlayResult.NotReady;
+            }
+
+            if (current == AnimationPlayResult.NotRequested || next == AnimationPlayResult.NotRequested)
+            {
+                return AnimationPlayResult.NotRequested;
+            }
+
+            if (current == AnimationPlayResult.Failed || next == AnimationPlayResult.Failed)
+            {
+                return AnimationPlayResult.Failed;
+            }
+
+            return AnimationPlayResult.Invalid;
         }
 
         public void Update(float nowTime, float elapseSeconds)

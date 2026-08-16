@@ -57,6 +57,7 @@ namespace GameLogic
 
         private AnimPlayableComponent.LinearMixerState _locomotionState;
         private AnimPlayableComponent.State _movementAnimationState;
+        private readonly AnimPlayableComponent.LinearMixerTransition _locomotionTransition;
 
         private readonly Obj owner;
 
@@ -86,10 +87,13 @@ namespace GameLogic
         private bool lastWantsRun;
         private bool stopRequested;
         private bool stopWasRun;
+        private float stopReleaseSpeed;
 
         public MovementController(Obj owner)
         {
             this.owner = owner;
+            _locomotionTransition = CreateLocomotionTransition();
+            RequestMovementAnimations();
             PlayLocomotion(0f);
         }
 
@@ -104,16 +108,17 @@ namespace GameLogic
         public float AnimatedPlanarSpeed => animatedPlanarSpeed;
         public float AnimationPlaybackSpeed => animationPlaybackSpeed;
 
-        private bool HasMoveInput => HasRawMoveInput && desiredMoveDirection != Vector3.zero;
-        private bool HasRawMoveInput => rawMoveInputAmount > inputDeadZone;
+        private bool HasMoveInput => rawMoveInputAmount > inputDeadZone && desiredMoveDirection != Vector3.zero;
         private bool WantsRun => rawMoveInputAmount >= runInputThreshold;
         private bool HasLocomotionInput => HasMoveInput;
 
         public void SetMoveInput(Vector3 worldMoveDirection, float inputAmount)
         {
             rawMoveInputAmount = Mathf.Clamp01(inputAmount);
-            moveInputAmount = GetEffectiveInputAmount(rawMoveInputAmount);
-            desiredMoveDirection = HasRawMoveInput ? NormalizePlanar(worldMoveDirection) : Vector3.zero;
+            desiredMoveDirection = rawMoveInputAmount > inputDeadZone
+                ? NormalizePlanar(worldMoveDirection)
+                : Vector3.zero;
+            moveInputAmount = HasLocomotionInput ? GetEffectiveInputAmount(rawMoveInputAmount) : 0f;
         }
 
         public void SetFacingForward(Vector3 forward)
@@ -196,9 +201,16 @@ namespace GameLogic
                 return;
             }
 
-            AnimPlayableComponent.LinearMixerTransition linearMixerTransition = InitLocomotionChildren();
-            linearMixerTransition.DefaultParameter = parameter;
-            _locomotionState = owner.PlayAnim(linearMixerTransition) as AnimPlayableComponent.LinearMixerState;
+            _locomotionTransition.DefaultParameter = parameter;
+            AnimationPlayResult result = owner.TryPlayAnimation(
+                _locomotionTransition,
+                out AnimPlayableComponent.State state
+            );
+            if (result == AnimationPlayResult.Played)
+            {
+                _locomotionState = state as AnimPlayableComponent.LinearMixerState;
+            }
+
             UpdateLocomotionPlaybackSpeed();
         }
 
@@ -233,8 +245,13 @@ namespace GameLogic
                 return null;
             }
 
-            AnimPlayableComponent.State state = owner.PlayAnim(animationName);
-            if (state != null)
+            AnimationPlayResult result = owner.TryPlayAnimation(animationName, out AnimPlayableComponent.State state);
+            if (result == AnimationPlayResult.NotRequested)
+            {
+                owner.RequestAnimation(animationName);
+            }
+
+            if (result == AnimationPlayResult.Played)
             {
                 _movementAnimationState = state;
                 ApplyAnimationPlaybackSpeed(_movementAnimationState);
@@ -243,7 +260,15 @@ namespace GameLogic
             return state;
         }
 
-        private AnimPlayableComponent.LinearMixerTransition InitLocomotionChildren()
+        private void RequestMovementAnimations()
+        {
+            owner.RequestAnimation(_locomotionTransition);
+            owner.RequestAnimation(walkStop);
+            owner.RequestAnimation(runStop);
+            owner.RequestAnimation(turnBack);
+        }
+
+        private AnimPlayableComponent.LinearMixerTransition CreateLocomotionTransition()
         {
             AnimPlayableComponent.LinearMixerChild[] locomotionChildren = new AnimPlayableComponent.LinearMixerChild[3];
             locomotionChildren[0] = new AnimPlayableComponent.LinearMixerChild(idle, 0f);
@@ -431,9 +456,10 @@ namespace GameLogic
             {
                 float releaseSpeed = GetCurrentPlanarSpeed();
                 stopWasRun = lastWantsRun || releaseSpeed >= GetRunStopSpeedThreshold();
+                stopReleaseSpeed = releaseSpeed;
                 stopRequested = releaseSpeed >= stopEnterSpeed;
             }
-            else if (GetCurrentPlanarSpeed() <= locomotionExitSpeed)
+            else if (!stopRequested && GetCurrentPlanarSpeed() <= locomotionExitSpeed)
             {
                 ClearQueuedStopTransition();
             }
@@ -562,7 +588,7 @@ namespace GameLogic
 
             debugLocomotionTimer = Mathf.Max(0.02f, debugLocomotionInterval);
             Debug.Log(
-                $"[Locomotion] state={CurrentStateName} input={rawMoveInputAmount:F2}/{moveInputAmount:F2} target={targetMoveSpeed:F2} actual={GetCurrentPlanarSpeed():F2} anim={animatedPlanarSpeed:F2} playRate={animationPlaybackSpeed:F2} blend={locomotionValue:F2} turn={facingToDesiredAngle:F1} stop={stopRequested}"
+                $"[Locomotion] state={CurrentStateName} input={rawMoveInputAmount:F2}/{moveInputAmount:F2} target={targetMoveSpeed:F2} actual={GetCurrentPlanarSpeed():F2} anim={animatedPlanarSpeed:F2} playRate={animationPlaybackSpeed:F2} blend={locomotionValue:F2} turn={facingToDesiredAngle:F1} stop={stopRequested}/{stopReleaseSpeed:F2}"
             );
         }
 
@@ -697,7 +723,7 @@ namespace GameLogic
         {
             return stopRequested
                 && !HasLocomotionInput
-                && GetCurrentPlanarSpeed() > locomotionExitSpeed
+                && stopReleaseSpeed >= stopEnterSpeed
                 && !string.IsNullOrEmpty(GetStopAnimationName());
         }
 
@@ -737,13 +763,13 @@ namespace GameLogic
                 return;
             }
 
-            ClearQueuedStopTransition();
             AnimPlayableComponent.State state = PlayMovementAnimation(GetStopAnimationName());
             if (state == null)
             {
                 return;
             }
 
+            ClearQueuedStopTransition();
             isStopTransitionActive = true;
             state.EndNormalizedTime = 0.7f;
             state.OnEnd = OnMovementTransitionEnd;
@@ -769,6 +795,7 @@ namespace GameLogic
         private void ClearQueuedStopTransition()
         {
             stopRequested = false;
+            stopReleaseSpeed = 0f;
         }
 
         private bool IsMovementTransitionActive()
@@ -781,8 +808,7 @@ namespace GameLogic
 
         private bool ShouldInterruptMovementTransition()
         {
-            return (isStopTransitionActive && HasLocomotionInput)
-                || (isTurnBackActive && ShouldExitTurnBack());
+            return (isStopTransitionActive && HasLocomotionInput) || (isTurnBackActive && ShouldExitTurnBack());
         }
 
         private void ReturnToLocomotion()

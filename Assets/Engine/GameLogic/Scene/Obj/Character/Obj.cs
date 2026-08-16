@@ -52,19 +52,41 @@ namespace GameLogic
             _drawObj.SetModelChangeCallback(callback);
         }
 
-        public AnimPlayableComponent.State PlayAnim(string name)
+        public AnimationResourceStatus RequestAnimation(string name)
         {
-            return PlayAnim(ModelType.Body, name);
+            return RequestAnimation(ModelType.Body, name);
         }
 
-        public AnimPlayableComponent.State PlayAnim(ModelType modelType, string name)
+        public AnimationResourceStatus RequestAnimation(ModelType modelType, string name)
         {
-            return _drawObj.PlayAnim(modelType, name);
+            return _drawObj.RequestAnimation(modelType, name);
         }
 
-        public AnimPlayableComponent.State PlayAnim(AnimPlayableComponent.LinearMixerTransition transition)
+        public AnimationResourceStatus RequestAnimation(AnimPlayableComponent.LinearMixerTransition transition)
         {
-            return _drawObj.PlayAnim(transition);
+            return _drawObj.RequestAnimation(transition);
+        }
+
+        public AnimationPlayResult TryPlayAnimation(string name, out AnimPlayableComponent.State state)
+        {
+            return TryPlayAnimation(ModelType.Body, name, out state);
+        }
+
+        public AnimationPlayResult TryPlayAnimation(
+            ModelType modelType,
+            string name,
+            out AnimPlayableComponent.State state
+        )
+        {
+            return _drawObj.TryPlayAnimation(modelType, name, out state);
+        }
+
+        public AnimationPlayResult TryPlayAnimation(
+            AnimPlayableComponent.LinearMixerTransition transition,
+            out AnimPlayableComponent.State state
+        )
+        {
+            return _drawObj.TryPlayAnimation(transition, out state);
         }
 
         public bool IsLoade()
