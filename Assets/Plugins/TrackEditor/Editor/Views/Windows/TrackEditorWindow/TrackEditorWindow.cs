@@ -473,6 +473,10 @@ namespace TrackEditor
         private bool isMovingEndCarret;
         private bool isMouseButton2Down;
 
+        private bool wheelZoomActive;
+        private float wheelZoomFocalTime;
+        private float wheelZoomMouseX;
+
         private Rect CenterRect;
 
         internal void SafeDoAction(Action call)
@@ -904,23 +908,52 @@ namespace TrackEditor
         {
             if (!CenterRect.Contains(mousePosition))
             {
+                wheelZoomActive = false;
                 return;
             }
 
             var e = Event.current;
-            //缩放或向下/向上滚动，如果prefs设置为滚轮
-            if ((e.type == EventType.ScrollWheel && Prefs.scrollWheelZooms) || (e.alt && !e.shift && e.button == 1))
+
+            if (e.type == EventType.ScrollWheel && Prefs.scrollWheelZooms)
+            {
+                if (Mathf.Abs(e.delta.y) < 0.00001f)
+                {
+                    wheelZoomActive = false;
+                    return;
+                }
+
+                if (!wheelZoomActive || Mathf.Abs(wheelZoomMouseX - mousePosition.x) > 1f)
+                {
+                    wheelZoomMouseX = mousePosition.x;
+                    wheelZoomFocalTime = asset.PosToTime(mousePosition.x);
+                }
+
+                var zoomFactor = 1f - e.delta.y * 0.02f;
+                ZoomTimeRange(zoomFactor, wheelZoomFocalTime);
+
+                wheelZoomActive = true;
+                WillRepaint = true;
+                e.Use();
+                return;
+            }
+
+            if (e.isMouse && e.type != EventType.Repaint)
+            {
+                wheelZoomActive = false;
+            }
+
+            // Alt + 鼠标右键拖动缩放
+            if (e.alt && !e.shift && e.button == 1)
             {
                 AddCursorRect(CenterRect, MouseCursor.Zoom);
                 if (
                     e.type == EventType.MouseDrag
                     || e.type == EventType.MouseDown
                     || e.type == EventType.MouseUp
-                    || e.type == EventType.ScrollWheel
                 )
                 {
                     var pointerTimeA = asset.PosToTime(mousePosition.x);
-                    var delta = e.alt ? -e.delta.x * 0.1f : e.delta.y;
+                    var delta = -e.delta.x * 0.1f;
                     var t = (Mathf.Abs(delta * 25) / CenterRect.width) * asset.ViewTime;
                     asset.ViewTimeMin += delta > 0 ? -t : t;
                     asset.ViewTimeMax += delta > 0 ? t : -t;
@@ -945,6 +978,29 @@ namespace TrackEditor
                     e.Use();
                 }
             }
+        }
+
+        private void ZoomTimeRange(float zoomFactor, float focalTime)
+        {
+            const float minViewTime = 0.25f;
+
+            if (zoomFactor <= 0f)
+            {
+                return;
+            }
+
+            var timeMin = asset.ViewTimeMin;
+            var timeMax = asset.ViewTimeMax;
+            var focal = Mathf.Max(focalTime, timeMin);
+            var zoomedTimeMin = (timeMin + focal * (zoomFactor - 1f)) / zoomFactor;
+            var zoomedTimeMax = (timeMax + focal * (zoomFactor - 1f)) / zoomFactor;
+
+            if (zoomedTimeMax - zoomedTimeMin < minViewTime)
+            {
+                return;
+            }
+
+            SetViewTimeRange(zoomedTimeMin, zoomedTimeMax);
         }
 
         #endregion

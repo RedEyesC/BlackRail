@@ -60,7 +60,7 @@
         public static string TrackCopy = "拷贝轨道";
         public static string TrackReplica = "复制轨道";
         public static string TrackDelete = "删除轨道";
-        public static string TrackDeleteTips = "确定删除改轨道吗?";
+        public static string TrackDeleteTips = "确定删除轨道吗?";
 
         //**********  Clip Menu *********
         public static string ClipCopy = "拷贝";

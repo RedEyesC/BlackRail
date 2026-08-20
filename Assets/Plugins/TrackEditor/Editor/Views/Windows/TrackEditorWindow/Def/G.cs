@@ -27,9 +27,13 @@ namespace TrackEditor
 
         public static float TotalHeight;
 
-        public static float ScreenWidth => Screen.width / EditorGUIUtility.pixelsPerPoint;
+        public static float ScreenWidth => TrackEditorWindow.current != null
+            ? TrackEditorWindow.current.position.width
+            : Screen.width / EditorGUIUtility.pixelsPerPoint;
 
-        public static float ScreenHeight => Screen.height / EditorGUIUtility.pixelsPerPoint;
+        public static float ScreenHeight => TrackEditorWindow.current != null
+            ? TrackEditorWindow.current.position.height
+            : Screen.height / EditorGUIUtility.pixelsPerPoint;
 
         public static Vector2 ScrollPos;
 
