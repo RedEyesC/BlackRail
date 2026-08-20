@@ -19,7 +19,6 @@ namespace GameFramework.Action
         [HideInInspector]
         private float blendOut = 0.25f;
 
-        [MenuName("动画对象")]
         public string resPath = "";
 
         [Range(0.1f, 10f)]
