@@ -61,8 +61,7 @@ namespace TrackEditor
 
             if (!Mathf.Approximately(timeMin, asset.ViewTimeMin) || !Mathf.Approximately(timeMax, asset.ViewTimeMax))
             {
-                var isDraggingTimeMin = !Mathf.Approximately(timeMin, asset.ViewTimeMin)
-                    && Mathf.Approximately(timeMax, asset.ViewTimeMax);
+                var isDraggingTimeMin = !Mathf.Approximately(timeMin, asset.ViewTimeMin) && Mathf.Approximately(timeMax, asset.ViewTimeMax);
                 SetViewTimeRange(timeMin, timeMax, isDraggingTimeMin);
             }
 
@@ -112,14 +111,9 @@ namespace TrackEditor
             try
             {
                 var editorGuiExt = typeof(EditorGUI).Assembly.GetType("UnityEditor.EditorGUIExt");
-                var method = editorGuiExt?.GetMethod(
-                    "MinMaxScroller",
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static
-                );
+                var method = editorGuiExt?.GetMethod("MinMaxScroller", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
 
-                return method == null
-                    ? null
-                    : (MinMaxScrollerDelegate)Delegate.CreateDelegate(typeof(MinMaxScrollerDelegate), method);
+                return method == null ? null : (MinMaxScrollerDelegate)Delegate.CreateDelegate(typeof(MinMaxScrollerDelegate), method);
             }
             catch (Exception)
             {
