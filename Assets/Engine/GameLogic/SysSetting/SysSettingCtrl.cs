@@ -11,7 +11,6 @@ namespace GameLogic
             //初始化键位操作
             InputManager.CreateDigitalAxis("Action", "Horizontal", UnityEngine.KeyCode.A, UnityEngine.KeyCode.D, 3, 3, true);
             InputManager.CreateDigitalAxis("Action", "Vertical", UnityEngine.KeyCode.W, UnityEngine.KeyCode.S, 3, 3, true);
-            InputManager.CreateButton("Action", "Run", UnityEngine.KeyCode.LeftShift);
 
             InputManager.SetPlayerScheme("Action");
         }
