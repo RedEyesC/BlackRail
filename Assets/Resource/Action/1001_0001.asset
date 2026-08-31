@@ -1,6 +1,38 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!114 &-7928557442555289938
+--- !u!114 &-8526740321185497331
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp:GameFramework.Action:EventClip
+  _parent: {fileID: 845885270353625062}
+  startTime: 1.2
+--- !u!114 &-3270589718148266340
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a9db414099843999551c8e3036e3029, type: 3}
+  m_Name: ActionAnimationTrack
+  m_EditorClassIdentifier: 
+  _parent: {fileID: -497976136340601934}
+  actionClips:
+  - {fileID: 1817841715054913534}
+  active: 1
+  isLocked: 0
+  color: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &-497976136340601934
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -14,31 +46,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp:GameEditor.ActionEditor:ActionGroup
   _parent: {fileID: 11400000}
   tracks:
-  - {fileID: 4604311872445037573}
+  - {fileID: -3270589718148266340}
+  - {fileID: 845885270353625062}
   isCollapsed: 0
   active: 1
   isLocked: 0
---- !u!114 &-5924160624872651668
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 918706c75e3020042ac2b8e469e92960, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _parent: {fileID: 4604311872445037573}
-  startTime: 0.01
-  length: 2.6699998
-  blendIn: 0.25
-  blendOut: 0.25
-  resPath: 1001_0001
-  playbackSpeed: 1
-  clipOffset: 0
-  subClipLength: 0
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -53,11 +65,81 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _parent: {fileID: 0}
   groups:
-  - {fileID: -7928557442555289938}
-  length: 5
+  - {fileID: -497976136340601934}
+  length: 2.6
   viewTimeMin: 0
-  viewTimeMax: 5
---- !u!114 &4604311872445037573
+  viewTimeMax: 2.6
+--- !u!114 &188122795613952323
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp:GameFramework.Action:EventClip
+  _parent: {fileID: 845885270353625062}
+  startTime: 2
+--- !u!114 &845885270353625062
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: caebaf98a1bc66b47901fe91a8554877, type: 3}
+  m_Name: ActionEventTrack
+  m_EditorClassIdentifier: 
+  _parent: {fileID: -497976136340601934}
+  actionClips:
+  - {fileID: 6483107585276694300}
+  active: 1
+  isLocked: 0
+  color: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &1205846928281606749
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: Group
+  m_EditorClassIdentifier: Assembly-CSharp:GameEditor.ActionEditor:ActionGroup
+  _parent: {fileID: 11400000}
+  tracks: []
+  isCollapsed: 0
+  active: 1
+  isLocked: 0
+--- !u!114 &1817841715054913534
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 918706c75e3020042ac2b8e469e92960, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _parent: {fileID: -3270589718148266340}
+  startTime: 0
+  length: 2.6000001
+  blendIn: 0.23
+  blendOut: 0.25
+  resPath: 0/Branch_01
+  playbackSpeed: 1
+  clipOffset: 0
+  subClipLength: 2.6000001
+--- !u!114 &2053223553243170982
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
@@ -69,9 +151,63 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a9db414099843999551c8e3036e3029, type: 3}
   m_Name: ActionAnimationTrack
   m_EditorClassIdentifier: 
-  _parent: {fileID: -7928557442555289938}
-  actionClips:
-  - {fileID: -5924160624872651668}
+  _parent: {fileID: -497976136340601934}
+  actionClips: []
   active: 1
   isLocked: 0
   color: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &5303109806221876347
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: Group
+  m_EditorClassIdentifier: Assembly-CSharp:GameEditor.ActionEditor:ActionGroup
+  _parent: {fileID: 11400000}
+  tracks: []
+  isCollapsed: 0
+  active: 1
+  isLocked: 0
+--- !u!114 &5400926530484400133
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f113016945000d439e103bcd8947b99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _parent: {fileID: 845885270353625062}
+  startTime: 1
+  length: 1
+  EventType: 0
+  EventParam0: 0
+  EventParam1: 0
+  EventParam2: 0
+--- !u!114 &6483107585276694300
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f113016945000d439e103bcd8947b99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _parent: {fileID: 845885270353625062}
+  startTime: 0.1
+  length: 2.2
+  EventType: 1
+  EventParam0: 1000
+  EventParam1: 0
+  EventParam2: 0
