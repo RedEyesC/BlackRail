@@ -65,7 +65,7 @@ namespace TrackEditor
         {
             if (directable.Parent != null)
             {
-                return directable.Parent.Clips.LastOrDefault(d => d != directable && d.StartTime < directable.StartTime);
+                return directable.Parent.Clips.LastOrDefault(d => d != directable && TimelineTime.IsBefore(d.StartTime, directable.StartTime));
             }
 
             return null;
@@ -87,7 +87,7 @@ namespace TrackEditor
         {
             if (directable.Parent != null)
             {
-                return directable.Parent.Clips.FirstOrDefault(d => d != directable && d.StartTime > directable.StartTime);
+                return directable.Parent.Clips.FirstOrDefault(d => d != directable && TimelineTime.IsAfter(d.StartTime, directable.StartTime));
             }
 
             return null;

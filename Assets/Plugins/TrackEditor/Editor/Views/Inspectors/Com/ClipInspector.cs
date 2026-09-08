@@ -111,9 +111,10 @@ namespace TrackEditor
 
             if (canScale)
             {
-                if (_in >= action.Parent.StartTime && _out <= action.Parent.EndTime)
+                if (!TimelineTime.IsBefore(_in, action.Parent.StartTime)
+                    && !TimelineTime.IsAfter(_out, action.Parent.EndTime))
                 {
-                    if (_out > _in)
+                    if (TimelineTime.IsAfter(_out, _in))
                     {
                         EditorGUILayout.MinMaxSlider(ref _in, ref _out, previousTime, nextTime);
                     }
@@ -138,8 +139,8 @@ namespace TrackEditor
                     _out = _in + _length;
                 }
 
-                _in = Mathf.Round(_in / Prefs.snapInterval) * Prefs.snapInterval;
-                _out = Mathf.Round(_out / Prefs.snapInterval) * Prefs.snapInterval;
+                _in = TimelineTime.Snap(_in);
+                _out = TimelineTime.Snap(_out);
 
                 _in = Mathf.Clamp(_in, previousTime, _out);
                 _out = Mathf.Clamp(_out, _in, nextClip != null ? nextTime : float.PositiveInfinity);
@@ -148,25 +149,25 @@ namespace TrackEditor
                 action.EndTime = _out;
             }
 
-            if (_in > action.Parent.EndTime)
+            if (TimelineTime.IsAfter(_in, action.Parent.EndTime))
             {
                 EditorGUILayout.HelpBox(Lan.OverflowInvalid, MessageType.Warning);
             }
             else
             {
-                if (_out > action.Parent.EndTime)
+                if (TimelineTime.IsAfter(_out, action.Parent.EndTime))
                 {
                     EditorGUILayout.HelpBox(Lan.EndTimeOverflowInvalid, MessageType.Warning);
                 }
             }
 
-            if (_out < action.Parent.StartTime)
+            if (TimelineTime.IsBefore(_out, action.Parent.StartTime))
             {
                 EditorGUILayout.HelpBox(Lan.OverflowInvalid, MessageType.Warning);
             }
             else
             {
-                if (_in < action.Parent.StartTime)
+                if (TimelineTime.IsBefore(_in, action.Parent.StartTime))
                 {
                     EditorGUILayout.HelpBox(Lan.StartTimeOverflowInvalid, MessageType.Warning);
                 }

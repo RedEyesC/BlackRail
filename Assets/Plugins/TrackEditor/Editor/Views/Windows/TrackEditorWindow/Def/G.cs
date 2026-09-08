@@ -20,7 +20,7 @@ namespace TrackEditor
                 return time;
             }
 
-            return (Mathf.Round(time / Prefs.snapInterval) * Prefs.snapInterval);
+            return TimelineTime.Snap(time);
         }
 
         #region Size

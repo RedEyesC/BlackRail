@@ -101,7 +101,7 @@ namespace TrackEditor
                 newAction.StartTime = time;
                 Clips.Add(newAction);
 
-                var nextAction = Clips.FirstOrDefault(a => a.StartTime > newAction.StartTime);
+                var nextAction = Clips.FirstOrDefault(a => TimelineTime.IsAfter(a.StartTime, newAction.StartTime));
                 if (nextAction != null)
                 {
                     newAction.EndTime = Mathf.Min(newAction.EndTime, nextAction.StartTime);
@@ -128,8 +128,8 @@ namespace TrackEditor
                 if (time > 0)
                 {
                     newClip.StartTime = time;
-                    var nextClip = Clips.FirstOrDefault(a => a.StartTime > newClip.StartTime);
-                    if (nextClip != null && newClip.EndTime > nextClip.StartTime)
+                    var nextClip = Clips.FirstOrDefault(a => TimelineTime.IsAfter(a.StartTime, newClip.StartTime));
+                    if (nextClip != null && TimelineTime.IsAfter(newClip.EndTime, nextClip.StartTime))
                     {
                         newClip.EndTime = nextClip.StartTime;
                     }
@@ -158,7 +158,7 @@ namespace TrackEditor
         {
             if (!m_CacheSorted)
             {
-                Clips.Sort((clip1, clip2) => clip1.StartTime.CompareTo(clip2.StartTime));
+                Clips.Sort((clip1, clip2) => TimelineTime.ToUnits(clip1.StartTime).CompareTo(TimelineTime.ToUnits(clip2.StartTime)));
                 m_CacheSorted = true;
             }
         }
