@@ -1,0 +1,115 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-7972012138045670658
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a9db414099843999551c8e3036e3029, type: 3}
+  m_Name: ActionAnimationTrack
+  m_EditorClassIdentifier: 
+  _parent: {fileID: 1790172323693627587}
+  actionClips:
+  - {fileID: 1932393139647359083}
+  active: 1
+  isLocked: 0
+  color: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &-5716445835563303629
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f113016945000d439e103bcd8947b99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _parent: {fileID: 2641922201834298043}
+  startTime: 0.3
+  length: 1
+  EventType: 1
+  EventParam0: 1000
+  EventParam1: 0
+  EventParam2: 0
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a35a9fada00ba1447b3b64fc95ef3063, type: 3}
+  m_Name: 1000_1000
+  m_EditorClassIdentifier: 
+  _parent: {fileID: 0}
+  groups:
+  - {fileID: 1790172323693627587}
+  length: 2.6
+  viewTimeMin: 0
+  viewTimeMax: 2.7572803
+--- !u!114 &1790172323693627587
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d3db23a4a104b2e9a7a4b0d6c1e8f52, type: 3}
+  m_Name: Group
+  m_EditorClassIdentifier: 
+  _parent: {fileID: 11400000}
+  tracks:
+  - {fileID: -7972012138045670658}
+  - {fileID: 2641922201834298043}
+  isCollapsed: 0
+  active: 1
+  isLocked: 0
+--- !u!114 &1932393139647359083
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 918706c75e3020042ac2b8e469e92960, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _parent: {fileID: -7972012138045670658}
+  startTime: 0
+  length: 2.6000001
+  blendIn: 0.44
+  blendOut: 0.57
+  resPath: 0/Branch_01
+  playbackSpeed: 1
+  clipOffset: 0
+  subClipLength: 2.6000001
+--- !u!114 &2641922201834298043
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: caebaf98a1bc66b47901fe91a8554877, type: 3}
+  m_Name: ActionEventTrack
+  m_EditorClassIdentifier: 
+  _parent: {fileID: 1790172323693627587}
+  actionClips:
+  - {fileID: -5716445835563303629}
+  active: 1
+  isLocked: 0
+  color: {r: 1, g: 1, b: 1, a: 1}
