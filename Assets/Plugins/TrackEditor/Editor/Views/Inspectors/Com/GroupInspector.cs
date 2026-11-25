@@ -1,7 +1,4 @@
-﻿using UnityEditor;
-using UnityEngine;
-
-namespace TrackEditor.Design.Editor.Inspectors
+﻿namespace TrackEditor.Design.Editor.Inspectors
 {
     public abstract class GroupInspector<T> : ClipInspector where T : Group
     {
@@ -11,8 +8,6 @@ namespace TrackEditor.Design.Editor.Inspectors
     [CustomInspectors(typeof(Group), true)]
     public class GroupInspector : InspectorsBase
     {
-        private Group action => (Group)target;
-
         public override void OnInspectorGUI()
         {
             ShowCommonInspector();
@@ -20,7 +15,6 @@ namespace TrackEditor.Design.Editor.Inspectors
 
         protected void ShowCommonInspector(bool showBaseInspector = true)
         {
-            action.Name = EditorGUILayout.TextField("Name", action.Name);
             if (showBaseInspector)
             {
                 base.OnInspectorGUI();

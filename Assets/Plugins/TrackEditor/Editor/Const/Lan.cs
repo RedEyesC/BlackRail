@@ -31,7 +31,7 @@
 
         //**********  Header *********
         public static string HeaderLastSaveTime = "最后保存时间：{0}";
-        public static string HeaderSelectAsset = "选中：[{0}]";
+        public static string AssetProperties = "时间轴属性";
         public static string OpenPreferencesTips = "打开首选项界面";
         public static string SelectAssetTips = "点击切换时间轴";
         public static string OpenMagnetSnappingTips = "开启剪辑磁性吸附";

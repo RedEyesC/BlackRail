@@ -109,15 +109,19 @@ namespace TrackEditor
                 EditorStyles.toolbarButton
             );
 
-            var gName = asset != null ? asset.name : string.Empty;
+            var assetLabel = new GUIContent(asset.name, Lan.AssetProperties);
+            if (GUILayout.Button(assetLabel, EditorStyles.toolbarButton, GUILayout.Width(120)))
+            {
+                SelectedObject = asset;
+            }
 
-            var con = new GUIContent(string.Format(Lan.HeaderSelectAsset, gName), Lan.SelectAssetTips);
-            if (GUILayout.Button(con, EditorStyles.toolbarDropDown, GUILayout.Width(120)))
+            var assetMenu = new GUIContent("▾", Lan.SelectAssetTips);
+            if (GUILayout.Button(assetMenu, EditorStyles.toolbarButton, GUILayout.Width(22)))
             {
                 var menu = new GenericMenu();
                 menu.AddItem(new GUIContent("Open JSON"), false, () =>
                     EditorGUIUtility.ShowObjectPicker<TextAsset>(assetSource as TextAsset, false, "t:TextAsset", GetInstanceID()));
-                menu.AddItem(new GUIContent("Asset Properties"), false, () => SelectedObject = asset);
+                menu.AddItem(new GUIContent(Lan.AssetProperties), false, () => SelectedObject = asset);
                 var selectedTarget = Selection.activeGameObject;
                 if (selectedTarget != null && selectedTarget.scene.IsValid())
                 {
@@ -134,13 +138,9 @@ namespace TrackEditor
 
         private void DrawPlayheadField()
         {
-            var frames = Prefs.timeStepMode == Prefs.TimeStepMode.Frames;
-            var frameRate = Mathf.Max(1, Prefs.frameRate);
             EditorGUI.BeginChangeCheck();
-            var time = frames
-                ? EditorGUILayout.DelayedIntField(Mathf.RoundToInt(player.CurrentTime * frameRate), GUILayout.Width(60)) / (float)frameRate
-                : EditorGUILayout.DelayedFloatField(player.CurrentTime, GUILayout.Width(60));
-            if (EditorGUI.EndChangeCheck() && !float.IsNaN(time))
+            var time = EditorTools.DelayedTimeField(GUIContent.none, player.CurrentTime, GUILayout.Width(60));
+            if (EditorGUI.EndChangeCheck() && time != player.CurrentTime)
             {
                 Seek(time);
             }

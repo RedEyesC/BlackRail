@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
@@ -164,42 +163,15 @@ namespace TrackEditor.Draws
             var clipsPosRect = Rect.MinMaxRect(posRect.xMin, posRect.yMin, posRect.xMax, posRect.yMin + track.ShowHeight);
             if (e.type == EventType.ContextClick && clipsPosRect.Contains(e.mousePosition))
             {
-                var attachableTypeInfos = new List<EditorTools.TypeMetaInfo>();
-
-                var existing = track.Clips.FirstOrDefault();
-                var existingCatAtt =
-                    existing?.GetType().GetCustomAttributes(typeof(CategoryAttribute), true).FirstOrDefault() as CategoryAttribute;
-
-                foreach (var clip in EditorTools.GetTypeMetaDerivedFrom(typeof(Clip)))
-                {
-                    if (!clip.attachableTypes.Any(type => type.IsAssignableFrom(track.GetType())))
-                    {
-                        continue;
-                    }
-
-                    if (existingCatAtt != null)
-                    {
-                        if (existingCatAtt.category == clip.category)
-                        {
-                            attachableTypeInfos.Add(clip);
-                        }
-                    }
-                    else
-                    {
-                        attachableTypeInfos.Add(clip);
-                    }
-                }
+                var attachableTypeInfos = EditorTools.GetAttachableTypes(typeof(Clip), track);
 
                 if (attachableTypeInfos.Count > 0)
                 {
                     var menu = new GenericMenu();
-                    foreach (var _info in attachableTypeInfos)
+                    foreach (var info in attachableTypeInfos)
                     {
-                        var info = _info;
-                        var category = string.IsNullOrEmpty(info.category) ? string.Empty : (info.category + "/");
-                        var tName = info.name;
                         menu.AddItem(
-                            new GUIContent(category + tName),
+                            new GUIContent(info.MenuPath),
                             false,
                             () =>
                             {
@@ -209,16 +181,16 @@ namespace TrackEditor.Draws
                         );
                     }
 
-                    var copyType = window.CopiedClip?.GetType();
-                    if (copyType != null && attachableTypeInfos.Select(i => i.type).Contains(copyType))
+                    var copiedClip = window.CopiedClip;
+                    if (copiedClip != null && attachableTypeInfos.Exists(info => info.type == copiedClip.GetType()))
                     {
                         menu.AddSeparator("/");
                         menu.AddItem(
-                            new GUIContent(string.Format(Lan.ClipPaste, copyType.Name)),
+                            new GUIContent(string.Format(Lan.ClipPaste, copiedClip.DisplayName)),
                             false,
                             () =>
                             {
-                                track.PasteClip(window.CopiedClip, cursorTime);
+                                track.PasteClip(copiedClip, cursorTime);
                                 window.NotifyTimelineChanged(rebuildPreview: true);
                             }
                         );

@@ -16,9 +16,6 @@ namespace GameEditor.ActionEditor
 
         protected override GameObject FindPreviewTarget() => GameObject.Find("Player");
 
-        protected override AnimationClip ResolvePreviewAnimation(string path) =>
-            base.ResolvePreviewAnimation(path) ?? AssetDatabase.LoadAssetAtPath<AnimationClip>("Assets/Resource/Anim/" + path + ".anim");
-
         protected override string CreateWindowTitle()
         {
             return "Action Editor";

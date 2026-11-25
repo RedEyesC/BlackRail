@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
+﻿using System.Reflection;
 using TrackEditor.Test;
 using UnityEditor;
 using UnityEngine;
@@ -12,94 +10,145 @@ namespace TrackEditor
     {
         internal static event System.Action<InspectorPreviewAsset> SelectionEdited;
 
-        private readonly Dictionary<IData, InspectorsBase> directableEditors = new Dictionary<IData, InspectorsBase>();
+        private DirectableAsset currentSelection;
         private InspectorsBase currentDirectableEditor;
+
+        private void OnEnable()
+        {
+            if (target is InspectorPreviewAsset preview)
+            {
+                preview.RepaintRequested += Repaint;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (target is InspectorPreviewAsset preview)
+            {
+                preview.RepaintRequested -= Repaint;
+            }
+        }
 
         protected override void OnHeaderGUI()
         {
-            GUILayout.Space(18f);
-        }
-
-        public override void OnInspectorGUI()
-        {
-            var preview = (InspectorPreviewAsset)target;
-            var selection = preview.SelectedObject;
-            if (selection == null)
+            if (!(target is InspectorPreviewAsset preview) || preview == null)
             {
-                currentDirectableEditor = null;
-                EditorGUILayout.HelpBox(Lan.NotSelectAsset, MessageType.Info);
                 return;
             }
 
-            GUI.skin.GetStyle("label").richText = true;
-            GUILayout.Space(5);
+            var selection = preview.SelectedObject;
+            if (selection == null)
+            {
+                return;
+            }
+
+            var type = selection.GetType();
+            var typeName = type.GetCustomAttribute<NameAttribute>(false)?.name
+                ?? ObjectNames.NicifyVariableName(type.Name);
+
             EditorGUI.BeginChangeCheck();
-            DoSelectionInspector(selection);
+            using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+            {
+                var icon = EditorGUIUtility.ObjectContent(null, GetHeaderIconType(selection)).image;
+                var iconRect = GUILayoutUtility.GetRect(28f, 28f, GUILayout.ExpandWidth(false));
+                if (icon != null)
+                {
+                    GUI.DrawTexture(iconRect, icon, ScaleMode.ScaleToFit);
+                }
+
+                using (new EditorGUILayout.VerticalScope())
+                {
+                    if (selection is Group || selection is Track || selection is Clip)
+                    {
+                        var name = selection is Clip clip ? clip.DisplayName : selection.name;
+                        var editedName = EditorGUILayout.TextField(name);
+                        if (editedName != name)
+                        {
+                            selection.name = editedName;
+                        }
+
+                        EditorGUILayout.LabelField(typeName, EditorStyles.miniLabel);
+                    }
+                    else if (selection is Asset)
+                    {
+                        EditorGUILayout.LabelField(selection.name, EditorStyles.boldLabel);
+                        EditorGUILayout.LabelField(typeName, EditorStyles.miniLabel);
+                    }
+                    else
+                    {
+                        GUILayout.FlexibleSpace();
+                        EditorGUILayout.LabelField(typeName, EditorStyles.boldLabel);
+                        GUILayout.FlexibleSpace();
+                    }
+                }
+            }
+
             if (EditorGUI.EndChangeCheck())
             {
                 SelectionEdited?.Invoke(preview);
             }
         }
 
-        void DoSelectionInspector(DirectableAsset selection)
+        private static System.Type GetHeaderIconType(DirectableAsset selection)
         {
-            if (!(selection is IData data))
-                return;
-
-            if (!directableEditors.TryGetValue(data, out var newEditor))
+            switch (selection)
             {
-                directableEditors[data] = newEditor = EditorInspectorFactory.GetInspector(data);
+                case Group _: return typeof(GameObject);
+                case Track _: return typeof(Animator);
+                case Clip _: return typeof(AnimationClip);
+                default: return typeof(TextAsset);
             }
-
-            if (currentDirectableEditor != newEditor)
-            {
-                var enableMethod = newEditor
-                    .GetType()
-                    .GetMethod(
-                        "OnEnable",
-                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy
-                    );
-                if (enableMethod != null)
-                {
-                    enableMethod.Invoke(newEditor, null);
-                }
-
-                currentDirectableEditor = newEditor;
-            }
-
-            EditorTools.BoldSeparator();
-            GUILayout.Space(4);
-            ShowPreliminaryInspector(selection);
-
-            if (currentDirectableEditor != null)
-                currentDirectableEditor.OnInspectorGUI();
         }
 
-        /// <summary>
-        /// 选中对象基本信息
-        /// </summary>
-        void ShowPreliminaryInspector(DirectableAsset selection)
+        public override void OnInspectorGUI()
         {
-            var type = selection.GetType();
-            var nameAtt = type.GetCustomAttributes(typeof(NameAttribute), false).FirstOrDefault() as NameAttribute;
-            var name = nameAtt != null ? nameAtt.name : type.Name.SplitCamelCase();
+            if (!(target is InspectorPreviewAsset preview) || preview == null)
+            {
+                return;
+            }
 
-            GUI.color = new Color(0, 0, 0, 0.2f);
-            GUILayout.BeginHorizontal(Styles.headerBoxStyle);
-            GUI.color = Color.white;
+            var selection = preview.SelectedObject;
+            if (selection == null)
+            {
+                currentSelection = null;
+                currentDirectableEditor = null;
+                EditorGUILayout.HelpBox(Lan.NotSelectAsset, MessageType.Info);
+                return;
+            }
 
-            GUILayout.Label($"<b><size=18>{name}</size></b>");
+            if (!ReferenceEquals(currentSelection, selection))
+            {
+                currentDirectableEditor = CreateInspector(selection);
+                currentSelection = selection;
+            }
 
-            GUILayout.EndHorizontal();
+            EditorGUI.BeginChangeCheck();
+            DrawInspector(selection, currentDirectableEditor);
+            if (EditorGUI.EndChangeCheck())
+            {
+                SelectionEdited?.Invoke(preview);
+            }
+        }
 
-            var desAtt = type.GetCustomAttributes(typeof(DescriptionAttribute), false).FirstOrDefault() as DescriptionAttribute;
-            var description = desAtt != null ? desAtt.description : string.Empty;
+        private static InspectorsBase CreateInspector(DirectableAsset selection)
+        {
+            var inspector = EditorInspectorFactory.GetInspector(selection);
+            var enableMethod = inspector.GetType().GetMethod(
+                "OnEnable",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.FlattenHierarchy);
+            enableMethod?.Invoke(inspector, null);
+            return inspector;
+        }
+
+        private static void DrawInspector(DirectableAsset selection, InspectorsBase inspector)
+        {
+            var description = selection.GetType().GetCustomAttribute<DescriptionAttribute>(false)?.description;
             if (!string.IsNullOrEmpty(description))
             {
                 EditorGUILayout.HelpBox(description, MessageType.None);
             }
 
-            GUILayout.Space(2);
+            inspector.OnInspectorGUI();
         }
     }
 }

@@ -85,11 +85,16 @@ namespace TrackEditor
         /// </summary>
         public const float BOTTOM_HEIGHT = 16;
 
+        internal const float MIN_LEFT_MARGIN = 230f;
+        private const float MAX_LEFT_MARGIN = 400f;
+
         public static float LEFT_MARGIN
         {
-            get => Prefs.trackListLeftMargin;
-            set => Prefs.trackListLeftMargin = Mathf.Clamp(value, 230, 400);
+            get => ClampLeftMargin(Prefs.trackListLeftMargin);
+            set => Prefs.trackListLeftMargin = ClampLeftMargin(value);
         }
+
+        internal static float ClampLeftMargin(float width) => Mathf.Clamp(width, MIN_LEFT_MARGIN, MAX_LEFT_MARGIN);
 
         public static void Load()
         {

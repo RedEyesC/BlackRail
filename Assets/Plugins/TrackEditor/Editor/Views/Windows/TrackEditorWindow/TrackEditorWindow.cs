@@ -39,24 +39,35 @@ namespace TrackEditor
             get => inspectorSelection.SelectedObject;
             set
             {
-                if (!(value is Clip clip) || !selectedClips.Contains(clip))
-                {
-                    selectedClips.Clear();
-                    if (value is Clip single) selectedClips.Add(single);
-                }
-
-                inspectorSelection.SelectedObject = value;
-                if (value != null)
+                SetTimelineSelection(value ?? asset);
+                if (SelectedObject != null && Selection.activeObject != inspectorSelection)
                 {
                     Selection.activeObject = inspectorSelection;
                 }
-
-                EditorUtility.SetDirty(inspectorSelection);
-                WillRepaint = true;
             }
         }
 
+        private void SetTimelineSelection(DirectableAsset selection)
+        {
+            if (!(selection is Clip clip) || !selectedClips.Contains(clip))
+            {
+                selectedClips.Clear();
+                if (selection is Clip single) selectedClips.Add(single);
+            }
+
+            inspectorSelection.SelectedObject = selection;
+            WillRepaint = true;
+        }
+
         #region Window
+
+        private static readonly Type[] PreferredDockTabs =
+        {
+            typeof(AnimationWindow),
+            typeof(EditorWindow).Assembly.GetType("UnityEditor.ProjectBrowser"),
+            typeof(EditorWindow).Assembly.GetType("UnityEditor.ConsoleWindow"),
+            typeof(SceneView)
+        };
 
         [MenuItem("Window/Track Editor")]
         public static void ShowWindow()
@@ -71,20 +82,33 @@ namespace TrackEditor
             where TWindow : TrackEditorWindow
         {
             var existingWindow = FindWindow<TWindow>();
-            var window = existingWindow ?? CreateInstance<TWindow>();
+            var window = existingWindow ?? CreateDockedWindow<TWindow>();
             if (source == null)
             {
                 window.InitializeAll();
             }
             else if (!window.TryOpenAsset(source))
             {
-                if (existingWindow == null) DestroyImmediate(window);
+                if (existingWindow == null) window.Close();
                 return false;
             }
 
-            window.Show();
+            window.SelectedObject = source != null ? window.asset : window.SelectedObject;
             window.Focus();
             return true;
+        }
+
+        private static TWindow CreateDockedWindow<TWindow>() where TWindow : TrackEditorWindow
+        {
+            var dockedTabTypes = Resources.FindObjectsOfTypeAll<EditorWindow>()
+                .Where(window => window.docked)
+                .Select(window => window.GetType())
+                .ToArray();
+            var dockTargets = PreferredDockTabs.Where(dockedTabTypes.Contains)
+                .Concat(dockedTabTypes)
+                .Distinct()
+                .ToArray();
+            return CreateWindow<TWindow>(dockTargets);
         }
 
         private static TWindow FindWindow<TWindow>() where TWindow : TrackEditorWindow =>
@@ -110,7 +134,7 @@ namespace TrackEditor
             Styles.Load();
             view.LeftMargin = Styles.LEFT_MARGIN;
             inspectorSelection = CreateInstance<InspectorPreviewAsset>();
-            inspectorSelection.hideFlags = HideFlags.HideAndDontSave;
+            inspectorSelection.hideFlags = HideFlags.HideInHierarchy | HideFlags.DontSave;
             InspectorPreviewAssetInspector.SelectionEdited += OnInspectorSelectionEdited;
             Undo.undoRedoPerformed += RestoreUndoSnapshot;
 
@@ -259,7 +283,11 @@ namespace TrackEditor
             var e = Event.current;
             if (e.commandName == "ObjectSelectorClosed" && EditorGUIUtility.GetObjectPickerControlID() == GetInstanceID())
             {
-                TryOpenAsset(EditorGUIUtility.GetObjectPickerObject());
+                if (TryOpenAsset(EditorGUIUtility.GetObjectPickerObject()))
+                {
+                    SelectedObject = asset;
+                }
+
                 e.Use();
             }
 
@@ -312,7 +340,7 @@ namespace TrackEditor
 
         void OnSelectionChanged()
         {
-            if (!isLocked && (asset == null || focusedWindow == this))
+            if (!(Selection.activeObject is InspectorPreviewAsset) && !isLocked && (asset == null || focusedWindow == this))
             {
                 TryOpenAsset(GetSelectedAssetSource());
             }
@@ -472,7 +500,7 @@ namespace TrackEditor
         protected virtual AnimationClip ResolvePreviewAnimation(string path) =>
             AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
 
-        protected virtual void OnPreviewSignal(ClipSignal signal, bool reverse) { }
+        protected virtual void OnPreviewSignal(Clip signal, bool reverse) { }
 
         private void RebuildPlayer()
         {
@@ -482,7 +510,7 @@ namespace TrackEditor
                 ResolvePreviewAnimation));
             player.SignalCrossed += OnPreviewSignal;
 
-            SelectedObject = null;
+            SetTimelineSelection(asset);
             itemDragger.Reset();
             multiSelectStartPos = null;
             pickedGroup = null;
@@ -515,6 +543,7 @@ namespace TrackEditor
             }
 
             player.InvalidatePreview(rebuildPreview);
+            inspectorSelection.RequestRepaint();
             WillRepaint = true;
         }
 
@@ -1127,7 +1156,7 @@ namespace TrackEditor
                 || SelectedObject is Track track && (track.Parent == null || !asset.groups.Contains(track.Parent) || !track.Parent.Tracks.Contains(track))
                 || SelectedObject is Group group && !asset.groups.Contains(group))
             {
-                SelectedObject = null;
+                SetTimelineSelection(asset);
             }
         }
 
@@ -1459,11 +1488,9 @@ namespace TrackEditor
             GUI.BeginClip(clipRect);
             var start = action.StartTime;
             var end = action.EndTime;
-            var blendIn = action.BlendIn;
-            var blendOut = action.BlendOut;
             clipWrapper.OnClipGUI();
             GUI.EndClip();
-            if (start != action.StartTime || end != action.EndTime || blendIn != action.BlendIn || blendOut != action.BlendOut)
+            if (start != action.StartTime || end != action.EndTime)
             {
                 NotifyTimelineChanged();
             }
@@ -1580,7 +1607,7 @@ namespace TrackEditor
             //如果剪辑太小，则把说明信息绘制在外部
             if (clipRect.width <= 20)
             {
-                GUI.Label(extRectRight, $"<size=9>{action.info}</size>");
+                GUI.Label(extRectRight, $"<size=9>{action.DisplayName}</size>");
             }
         }
 
@@ -1601,10 +1628,6 @@ namespace TrackEditor
             const float SCALE_RECT_WIDTH = 5;
 
             public readonly Clip action;
-            private float overlapIn;
-            private float overlapOut;
-            private float blendInPosX;
-            private float blendOutPosX;
             private readonly TrackEditorWindow editor;
 
             private Rect _rect;
@@ -1625,20 +1648,13 @@ namespace TrackEditor
             {
                 var e = Event.current;
 
-                overlapIn = action.CanCrossBlend ? action.GetCrossBlendIn(action.GetPreviousSibling()) : 0;
-                overlapOut = action.CanCrossBlend ? action.GetCrossBlendOut(action.GetNextSibling()) : 0;
-                var blend = action.GetBlendDurations(overlapIn, overlapOut);
-                blendInPosX = action.Length > 0 ? Mathf.Clamp01(blend.x / action.Length) * rect.width : 0;
-                blendOutPosX = action.Length > 0 ? Mathf.Clamp01(1 - blend.y / action.Length) * rect.width : rect.width;
-
                 var wholeRect = new Rect(0, 0, rect.width, rect.height);
-                var canScale = action.CanScale() && action.Length > 0 && rect.width > SCALE_RECT_WIDTH * 2;
-                var canBlend = action.Length > 0 && (action.CanBlendIn() || action.CanBlendOut());
+                var canTrim = !e.control && action.CanScale() && action.Length > 0 && rect.width > SCALE_RECT_WIDTH * 2;
                 var left = new Rect(0, 0, SCALE_RECT_WIDTH, rect.height);
                 var right = new Rect(rect.width - SCALE_RECT_WIDTH, 0, SCALE_RECT_WIDTH, rect.height);
 
                 editor.AddCursorRect(wholeRect, MouseCursor.Link);
-                if (canScale || canBlend)
+                if (canTrim)
                 {
                     editor.AddCursorRect(left, MouseCursor.ResizeHorizontal);
                     editor.AddCursorRect(right, MouseCursor.ResizeHorizontal);
@@ -1662,13 +1678,12 @@ namespace TrackEditor
 
                 ShowClipBlockColor(wholeRect);
 
-                DrawBlendGraphics();
-                if (e.type == EventType.Repaint && !action.IsLocked && !editor.itemDragger.IsDragging)
+                if (canTrim && e.type == EventType.Repaint && !action.IsLocked && !editor.itemDragger.IsDragging)
                 {
                     var hover = Color.white.WithAlpha(0.5f);
-                    if ((canScale || e.control && action.CanBlendIn()) && left.Contains(e.mousePosition))
+                    if (left.Contains(e.mousePosition))
                         EditorGUI.DrawRect(left, hover);
-                    if ((canScale || e.control && action.CanBlendOut()) && right.Contains(e.mousePosition))
+                    if (right.Contains(e.mousePosition))
                         EditorGUI.DrawRect(right, hover);
                 }
 
@@ -1678,10 +1693,8 @@ namespace TrackEditor
                     var inEdge = left.Contains(e.mousePosition);
                     var outEdge = right.Contains(e.mousePosition);
                     var type = ItemDragType.Position;
-                    if (e.control && inEdge && canBlend && action.CanBlendIn()) type = ItemDragType.BlendIn;
-                    else if (e.control && outEdge && canBlend && action.CanBlendOut()) type = ItemDragType.BlendOut;
-                    else if (canScale && inEdge && !e.control) type = ItemDragType.TrimStart;
-                    else if (canScale && outEdge && !e.control) type = ItemDragType.TrimEnd;
+                    if (canTrim && inEdge) type = ItemDragType.TrimStart;
+                    else if (canTrim && outEdge) type = ItemDragType.TrimEnd;
 
                     var toggle = e.control && type == ItemDragType.Position;
                     editor.SelectClip(action, toggle);
@@ -1695,56 +1708,11 @@ namespace TrackEditor
 
                 if (rect.width > 20)
                 {
-                    var r = new Rect(0, 0, rect.width, rect.height);
-                    if (overlapIn > 0)
-                    {
-                        r.xMin = blendInPosX;
-                    }
-
-                    if (overlapOut > 0)
-                    {
-                        r.xMax = blendOutPosX;
-                    }
-
-                    var label = $"<size=10>{action.info}</size>";
+                    var label = $"<size=10>{action.DisplayName}</size>";
                     GUI.color = Color.black;
-                    GUI.Label(r, label);
+                    GUI.Label(wholeRect, label);
                     GUI.color = Color.white;
                 }
-            }
-
-            /// <summary>
-            /// 绘制片段混合图形
-            /// </summary>
-            void DrawBlendGraphics()
-            {
-                if (blendInPosX > 0)
-                {
-                    Handles.color = Color.black.WithAlpha(0.5f);
-                    Handles.DrawAAPolyLine(2, new Vector2(0, rect.height), new Vector2(blendInPosX, 0));
-                    Handles.color = Color.black.WithAlpha(0.3f);
-                    Handles.DrawAAConvexPolygon(new Vector3(0, 0), new Vector3(0, rect.height), new Vector3(blendInPosX, 0));
-                }
-
-                if (action.BlendOut > 0 && overlapOut == 0)
-                {
-                    Handles.color = Color.black.WithAlpha(0.5f);
-                    Handles.DrawAAPolyLine(2, new Vector2(blendOutPosX, 0), new Vector2(rect.width, rect.height));
-                    Handles.color = Color.black.WithAlpha(0.3f);
-                    Handles.DrawAAConvexPolygon(
-                        new Vector3(rect.width, 0),
-                        new Vector2(blendOutPosX, 0),
-                        new Vector2(rect.width, rect.height)
-                    );
-                }
-
-                if (overlapIn > 0)
-                {
-                    Handles.color = Color.black;
-                    Handles.DrawAAPolyLine(2, new Vector2(blendInPosX, 0), new Vector2(blendInPosX, rect.height));
-                }
-
-                Handles.color = Color.white;
             }
 
             /// <summary>
@@ -1848,19 +1816,7 @@ namespace TrackEditor
 
         private void Step(int direction)
         {
-            var interval = Prefs.timeStepMode == Prefs.TimeStepMode.Frames
-                ? 1f / Mathf.Max(1, Prefs.frameRate)
-                : Prefs.snapInterval;
-            var units = player.CurrentTime / interval;
-            // Round only to recognize an existing step despite floating-point error.
-            var nearest = Mathf.Round(units);
-            if (Mathf.Approximately(player.CurrentTime, nearest * interval))
-            {
-                units = nearest;
-            }
-
-            var next = direction > 0 ? Mathf.Floor(units) + 1 : Mathf.Ceil(units) - 1;
-            Seek(next * interval);
+            Seek(Prefs.StepTime(player.CurrentTime, direction));
         }
 
         #endregion

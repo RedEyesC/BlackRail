@@ -14,7 +14,7 @@ namespace GameFramework.Action
         public override void SetTarget(DirectableAsset target)
         {
             base.SetTarget(target);
-            animation = Context.ResolveAnimation(clip.resPath);
+            animation = AssetStorage.Resolve(clip.anim, typeof(AnimationClip)) as AnimationClip;
             clip.SetResolvedSourceLength(animation?.length);
             bindings.Clear();
             if (animation != null)
@@ -28,7 +28,7 @@ namespace GameFramework.Action
         {
             if (animation != null && Context.Time >= clip.StartTime && Context.Time <= clip.EndTime)
             {
-                Context.QueueAnimation(clip, animation, SampleTime(0), SampleTime(time), bindings);
+                Context.QueueAnimation(animation, SampleTime(0), SampleTime(time), bindings);
             }
         }
 

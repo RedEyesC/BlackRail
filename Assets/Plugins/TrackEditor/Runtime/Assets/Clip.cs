@@ -4,11 +4,22 @@ using UnityEngine;
 namespace TrackEditor
 {
     [Serializable]
-    [Attachable(typeof(Track))]
     public abstract class Clip : DirectableAsset
     {
         [SerializeField]
         private float startTime;
+        [SerializeField]
+        private float length = 1f;
+        [SerializeField]
+        private ClipType clipType;
+
+        public virtual ClipType Type
+        {
+            get => clipType;
+            set => clipType = value;
+        }
+
+        public bool IsSignal => Type == ClipType.Signal;
 
         public virtual Track Parent
         {
@@ -22,18 +33,12 @@ namespace TrackEditor
             set => name = value;
         }
 
+        public string DisplayName => string.IsNullOrWhiteSpace(CustomName) ? info : CustomName;
+
         public override float StartTime
         {
             get => startTime;
-            set
-            {
-                if (startTime != value)
-                {
-                    startTime = Mathf.Max(value, 0);
-                    BlendIn = Mathf.Clamp(BlendIn, 0, Mathf.Max(0, Length - BlendOut));
-                    BlendOut = Mathf.Clamp(BlendOut, 0, Mathf.Max(0, Length - BlendIn));
-                }
-            }
+            set => startTime = Mathf.Max(value, 0);
         }
 
         public override float EndTime
@@ -41,11 +46,9 @@ namespace TrackEditor
             get => StartTime + Length;
             set
             {
-                if (EndTime != value) //if (StartTime + length != value)
+                if (EndTime != value)
                 {
                     Length = Mathf.Max(value - StartTime, 0);
-                    BlendOut = Mathf.Clamp(BlendOut, 0, Mathf.Max(0, Length - BlendIn));
-                    BlendIn = Mathf.Clamp(BlendIn, 0, Mathf.Max(0, Length - BlendOut));
                 }
             }
         }
@@ -57,9 +60,18 @@ namespace TrackEditor
 
         public virtual float Length
         {
-            get => 0;
-            set { }
+            get => IsSignal ? 0 : length;
+            set
+            {
+                if (!IsSignal)
+                {
+                    length = value;
+                }
+            }
         }
+
+        public bool Crossed(float from, float to) => IsSignal && IsActive
+            && (from < to ? from < StartTime && StartTime <= to : to <= StartTime && StartTime < from);
 
         public virtual string info
         {
@@ -80,21 +92,6 @@ namespace TrackEditor
         public Clip GetNextClip()
         {
             return this.GetNextSibling<Clip>();
-        }
-
-        public float GetClipWeight(float time)
-        {
-            return this.GetWeight(time);
-        }
-
-        public float GetClipWeight(float time, float blendInOut)
-        {
-            return GetClipWeight(time, blendInOut, blendInOut);
-        }
-
-        public float GetClipWeight(float time, float blendIn, float blendOut)
-        {
-            return this.GetWeight(time, blendIn, blendOut);
         }
 
         public void TryMatchSubClipLength()
@@ -148,42 +145,4 @@ namespace TrackEditor
         #endregion
     }
 
-    [Serializable]
-    public abstract class ClipCrossBlend : Clip
-    {
-        [SerializeField, HideInInspector] private float blendIn;
-        [SerializeField, HideInInspector] private float blendOut;
-
-        protected ClipCrossBlend(float defaultBlend = 0)
-        {
-            blendIn = defaultBlend;
-            blendOut = defaultBlend;
-        }
-
-        public override bool CanCrossBlend => true;
-        public override float BlendIn
-        {
-            get => blendIn;
-            set => blendIn = Mathf.Clamp(value, 0, Mathf.Max(0, Length - blendOut));
-        }
-
-        public override float BlendOut
-        {
-            get => blendOut;
-            set => blendOut = Mathf.Clamp(value, 0, Mathf.Max(0, Length - blendIn));
-        }
-    }
-
-    [Serializable]
-    public abstract class ClipSignal : Clip
-    {
-        public bool Crossed(float from, float to) => IsActive
-            && (from < to ? from < StartTime && StartTime <= to : to <= StartTime && StartTime < from);
-
-        public sealed override float Length
-        {
-            get => 0;
-            set { }
-        }
-    }
 }

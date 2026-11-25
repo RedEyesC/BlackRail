@@ -27,7 +27,7 @@ namespace TrackEditor
             }
 
             var group = (Group)Activator.CreateInstance(type);
-            group.Name = "Group";
+            group.Name = type.RTGetAttribute<NameAttribute>(true)?.name ?? "Group";
             group.Parent = this;
             groups.Add(group);
             return group;

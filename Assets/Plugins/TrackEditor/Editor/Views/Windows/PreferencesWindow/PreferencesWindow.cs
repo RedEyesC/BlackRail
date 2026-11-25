@@ -28,10 +28,17 @@ namespace TrackEditor
             Prefs.timeStepMode = (Prefs.TimeStepMode)EditorGUILayout.EnumPopup(Lan.PreferencesTimeStepMode, Prefs.timeStepMode);
             if (Prefs.timeStepMode == Prefs.TimeStepMode.Seconds)
             {
+                var snapIntervals = Prefs.snapIntervals.ToList();
+                if (!snapIntervals.Contains(Prefs.snapInterval))
+                {
+                    snapIntervals.Add(Prefs.snapInterval);
+                    snapIntervals.Sort();
+                }
+
                 Prefs.snapInterval = EditorTools.CleanPopup<float>(
                     Lan.PreferencesSnapInterval,
                     Prefs.snapInterval,
-                    Prefs.snapIntervals.ToList()
+                    snapIntervals
                 );
             }
             else

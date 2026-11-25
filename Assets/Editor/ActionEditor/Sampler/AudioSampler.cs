@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using TrackEditor;
 using UnityEngine;
 
 namespace GameFramework.Action
@@ -105,7 +105,7 @@ namespace GameFramework.Action
                 return;
             }
 
-            if (Math.Abs(previousTime - time) < 0.0001f)
+            if (TimelineTime.AreEqual(previousTime, time))
             {
                 source.Stop();
                 return;

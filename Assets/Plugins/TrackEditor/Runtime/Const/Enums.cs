@@ -2,6 +2,12 @@
 
 namespace TrackEditor
 {
+    public enum ClipType
+    {
+        Range,
+        Signal,
+    }
+
     public enum WrapMode
     {
         Once,

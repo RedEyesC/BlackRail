@@ -14,6 +14,8 @@ namespace TrackEditor
     {
         private Clip action => (Clip)target;
 
+        protected virtual bool ShowClipType => true;
+
         public override void OnInspectorGUI()
         {
             ShowCommonInspector();
@@ -21,9 +23,18 @@ namespace TrackEditor
 
         protected void ShowCommonInspector(bool showBaseInspector = true)
         {
+            if (ShowClipType)
+            {
+                EditorGUI.BeginChangeCheck();
+                var clipType = (ClipType)EditorGUILayout.EnumPopup("触发方式", action.Type);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    action.Type = clipType;
+                }
+            }
+
             ShowErrors();
             ShowInOutControls();
-            ShowBlendingControls();
             if (showBaseInspector)
             {
                 base.OnInspectorGUI();
@@ -40,23 +51,15 @@ namespace TrackEditor
 
         void ShowInOutControls()
         {
-            var previousClip = action is ClipSignal ? null : action.GetPreviousSibling();
+            var previousClip = action.IsSignal ? null : action.GetPreviousSibling();
             var previousTime = previousClip != null ? previousClip.EndTime : action.Parent.StartTime;
-            if (action.CanCrossBlend(previousClip))
-            {
-                previousTime -= Mathf.Min(action.Length / 2, (previousClip.EndTime - previousClip.StartTime) / 2);
-            }
-
-            var nextClip = action is ClipSignal ? null : action.GetNextSibling();
+            var nextClip = action.IsSignal ? null : action.GetNextSibling();
             var nextTime = nextClip != null ? nextClip.StartTime : action.Parent.EndTime;
-            if (action.CanCrossBlend(nextClip))
-            {
-                nextTime += Mathf.Min(action.Length / 2, (nextClip.EndTime - nextClip.StartTime) / 2);
-            }
-
             var canScale = action.CanScale();
-            var doFrames = Prefs.timeStepMode == Prefs.TimeStepMode.Frames;
+            var playableStart = TimelineTime.RoundForComparison(action.Parent.StartTime);
+            var playableEnd = TimelineTime.RoundForComparison(action.Parent.EndTime);
 
+            EditorGUI.BeginChangeCheck();
             GUILayout.BeginVertical("box");
             GUILayout.BeginHorizontal();
 
@@ -67,52 +70,24 @@ namespace TrackEditor
             if (canScale)
             {
                 GUILayout.Label("IN", GUILayout.Width(30));
-                if (doFrames)
-                {
-                    _in *= Prefs.frameRate;
-                    _in = EditorGUILayout.DelayedIntField((int)_in, GUILayout.Width(80));
-                    _in *= (1f / Prefs.frameRate);
-                }
-                else
-                {
-                    _in = EditorGUILayout.DelayedFloatField(_in, GUILayout.Width(80));
-                }
+                _in = EditorTools.DelayedTimeField(GUIContent.none, _in, GUILayout.Width(80));
 
                 GUILayout.FlexibleSpace();
                 GUILayout.Label("◄");
-                if (doFrames)
-                {
-                    _length *= Prefs.frameRate;
-                    _length = EditorGUILayout.DelayedIntField((int)_length, GUILayout.Width(80));
-                    _length *= (1f / Prefs.frameRate);
-                }
-                else
-                {
-                    _length = EditorGUILayout.DelayedFloatField(_length, GUILayout.Width(80));
-                }
+                _length = EditorTools.DelayedTimeField(GUIContent.none, _length, GUILayout.Width(80));
 
                 GUILayout.Label("►");
                 GUILayout.FlexibleSpace();
 
                 GUILayout.Label("OUT", GUILayout.Width(30));
-                if (doFrames)
-                {
-                    _out *= Prefs.frameRate;
-                    _out = EditorGUILayout.DelayedIntField((int)_out, GUILayout.Width(80));
-                    _out *= (1f / Prefs.frameRate);
-                }
-                else
-                {
-                    _out = EditorGUILayout.DelayedFloatField(_out, GUILayout.Width(80));
-                }
+                _out = EditorTools.DelayedTimeField(GUIContent.none, _out, GUILayout.Width(80));
             }
 
             GUILayout.EndHorizontal();
 
             if (canScale)
             {
-                if (!TimelineTime.IsBefore(_in, action.Parent.StartTime)
-                    && !TimelineTime.IsAfter(_out, action.Parent.EndTime))
+                if (TimelineTime.RoundForComparison(_in) >= playableStart && TimelineTime.RoundForComparison(_out) <= playableEnd)
                 {
                     if (TimelineTime.IsAfter(_out, _in))
                     {
@@ -132,15 +107,16 @@ namespace TrackEditor
                 _out = _in;
             }
 
-            if (GUI.changed)
+            if (EditorGUI.EndChangeCheck()
+                && (_in != action.StartTime || _out != action.EndTime || _length != action.Length))
             {
                 if (_length != action.Length)
                 {
                     _out = _in + _length;
                 }
 
-                _in = Prefs.SnapTime(_in);
-                _out = Prefs.SnapTime(_out);
+                if (_in != action.StartTime) _in = Prefs.SnapTime(_in);
+                if (_out != action.EndTime) _out = Prefs.SnapTime(_out);
 
                 _in = Mathf.Clamp(_in, previousTime, _out);
                 _out = Mathf.Clamp(_out, _in, nextClip != null ? nextTime : float.PositiveInfinity);
@@ -149,28 +125,24 @@ namespace TrackEditor
                 action.EndTime = _out;
             }
 
-            if (TimelineTime.IsAfter(_in, action.Parent.EndTime))
+            var clipStart = TimelineTime.RoundForComparison(action.StartTime);
+            var clipEnd = TimelineTime.RoundForComparison(action.EndTime);
+            if (clipStart > playableEnd)
             {
                 EditorGUILayout.HelpBox(Lan.OverflowInvalid, MessageType.Warning);
             }
-            else
+            else if (clipEnd > playableEnd)
             {
-                if (TimelineTime.IsAfter(_out, action.Parent.EndTime))
-                {
-                    EditorGUILayout.HelpBox(Lan.EndTimeOverflowInvalid, MessageType.Warning);
-                }
+                EditorGUILayout.HelpBox(Lan.EndTimeOverflowInvalid, MessageType.Warning);
             }
 
-            if (TimelineTime.IsBefore(_out, action.Parent.StartTime))
+            if (clipEnd < playableStart)
             {
                 EditorGUILayout.HelpBox(Lan.OverflowInvalid, MessageType.Warning);
             }
-            else
+            else if (clipStart < playableStart)
             {
-                if (TimelineTime.IsBefore(_in, action.Parent.StartTime))
-                {
-                    EditorGUILayout.HelpBox(Lan.StartTimeOverflowInvalid, MessageType.Warning);
-                }
+                EditorGUILayout.HelpBox(Lan.StartTimeOverflowInvalid, MessageType.Warning);
             }
 
             GUILayout.EndVertical();
@@ -185,42 +157,6 @@ namespace TrackEditor
             rect.height = 16f;
 
             return GUI.HorizontalSlider(rect, value, min, max);
-        }
-
-        /// <summary>
-        /// 显示混合输入/输出控件
-        /// </summary>
-        void ShowBlendingControls()
-        {
-            var canBlendIn = action.CanBlendIn();
-            var canBlendOut = action.CanBlendOut();
-            if ((canBlendIn || canBlendOut) && action.Length > 0)
-            {
-                GUILayout.BeginVertical("box");
-                GUILayout.BeginHorizontal();
-                if (canBlendIn)
-                {
-                    GUILayout.BeginVertical();
-                    GUILayout.Label("Blend In");
-                    var max = action.Length - action.BlendOut;
-                    action.BlendIn = EditorGUILayout.Slider(action.BlendIn, 0, max);
-                    action.BlendIn = Mathf.Clamp(action.BlendIn, 0, max);
-                    GUILayout.EndVertical();
-                }
-
-                if (canBlendOut)
-                {
-                    GUILayout.BeginVertical();
-                    GUILayout.Label("Blend Out");
-                    var max = action.Length - action.BlendIn;
-                    action.BlendOut = EditorGUILayout.Slider(action.BlendOut, 0, max);
-                    action.BlendOut = Mathf.Clamp(action.BlendOut, 0, max);
-                    GUILayout.EndVertical();
-                }
-
-                GUILayout.EndHorizontal();
-                GUILayout.EndVertical();
-            }
         }
     }
 }

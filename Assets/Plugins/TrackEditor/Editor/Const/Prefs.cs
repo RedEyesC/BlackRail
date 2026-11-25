@@ -6,6 +6,7 @@ namespace TrackEditor
 {
     public static class Prefs
     {
+        private const int DefaultFrameRate = 30;
         public static readonly string CONFIG_PATH = $"{Application.dataPath}/../ProjectSettings/ActionEditor.txt";
 
         [Serializable]
@@ -20,14 +21,14 @@ namespace TrackEditor
         {
             public TimeStepMode TimeStepMode = TimeStepMode.Seconds;
             public float SnapInterval = 0.1f;
-            public int FrameRate = 30;
+            public int FrameRate = DefaultFrameRate;
 
             public int AutoSaveSeconds;
             public string SavePath = "Assets/";
             public bool ScrollWheelZooms = true;
 
             public bool MagnetSnapping = true;
-            public float TrackListLeftMargin = 180f;
+            public float TrackListLeftMargin = Styles.MIN_LEFT_MARGIN;
         }
 
         private static SerializedData _data;
@@ -130,7 +131,6 @@ namespace TrackEditor
                 if (data.TimeStepMode != value)
                 {
                     data.TimeStepMode = value;
-                    frameRate = value == TimeStepMode.Frames ? 30 : 10;
                     Save();
                 }
             }
@@ -138,13 +138,12 @@ namespace TrackEditor
 
         public static int frameRate
         {
-            get => data.FrameRate;
+            get => Array.IndexOf(frameRates, data.FrameRate) >= 0 ? data.FrameRate : DefaultFrameRate;
             set
             {
-                if (data.FrameRate != value)
+                if (Array.IndexOf(frameRates, value) >= 0 && data.FrameRate != value)
                 {
                     data.FrameRate = value;
-                    snapInterval = 1f / value;
                     Save();
                 }
             }
@@ -155,19 +154,39 @@ namespace TrackEditor
             get => Mathf.Max(data.SnapInterval, 0.001f);
             set
             {
-                if (Math.Abs(data.SnapInterval - value) > 0.001f)
+                var interval = Mathf.Max(value, 0.001f);
+                if (!TimelineTime.AreEqual(data.SnapInterval, interval))
                 {
-                    data.SnapInterval = Mathf.Max(value, 0.001f);
+                    data.SnapInterval = interval;
                     Save();
                 }
             }
         }
 
-        public static float SnapTime(float time)
+        internal static bool DisplayFrames => timeStepMode == TimeStepMode.Frames;
+
+        internal static int SecondsToFrames(float seconds) => Mathf.RoundToInt(seconds * frameRate);
+
+        internal static float FramesToSeconds(float frames) => frames / frameRate;
+
+        public static float SnapTime(float seconds) => GridUnitsToSeconds(Mathf.Round(SecondsToGridUnits(seconds)));
+
+        internal static float StepTime(float seconds, int direction)
         {
-            var interval = timeStepMode == TimeStepMode.Frames ? 1f / Mathf.Max(1, frameRate) : snapInterval;
-            return Mathf.Round(time / interval) * interval;
+            var units = SecondsToGridUnits(seconds);
+            var nearest = Mathf.Round(units);
+            if (TimelineTime.AreEqual(seconds, GridUnitsToSeconds(nearest)))
+            {
+                units = nearest;
+            }
+
+            var next = direction > 0 ? Mathf.Floor(units) + 1 : Mathf.Ceil(units) - 1;
+            return GridUnitsToSeconds(next);
         }
+
+        private static float SecondsToGridUnits(float seconds) => DisplayFrames ? seconds * frameRate : seconds / snapInterval;
+
+        private static float GridUnitsToSeconds(float units) => DisplayFrames ? FramesToSeconds(units) : units * snapInterval;
 
         static void Save()
         {

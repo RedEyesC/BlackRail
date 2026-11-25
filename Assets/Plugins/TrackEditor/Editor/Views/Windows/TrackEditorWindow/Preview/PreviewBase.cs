@@ -40,16 +40,14 @@ namespace TrackEditor
             internal readonly AnimationClip Animation;
             internal readonly float Start;
             internal readonly float Time;
-            internal readonly float Weight;
             internal readonly IEnumerable<EditorCurveBinding> Bindings;
 
-            internal AnimationSample(AnimationClip animation, float start, float time, float weight,
+            internal AnimationSample(AnimationClip animation, float start, float time,
                 IEnumerable<EditorCurveBinding> bindings)
             {
                 Animation = animation;
                 Start = start;
                 Time = time;
-                Weight = weight;
                 Bindings = bindings;
             }
         }
@@ -58,12 +56,10 @@ namespace TrackEditor
 
         private readonly Func<GameObject> resolveTarget;
         private readonly Func<string, AnimationClip> resolveAnimation;
-        private readonly Dictionary<Clip, AnimationSample> animationSamples = new Dictionary<Clip, AnimationSample>();
-        private readonly List<AnimationSample> trackSamples = new List<AnimationSample>();
-        private Clip lastAnimationClip;
-        private PlayableGraph blendGraph;
-        private AnimationMixerPlayable mixer;
-        private Animator blendAnimator;
+        private AnimationSample? queuedAnimation;
+        private PlayableGraph animationGraph;
+        private AnimationClipPlayable animationPlayable;
+        private Animator animationAnimator;
         private AnimationModeDriver driver;
         private bool sampling;
         private bool sampledAnimation;
@@ -92,8 +88,7 @@ namespace TrackEditor
                 BindTarget();
             }
 
-            animationSamples.Clear();
-            lastAnimationClip = null;
+            queuedAnimation = null;
             sampledAnimation = false;
             if (driver != null && AnimationMode.InAnimationMode(driver))
             {
@@ -115,12 +110,10 @@ namespace TrackEditor
             return true;
         }
 
-        public void QueueAnimation(Clip clip, AnimationClip animation, float start, float time,
+        public void QueueAnimation(AnimationClip animation, float start, float time,
             IEnumerable<EditorCurveBinding> bindings)
         {
-            animationSamples[clip] = new AnimationSample(animation, start, time,
-                clip.GetClipWeight(Time - clip.StartTime), bindings);
-            lastAnimationClip = clip;
+            queuedAnimation = new AnimationSample(animation, start, time, bindings);
         }
 
         private bool BeginAnimationSampling()
@@ -170,60 +163,34 @@ namespace TrackEditor
             }
         }
 
-        private void SampleQueuedAnimations()
+        private void SampleQueuedAnimation()
         {
-            if (lastAnimationClip == null || !BeginAnimationSampling())
+            if (!queuedAnimation.HasValue || !BeginAnimationSampling())
             {
-                DestroyBlendGraph();
+                DestroyAnimationGraph();
                 return;
             }
 
-            var sample = animationSamples[lastAnimationClip];
-            trackSamples.Clear();
-            var totalWeight = 0f;
-            foreach (var clip in lastAnimationClip.Parent.Clips)
-            {
-                if (animationSamples.TryGetValue(clip, out var candidate) && candidate.Weight > 0)
-                {
-                    trackSamples.Add(candidate);
-                    totalWeight += candidate.Weight;
-                }
-            }
-
-            if (trackSamples.Count == 0)
-            {
-                trackSamples.Add(sample);
-            }
-
+            var sample = queuedAnimation.Value;
             var animator = Target.GetComponent<Animator>();
-            var useMixer = animator != null && animator.isActiveAndEnabled
-                && trackSamples.TrueForAll(candidate => !candidate.Animation.legacy);
-            if (useMixer)
+            var useGraph = animator != null && animator.isActiveAndEnabled && !sample.Animation.legacy;
+            if (useGraph)
             {
-                PrepareMixer(animator);
-                for (var i = 0; i < trackSamples.Count; i++)
-                {
-                    AddBindings(trackSamples[i].Bindings);
-                    mixer.SetInputWeight(i, trackSamples.Count == 1 ? 1 : trackSamples[i].Weight / totalWeight);
-                }
+                PrepareAnimationGraph(animator, sample.Animation);
             }
             else
             {
-                DestroyBlendGraph();
-                foreach (var candidate in trackSamples)
-                {
-                    if (candidate.Weight > sample.Weight) sample = candidate;
-                }
+                DestroyAnimationGraph();
             }
 
-            if (!useMixer) AddBindings(sample.Bindings);
+            AddBindings(sample.Bindings);
             var root = Target.transform;
             root.SetPositionAndRotation(OriginPosition, OriginRotation);
-            SamplePose(sample, useMixer, atStart: true);
+            SamplePose(sample.Animation, sample.Start, useGraph);
             var position = root.position;
             var rotation = root.rotation;
             root.SetPositionAndRotation(OriginPosition, OriginRotation);
-            SamplePose(sample, useMixer, atStart: false);
+            SamplePose(sample.Animation, sample.Time, useGraph);
             ApplyRootOffset(root, position, rotation);
         }
 
@@ -235,72 +202,54 @@ namespace TrackEditor
                 OriginRotation * (inverse * root.rotation));
         }
 
-        private void PrepareMixer(Animator animator)
+        private void PrepareAnimationGraph(Animator animator, AnimationClip animation)
         {
-            if (blendGraph.IsValid() && blendAnimator == animator && mixer.GetInputCount() == trackSamples.Count)
+            if (animationGraph.IsValid() && animationAnimator == animator && animationPlayable.GetAnimationClip() == animation)
             {
-                var i = 0;
-                while (i < trackSamples.Count
-                    && ((AnimationClipPlayable)mixer.GetInput(i)).GetAnimationClip() == trackSamples[i].Animation)
-                {
-                    i++;
-                }
-
-                if (i == trackSamples.Count) return;
-            }
-
-            DestroyBlendGraph();
-            blendAnimator = animator;
-            blendGraph = PlayableGraph.Create("TrackEditor Preview Blend");
-            blendGraph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
-            mixer = AnimationMixerPlayable.Create(blendGraph, trackSamples.Count);
-            for (var i = 0; i < trackSamples.Count; i++)
-            {
-                var input = AnimationClipPlayable.Create(blendGraph, trackSamples[i].Animation);
-                input.SetSpeed(0);
-                input.SetApplyFootIK(false);
-                blendGraph.Connect(input, 0, mixer, i);
-            }
-
-            var output = AnimationPlayableOutput.Create(blendGraph, "Animation", animator);
-            output.SetSourcePlayable(mixer);
-        }
-
-        private void SamplePose(AnimationSample sample, bool useMixer, bool atStart)
-        {
-            if (!useMixer)
-            {
-                AnimationMode.SampleAnimationClip(Target, sample.Animation, atStart ? sample.Start : sample.Time);
-                sampledAnimation = true;
                 return;
             }
 
-            for (var i = 0; i < trackSamples.Count; i++)
+            DestroyAnimationGraph();
+            animationAnimator = animator;
+            animationGraph = PlayableGraph.Create("TrackEditor Preview");
+            animationGraph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+            animationPlayable = AnimationClipPlayable.Create(animationGraph, animation);
+            animationPlayable.SetSpeed(0);
+            animationPlayable.SetApplyFootIK(false);
+            var output = AnimationPlayableOutput.Create(animationGraph, "Animation", animator);
+            output.SetSourcePlayable(animationPlayable);
+        }
+
+        private void SamplePose(AnimationClip animation, float time, bool useGraph)
+        {
+            if (useGraph)
             {
-                mixer.GetInput(i).SetTime(atStart ? trackSamples[i].Start : trackSamples[i].Time);
+                animationPlayable.SetTime(time);
+                AnimationMode.SamplePlayableGraph(animationGraph, 0, 0);
+            }
+            else
+            {
+                AnimationMode.SampleAnimationClip(Target, animation, time);
             }
 
-            AnimationMode.SamplePlayableGraph(blendGraph, 0, 0);
             sampledAnimation = true;
         }
 
-        private void DestroyBlendGraph()
+        private void DestroyAnimationGraph()
         {
-            if (blendGraph.IsValid()) blendGraph.Destroy();
-            blendAnimator = null;
+            if (animationGraph.IsValid()) animationGraph.Destroy();
+            animationAnimator = null;
         }
 
         internal void EndFrame()
         {
             try
             {
-                SampleQueuedAnimations();
+                SampleQueuedAnimation();
             }
             finally
             {
-                lastAnimationClip = null;
-                animationSamples.Clear();
-                trackSamples.Clear();
+                queuedAnimation = null;
                 EndAnimationSampling();
             }
         }
@@ -321,10 +270,8 @@ namespace TrackEditor
         public void Dispose()
         {
             EndAnimationSampling();
-            DestroyBlendGraph();
-            animationSamples.Clear();
-            trackSamples.Clear();
-            lastAnimationClip = null;
+            DestroyAnimationGraph();
+            queuedAnimation = null;
             if (driver != null)
             {
                 if (AnimationMode.InAnimationMode(driver))

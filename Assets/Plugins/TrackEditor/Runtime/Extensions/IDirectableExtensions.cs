@@ -1,6 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Reflection;
+﻿using System.Linq;
 using UnityEngine;
 
 namespace TrackEditor
@@ -22,50 +20,13 @@ namespace TrackEditor
             return time - directable.StartTime;
         }
 
-        public static bool CanCrossBlend(this Clip directable, Clip other)
-        {
-            if (directable == null || other == null)
-            {
-                return false;
-            }
-
-            if ((directable.CanCrossBlend || other.CanCrossBlend) && directable.GetType() == other.GetType())
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        public static bool CanBlendIn(this Clip directable)
-        {
-            var blendInProp = directable.GetType().GetProperty("BlendIn", BindingFlags.Instance | BindingFlags.Public);
-            return blendInProp != null
-                && blendInProp.CanWrite
-                && Math.Abs(directable.BlendIn - (-1)) > 0.0001f
-                && blendInProp.DeclaringType != typeof(DirectableAsset);
-        }
-
-        public static bool CanBlendOut(this Clip directable)
-        {
-            var blendOutProp = directable.GetType().GetProperty("BlendOut", BindingFlags.Instance | BindingFlags.Public);
-            return blendOutProp != null
-                && blendOutProp.CanWrite
-                && Math.Abs(directable.BlendOut - (-1)) > 0.0001f
-                && blendOutProp.DeclaringType != typeof(DirectableAsset);
-        }
-
-        public static bool CanScale(this Clip directable)
-        {
-            var lengthProp = directable.GetType().GetProperty("Length", BindingFlags.Instance | BindingFlags.Public);
-            return !(directable is ClipSignal) && lengthProp != null && lengthProp.CanWrite && lengthProp.DeclaringType != typeof(Clip);
-        }
+        public static bool CanScale(this Clip directable) => !directable.IsSignal;
 
         public static Clip GetPreviousSibling(this Clip directable)
         {
             if (directable.Parent != null)
             {
-                return directable.Parent.Clips.LastOrDefault(d => d != directable && !(d is ClipSignal) && TimelineTime.IsBefore(d.StartTime, directable.StartTime));
+                return directable.Parent.Clips.LastOrDefault(d => d != directable && !d.IsSignal && TimelineTime.IsBefore(d.StartTime, directable.StartTime));
             }
 
             return null;
@@ -87,64 +48,10 @@ namespace TrackEditor
         {
             if (directable.Parent != null)
             {
-                return directable.Parent.Clips.FirstOrDefault(d => d != directable && !(d is ClipSignal) && TimelineTime.IsAfter(d.StartTime, directable.StartTime));
+                return directable.Parent.Clips.FirstOrDefault(d => d != directable && !d.IsSignal && TimelineTime.IsAfter(d.StartTime, directable.StartTime));
             }
 
             return null;
-        }
-
-        public static float GetCrossBlendIn(this Clip clip, Clip previous) =>
-            clip.CanCrossBlend(previous) && previous.IsActive ? Mathf.Max(0, previous.EndTime - clip.StartTime) : 0;
-
-        public static float GetCrossBlendOut(this Clip clip, Clip next) =>
-            clip.CanCrossBlend(next) && next.IsActive ? Mathf.Max(0, clip.EndTime - next.StartTime) : 0;
-
-        public static Vector2 GetBlendDurations(this Clip clip, float overlapIn, float overlapOut)
-        {
-            return new Vector2(
-                overlapIn > 0 ? overlapIn : Mathf.Min(clip.BlendIn, Mathf.Max(0, clip.Length - overlapOut)),
-                overlapOut > 0 ? overlapOut : Mathf.Min(clip.BlendOut, Mathf.Max(0, clip.Length - overlapIn)));
-        }
-
-        ///The weight at specified local time based on its blend properties.
-        public static float GetWeight(this Clip directable, float time)
-        {
-            var blend = directable.GetBlendDurations(
-                directable.GetCrossBlendIn(directable.GetPreviousSibling()),
-                directable.GetCrossBlendOut(directable.GetNextSibling()));
-            return GetWeight(directable, time, blend.x, blend.y);
-        }
-
-        ///The weight at specified local time based on provided override blend in/out properties
-        public static float GetWeight(this Clip directable, float time, float blendInOut)
-        {
-            return GetWeight(directable, time, blendInOut, blendInOut);
-        }
-
-        public static float GetWeight(this Clip directable, float time, float blendIn, float blendOut)
-        {
-            var length = GetLength(directable);
-            if (time <= 0)
-            {
-                return blendIn <= 0 ? 1 : 0;
-            }
-
-            if (time >= length)
-            {
-                return blendOut <= 0 ? 1 : 0;
-            }
-
-            if (time < blendIn)
-            {
-                return time / blendIn;
-            }
-
-            if (time > length - blendOut)
-            {
-                return (length - time) / blendOut;
-            }
-
-            return 1;
         }
 
         /// <summary>

@@ -15,6 +15,29 @@ namespace TrackEditor
             public string category;
             public Type[] attachableTypes;
             public bool isUnique;
+
+            public string MenuPath => string.IsNullOrEmpty(category) ? name : category + "/" + name;
+        }
+
+        internal static float DelayedTimeField(GUIContent label, float seconds, params GUILayoutOption[] options)
+        {
+            if (Prefs.DisplayFrames)
+            {
+                var frame = Prefs.SecondsToFrames(seconds);
+                var editedFrame = EditorGUILayout.DelayedIntField(label, frame, options);
+                return editedFrame == frame ? seconds : Prefs.FramesToSeconds(editedFrame);
+            }
+
+            var editedSeconds = EditorGUILayout.DelayedFloatField(label, seconds, options);
+            return float.IsNaN(editedSeconds) || float.IsInfinity(editedSeconds) ? seconds : editedSeconds;
+        }
+
+        internal static List<TypeMetaInfo> GetAttachableTypes(Type baseType, DirectableAsset parent)
+        {
+            var parentType = parent.GetType();
+            return GetTypeMetaDerivedFrom(baseType)
+                .Where(info => DirectableAsset.CanAttach(info.type, parentType))
+                .ToList();
         }
 
         public static void BoldSeparator()

@@ -20,8 +20,7 @@ namespace TrackEditor
             GUI.Box(topMiddleRect, string.Empty, Styles.timeBoxStyle);
             GUI.color = Color.white;
 
-            var doFrames = Prefs.timeStepMode == Prefs.TimeStepMode.Frames;
-            var frameRate = Mathf.Max(1, Prefs.frameRate);
+            var doFrames = Prefs.DisplayFrames;
             var intervalIndex = 0;
             while (intervalIndex < TickIntervals.Length - 1 && TickIntervals[intervalIndex] / ViewTime * topMiddleRect.width <= 50)
             {
@@ -32,8 +31,8 @@ namespace TrackEditor
             var timeStep = intervalIndex > 0 ? TickIntervals[intervalIndex - 1] : 0.01f;
             if (doFrames)
             {
-                interval = Mathf.Max(1, Mathf.RoundToInt(interval * frameRate)) / (float)frameRate;
-                timeStep = 1f / frameRate;
+                interval = Prefs.FramesToSeconds(Mathf.Max(1, Prefs.SecondsToFrames(interval)));
+                timeStep = Prefs.FramesToSeconds(1);
             }
 
             view.TickInterval = interval;
@@ -61,7 +60,7 @@ namespace TrackEditor
                     var time = tick * interval;
                     var x = TimeToPos(time);
                     EditorGUI.DrawRect(new Rect(x, Styles.TOP_MARGIN - 8, 1, 8), tickColor);
-                    var label = doFrames ? Mathf.RoundToInt(time * frameRate).ToString() : time.ToString("0.00");
+                    var label = doFrames ? Prefs.SecondsToFrames(time).ToString() : time.ToString("0.00");
                     GUI.Label(new Rect(x + 3, -2, 55, Styles.TOP_MARGIN), label, EditorStyles.miniLabel);
                 }
 

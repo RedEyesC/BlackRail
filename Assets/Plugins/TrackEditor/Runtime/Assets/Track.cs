@@ -6,7 +6,6 @@ using UnityEngine;
 namespace TrackEditor
 {
     [Serializable]
-    [Attachable(typeof(Group))]
     public abstract class Track : DirectableAsset
     {
         [NonSerialized, HideInInspector]
@@ -69,7 +68,6 @@ namespace TrackEditor
 
         public override float EndTime => Parent != null ? Parent.EndTime : 0;
 
-        public override bool CanCrossBlend => false;
 
         public virtual float ShowHeight => 30f;
 
@@ -108,8 +106,8 @@ namespace TrackEditor
         {
             clip.Parent = this;
             clip.StartTime = time;
-            var next = Clips.FirstOrDefault(other => !(other is ClipSignal) && other.StartTime > clip.StartTime);
-            if (next != null && !(clip is ClipSignal))
+            var next = Clips.FirstOrDefault(other => !other.IsSignal && other.StartTime > clip.StartTime);
+            if (next != null && !clip.IsSignal)
             {
                 clip.EndTime = Mathf.Min(clip.EndTime, next.StartTime);
             }

@@ -14,15 +14,15 @@ namespace TrackEditor
         private readonly PreviewContext context;
         private readonly List<IDirectableTimePointer> pointers = new List<IDirectableTimePointer>();
         private readonly List<StartTimePointer> activeRanges = new List<StartTimePointer>();
-        private List<ClipSignal> signals = new List<ClipSignal>();
-        private readonly Dictionary<ClipSignal, PreviewBase> signalPreviews = new Dictionary<ClipSignal, PreviewBase>();
+        private List<Clip> signals = new List<Clip>();
+        private readonly Dictionary<Clip, PreviewBase> signalPreviews = new Dictionary<Clip, PreviewBase>();
 
         private bool hasSampled;
         private bool previewDirty = true;
         private bool rebuild = true;
         private float currentTime;
 
-        public event Action<ClipSignal, bool> SignalCrossed;
+        public event Action<Clip, bool> SignalCrossed;
 
         public AssetPlayer(Asset asset, PreviewContext context = null)
         {
@@ -178,7 +178,7 @@ namespace TrackEditor
                         }
                     }
 
-                    if (item is ClipSignal signal)
+                    if (item is Clip signal && signal.IsSignal)
                     {
                         signals.Add(signal);
                         if (preview != null) signalPreviews.Add(signal, preview);

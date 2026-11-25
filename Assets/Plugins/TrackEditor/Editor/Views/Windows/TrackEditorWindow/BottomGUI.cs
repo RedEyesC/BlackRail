@@ -49,10 +49,11 @@ namespace TrackEditor
                 DrawTimeRangeScroller(sliderRect, ref timeMin, ref timeMax);
             }
 
-            if (!Mathf.Approximately(timeMin, ViewTimeMin) || !Mathf.Approximately(timeMax, ViewTimeMax))
+            var minChanged = !TimelineTime.AreEqual(timeMin, ViewTimeMin);
+            var maxChanged = !TimelineTime.AreEqual(timeMax, ViewTimeMax);
+            if (minChanged || maxChanged)
             {
-                var isDraggingTimeMin = !Mathf.Approximately(timeMin, ViewTimeMin) && Mathf.Approximately(timeMax, ViewTimeMax);
-                SetViewTimeRange(timeMin, timeMax, isDraggingTimeMin);
+                SetViewTimeRange(timeMin, timeMax, minChanged && !maxChanged);
             }
 
             if (currentEvent.type == EventType.Repaint)

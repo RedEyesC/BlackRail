@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using TrackEditor.Draws;
 using UnityEditor;
 using UnityEngine;
@@ -36,7 +35,7 @@ namespace TrackEditor
 
             if (isResizingLeftMargin)
             {
-                view.LeftMargin = Mathf.Clamp(e.mousePosition.x + 2, 230, 400);
+                view.LeftMargin = Styles.ClampLeftMargin(e.mousePosition.x + 2);
                 WillRepaint = true;
             }
 
@@ -121,45 +120,23 @@ namespace TrackEditor
 
         private void DrawGroupContextMenu()
         {
-            var attachableTypeInfos = new List<EditorTools.TypeMetaInfo>();
-
-            foreach (var group in EditorTools.GetTypeMetaDerivedFrom(typeof(Group)))
+            var types = EditorTools.GetAttachableTypes(typeof(Group), asset);
+            if (types.Count == 0)
             {
-                if (!group.attachableTypes.Any(type => type.IsAssignableFrom(asset.GetType())))
+                return;
+            }
+
+            var menu = new GenericMenu();
+            foreach (var info in types)
+            {
+                menu.AddItem(new GUIContent(info.MenuPath), false, () =>
                 {
-                    continue;
-                }
-
-                attachableTypeInfos.Add(group);
+                    SelectedObject = asset.AddGroup(info.type);
+                    NotifyTimelineChanged(rebuildPreview: true);
+                });
             }
 
-            if (attachableTypeInfos.Count > 1)
-            {
-                var menu = new GenericMenu();
-                foreach (var _info in attachableTypeInfos)
-                {
-                    var info = _info;
-                    var category = string.IsNullOrEmpty(info.category) ? string.Empty : (info.category + "/");
-                    var tName = info.name;
-                    menu.AddItem(
-                        new GUIContent(category + tName),
-                        false,
-                        () =>
-                        {
-                            SelectedObject = asset.AddGroup(info.type);
-                            NotifyTimelineChanged(rebuildPreview: true);
-                        }
-                    );
-                }
-
-                menu.ShowAsContext();
-            }
-            else if (attachableTypeInfos.Count > 0)
-            {
-                var info = attachableTypeInfos[0];
-                SelectedObject = asset.AddGroup(info.type);
-                NotifyTimelineChanged(rebuildPreview: true);
-            }
+            menu.ShowAsContext();
         }
 
         private void ShowListGroups(Event e, ref float nextYPos)
@@ -221,36 +198,20 @@ namespace TrackEditor
                 if ((e.type == EventType.ContextClick && groupRect.Contains(e.mousePosition)) || plusClicked)
                 {
                     var menu = new GenericMenu();
-                    foreach (var _info in EditorTools.GetTypeMetaDerivedFrom(typeof(Track)))
+                    foreach (var info in EditorTools.GetAttachableTypes(typeof(Track), group))
                     {
-                        var info = _info;
-                        if (info.attachableTypes == null || !info.attachableTypes.Contains(group.GetType()))
+                        var path = new GUIContent($"{Lan.MenuAddTrack}/{info.MenuPath}");
+                        if (!group.IsLocked && group.CanAddTrackOfType(info.type))
                         {
-                            continue;
-                        }
-
-                        var canAdd = !info.isUnique || (group.Tracks.Find(track => track.GetType() == info.type) == null);
-                        if (group.IsLocked)
-                        {
-                            canAdd = false;
-                        }
-
-                        var finalPath = string.IsNullOrEmpty(info.category) ? info.name : info.category + "/" + info.name;
-                        if (canAdd)
-                        {
-                            menu.AddItem(
-                                new GUIContent($"{Lan.MenuAddTrack}/" + finalPath),
-                                false,
-                                () =>
-                                {
-                                    SelectedObject = group.AddTrack(info.type);
-                                    NotifyTimelineChanged(rebuildPreview: true);
-                                }
-                            );
+                            menu.AddItem(path, false, () =>
+                            {
+                                SelectedObject = group.AddTrack(info.type);
+                                NotifyTimelineChanged(rebuildPreview: true);
+                            });
                         }
                         else
                         {
-                            menu.AddDisabledItem(new GUIContent($"{Lan.MenuAddTrack}/" + finalPath));
+                            menu.AddDisabledItem(path);
                         }
                     }
 

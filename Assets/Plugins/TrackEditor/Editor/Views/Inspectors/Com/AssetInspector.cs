@@ -1,4 +1,5 @@
 ﻿using UnityEditor;
+using UnityEngine;
 
 namespace TrackEditor
 {
@@ -15,7 +16,13 @@ namespace TrackEditor
 
         protected void ShowCommonInspector(bool showBaseInspector = true)
         {
-            // action.version = EditorGUILayout.TextField("Name", action.version);
+            var label = new GUIContent(Prefs.DisplayFrames ? "总长度（帧）" : "总长度（秒）");
+            EditorGUI.BeginChangeCheck();
+            var length = EditorTools.DelayedTimeField(label, action.Length);
+            if (EditorGUI.EndChangeCheck() && length != action.Length)
+            {
+                action.Length = length;
+            }
         }
     }
 }

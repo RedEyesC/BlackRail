@@ -7,7 +7,7 @@ namespace TrackEditor
 {
     internal enum ItemDragType
     {
-        None, Position, TrimStart, TrimEnd, BlendIn, BlendOut, ScaleStart, ScaleEnd, Track
+        None, Position, TrimStart, TrimEnd, ScaleStart, ScaleEnd, Track
     }
 
     internal sealed class ItemDragger
@@ -18,42 +18,29 @@ namespace TrackEditor
             internal readonly float Start;
             internal readonly float Length;
             internal float End => Start + Length;
-            internal readonly float BlendIn;
-            internal readonly float BlendOut;
 
             internal Snapshot(Clip clip)
             {
                 Clip = clip;
                 Start = clip.StartTime;
                 Length = clip.Length;
-                BlendIn = clip.BlendIn;
-                BlendOut = clip.BlendOut;
             }
 
-            internal bool Apply(float start, float length, float blendIn, float blendOut)
+            internal bool Apply(float start, float length)
             {
-                if (Clip.StartTime == start && Clip.Length == length && Clip.BlendIn == blendIn && Clip.BlendOut == blendOut)
+                if (Clip.StartTime == start && Clip.Length == length)
                 {
                     return false;
                 }
 
                 Clip.StartTime = start;
                 Clip.Length = length;
-                Clip.BlendIn = 0;
-                Clip.BlendOut = blendOut;
-                Clip.BlendIn = blendIn;
                 return true;
             }
 
-            internal bool SetRange(float start, float end)
-            {
-                var length = end - start;
-                var blendIn = Mathf.Clamp(BlendIn, 0, length);
-                var blendOut = Mathf.Clamp(BlendOut, 0, length - blendIn);
-                return Apply(start, length, blendIn, blendOut);
-            }
+            internal bool SetRange(float start, float end) => Apply(start, end - start);
 
-            internal bool Restore() => Apply(Start, Length, BlendIn, BlendOut);
+            internal bool Restore() => Apply(Start, Length);
         }
 
         private Snapshot[] items;
@@ -92,7 +79,7 @@ namespace TrackEditor
             rangeStart = items.Min(item => item.Start);
             rangeEnd = items.Max(item => item.End);
 
-            if (!(clip is ClipSignal))
+            if (!clip.IsSignal)
             {
                 var clips = clip.Parent.Clips;
                 var index = clips.IndexOf(clip);
@@ -139,9 +126,6 @@ namespace TrackEditor
                 case ItemDragType.ScaleStart:
                 case ItemDragType.ScaleEnd:
                     return Scale(delta, snapToGrid, magnet, tolerance);
-                case ItemDragType.BlendIn:
-                case ItemDragType.BlendOut:
-                    return Blend(delta);
                 default:
                     return false;
             }
@@ -206,7 +190,7 @@ namespace TrackEditor
             {
                 if (previous != null)
                 {
-                    minimum = Mathf.Max(minimum, previous.EndTime - primary.Start - AllowedOverlap(primary, previous));
+                    minimum = Mathf.Max(minimum, previous.EndTime - primary.Start);
                 }
 
                 foreach (var follower in followers) limit = Mathf.Min(limit, duration - follower.End);
@@ -263,7 +247,7 @@ namespace TrackEditor
                 }
             }
 
-            if (!Mathf.Approximately(delta, wanted)) SnappedTime = null;
+            if (!TimelineTime.AreEqual(delta, wanted)) SnappedTime = null;
             foreach (var item in items) moved |= MoveItem(item, delta);
             if (ripple)
             {
@@ -274,14 +258,14 @@ namespace TrackEditor
         }
 
         private static bool MoveItem(Snapshot item, float delta) =>
-            item.Apply(item.Start + delta, item.Length, item.BlendIn, item.BlendOut);
+            item.Apply(item.Start + delta, item.Length);
 
         private bool Trim(float delta, bool grid, bool magnet, float tolerance)
         {
             var start = Type == ItemDragType.TrimStart;
             var wanted = SnapBoundary((start ? primary.Start : primary.End) + delta, grid, magnet, tolerance);
-            var min = start ? previous?.EndTime - AllowedOverlap(primary, previous) ?? 0 : primary.Start;
-            var max = start ? primary.End : next?.StartTime + AllowedOverlap(primary, next) ?? duration;
+            var min = start ? previous?.EndTime ?? 0 : primary.Start;
+            var max = start ? primary.End : next?.StartTime ?? duration;
             var time = Mathf.Clamp(wanted, Mathf.Min(min, primary.Start), Mathf.Max(max, primary.End));
             if (time != wanted) SnappedTime = null;
             return primary.SetRange(start ? time : primary.Start, start ? primary.End : time);
@@ -300,12 +284,12 @@ namespace TrackEditor
             var maximum = start ? rangeEnd : Mathf.Clamp(wanted, rangeStart, Mathf.Max(rangeEnd, duration));
             foreach (var item in items)
             {
-                if (item.Clip is ClipSignal) continue;
+                if (item.Clip.IsSignal) continue;
                 var a = ScaleTime(item.Start, minimum, maximum);
                 var b = ScaleTime(item.End, minimum, maximum);
                 foreach (var other in item.Clip.Parent.Clips)
                 {
-                    if (BlocksRange(other) && RangesConflict(item, a, b, other))
+                    if (BlocksRange(other) && a < other.EndTime && b > other.StartTime)
                     {
                         SnappedTime = null;
                         return false;
@@ -323,43 +307,21 @@ namespace TrackEditor
             return changed;
         }
 
-        private bool Blend(float delta)
-        {
-            var length = primary.Length;
-            var blendIn = Type == ItemDragType.BlendIn
-                ? Mathf.Clamp(primary.BlendIn + delta, 0, length - primary.BlendOut)
-                : primary.BlendIn;
-            var blendOut = Type == ItemDragType.BlendOut
-                ? Mathf.Clamp(primary.BlendOut - delta, 0, length - primary.BlendIn)
-                : primary.BlendOut;
-            return primary.Apply(primary.Start, primary.Length, blendIn, blendOut);
-        }
-
         private float ScaleTime(float time, float min, float max) =>
             Mathf.Lerp(min, max, Mathf.InverseLerp(rangeStart, rangeEnd, time));
 
-        private static float AllowedOverlap(Snapshot item, Clip other) =>
-            item.Clip.CanCrossBlend(other) ? Mathf.Min(item.Length, other.Length) * 0.5f : 0;
-
-        private bool BlocksRange(Clip other) => !(other is ClipSignal) && !moving.Contains(other);
-
-        private static bool RangesConflict(Snapshot item, float start, float end, Clip other)
-        {
-            var allowance = item.Clip.CanCrossBlend(other) ? Mathf.Min(end - start, other.Length) * 0.5f : 0;
-            return start < other.EndTime - allowance && end > other.StartTime + allowance;
-        }
+        private bool BlocksRange(Clip other) => !other.IsSignal && !moving.Contains(other);
 
         private Vector2[] BuildBlockedOffsets()
         {
             var obstacles = new List<Vector2>();
             foreach (var item in items)
             {
-                if (item.Clip is ClipSignal) continue;
+                if (item.Clip.IsSignal) continue;
                 foreach (var other in item.Clip.Parent.Clips)
                 {
                     if (!BlocksRange(other)) continue;
-                    var allowance = AllowedOverlap(item, other);
-                    obstacles.Add(new Vector2(other.StartTime + allowance - item.End, other.EndTime - allowance - item.Start));
+                    obstacles.Add(new Vector2(other.StartTime - item.End, other.EndTime - item.Start));
                 }
             }
 

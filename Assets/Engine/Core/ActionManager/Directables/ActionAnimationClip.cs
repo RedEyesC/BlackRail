@@ -3,18 +3,20 @@ using UnityEngine;
 
 namespace GameFramework.Action
 {
+    [Name("动画片段")]
     [Color(0.48f, 0.71f, 0.84f)]
     [Attachable(typeof(ActionAnimationTrack))]
     [System.Serializable]
-    public class ActionAnimationClip : ClipCrossBlend, ISubClipContainable
+    public class ActionAnimationClip : Clip, ISubClipContainable
     {
-        [SerializeField]
-        [HideInInspector]
-        private float length = 1f;
+        public override ClipType Type
+        {
+            get => ClipType.Range;
+            set { }
+        }
 
-        public ActionAnimationClip() : base(0.25f) { }
-
-        public string resPath = "";
+        [TimelineAssetReference(typeof(AnimationClip))]
+        public TimelineAssetReference anim;
 
         [Range(0.1f, 10f)]
         public float playbackSpeed = 1;
@@ -26,12 +28,6 @@ namespace GameFramework.Action
         [System.NonSerialized] private float? resolvedSourceLength;
 
         public void SetResolvedSourceLength(float? length) => resolvedSourceLength = length;
-
-        public override float Length
-        {
-            get => length;
-            set => length = value;
-        }
 
         public virtual float SubClipOffset
         {

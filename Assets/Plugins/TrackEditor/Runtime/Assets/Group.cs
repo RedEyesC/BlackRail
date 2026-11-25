@@ -6,7 +6,6 @@ using UnityEngine;
 namespace TrackEditor
 {
     [Serializable]
-    [Attachable(typeof(Asset))]
     public class Group : DirectableAsset
     {
         [NonSerialized, HideInInspector]
@@ -97,7 +96,9 @@ namespace TrackEditor
             }
 
             var track = (Track)Activator.CreateInstance(type);
-            track.Name = string.IsNullOrEmpty(trackName) ? type.Name : trackName;
+            track.Name = string.IsNullOrEmpty(trackName)
+                ? type.RTGetAttribute<NameAttribute>(true)?.name ?? type.Name
+                : trackName;
             track.Parent = this;
             Tracks.Add(track);
             return track;
