@@ -1,0 +1,29 @@
+{
+  "format": "TrackEditor",
+  "version": 1,
+  "type": "GameEditor.ActionEditor.ActionAsset",
+  "data": {"displayName":"New ActionAsset","length":2.5999999046325685},
+  "groups": [
+    {
+      "type": "GameEditor.ActionEditor.ActionGroup",
+      "data": {"displayName":"Group","isCollapsed":false,"active":true,"isLocked":false},
+      "tracks": [
+        {
+          "type": "GameFramework.Action.ActionAnimationTrack",
+          "data": {"displayName":"动画轨道","active":true,"isLocked":false,"color":{"r":1.0,"g":1.0,"b":1.0,"a":1.0}},
+          "clips": [
+            {
+              "type": "GameFramework.Action.ActionAnimationClip",
+              "data": {"displayName":"","startTime":0.0,"length":2.6000001430511476,"anim":{"guid":"2227f4239f8991a4c91d677be8acf83c","fileId":7400000},"playbackSpeed":1.0,"clipOffset":0.0,"subClipLength":0.0}
+            }
+          ]
+        },
+        {
+          "type": "GameFramework.Action.ActionEventTrack",
+          "data": {"displayName":"事件轨道","active":true,"isLocked":false,"color":{"r":1.0,"g":1.0,"b":1.0,"a":1.0}},
+          "clips": []
+        }
+      ]
+    }
+  ]
+}
