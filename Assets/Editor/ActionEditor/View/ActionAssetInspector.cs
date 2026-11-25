@@ -1,51 +1,47 @@
-﻿using MotionMatching;
+using System.Runtime.CompilerServices;
+using TrackEditor;
 using UnityEditor;
+using UnityEditor.Callbacks;
 using UnityEngine;
 
 namespace GameEditor.ActionEditor
 {
-    [CustomEditor(typeof(ActionAsset))]
-    internal class ActionAssetInspector : Editor
+    [InitializeOnLoad]
+    internal static class ActionAssetInspector
     {
-        public override void OnInspectorGUI()
+        private sealed class Document
         {
-            DrawDefaultInspector();
+            internal readonly bool IsActionAsset;
 
-            EditorGUILayout.Space(20);
-
-            if (GUILayout.Button("Open Action Editor"))
-            {
-                if (target != null)
-                {
-                    var path = AssetDatabase.GetAssetPath(target);
-                    var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(path);
-                    Selection.activeObject = asset != null ? asset : target as UnityEngine.Object;
-                }
-
-                ActionEditorWindow.ShowWindow<ActionEditorWindow>();
-            }
+            internal Document(TextAsset source) => IsActionAsset = AssetStorage.IsTimeline<ActionAsset>(source);
         }
 
-        internal class DoCreateActionAsset : UnityEditor.ProjectWindowCallback.EndNameEditAction
+        private static ConditionalWeakTable<TextAsset, Document> documents = new ConditionalWeakTable<TextAsset, Document>();
+
+        static ActionAssetInspector()
         {
-            public override void Action(int instanceId, string pathName, string resourceFile)
+            Editor.finishedDefaultHeaderGUI += DrawOpenButton;
+            EditorApplication.projectChanged += () => documents = new ConditionalWeakTable<TextAsset, Document>();
+        }
+
+        private static void DrawOpenButton(Editor editor)
+        {
+            if (editor.target is TextAsset source && editor.targets.Length == 1
+                && documents.GetValue(source, asset => new Document(asset)).IsActionAsset
+                && GUILayout.Button("Open Action Editor") && ActionEditorWindow.OpenAsset(source))
             {
-                var asset = ScriptableObject.CreateInstance<ActionAsset>();
-                AssetDatabase.CreateAsset(asset, pathName);
-                ProjectWindowUtil.ShowCreatedAsset(asset);
+                GUIUtility.ExitGUI();
             }
         }
 
         [MenuItem("Assets/Create/ActionAsset", false, 30)]
-        private static void CreateAsset()
-        {
-            ProjectWindowUtil.StartNameEditingIfProjectWindowExists(
-                0,
-                ScriptableObject.CreateInstance<DoCreateActionAsset>(),
-                "New ActionAssets.asset",
-                null,
-                null
-            );
-        }
+        private static void CreateAsset() => AssetStorage.Create<ActionAsset>("New ActionAsset");
+
+        [MenuItem("Window/Action Editor")]
+        private static void OpenWindow() => ActionEditorWindow.ShowWindow<ActionEditorWindow>();
+
+        [OnOpenAsset]
+        private static bool OpenTimeline(int instanceId, int line) =>
+            EditorUtility.InstanceIDToObject(instanceId) is TextAsset source && ActionEditorWindow.OpenAsset(source);
     }
 }
