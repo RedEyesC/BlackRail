@@ -1,33 +1,19 @@
-﻿using UnityEditor;
-using UnityEngine;
+using TrackEditor;
+using UnityEditor;
+using UnityEditor.Callbacks;
 
 namespace MotionMatching
 {
-    [CustomEditor(typeof(MotionAsset))]
-    internal class MotionAssetInspector : Editor
+    internal static class MotionAssetInspector
     {
-        MotionAsset _asset;
+        [MenuItem("Assets/Create/MotionAsset", false, 30)]
+        private static void CreateAsset() => AssetStorage.Create<MotionAsset>("New MotionAsset");
 
-        void OnEnable()
-        {
-            _asset = target as MotionAsset;
-        }
+        [MenuItem("Window/Motion Editor")]
+        private static void OpenWindow() => MotionEditorWindow.ShowWindow<MotionEditorWindow>();
 
-        public override void OnInspectorGUI()
-        {
-            DrawDefaultInspector();
-
-            EditorGUILayout.Space(20);
-
-            if (GUILayout.Button("Open MotionAction Editor"))
-            {
-                if (target != null)
-                {
-                    Selection.activeObject = target as UnityEngine.Object;
-                }
-
-                MotionEditorWindow.ShowWindow<MotionEditorWindow>();
-            }
-        }
+        [OnOpenAsset]
+        private static bool OpenTimeline(int instanceId, int line) =>
+            AssetStorage.TryOpen<MotionAsset, MotionEditorWindow>(EditorUtility.InstanceIDToObject(instanceId));
     }
 }
