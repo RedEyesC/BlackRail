@@ -8,25 +8,26 @@ namespace TrackEditor
 {
     public partial class TrackEditorWindow
     {
-        private static readonly Color LIST_SELECTION_COLOR = new Color(0.5f, 0.5f, 1, 0.3f);
+        private const float AddGroupButtonGap = 20;
+        private const float AddGroupButtonHeight = 20;
+
         private static readonly Color GROUP_COLOR = new Color(0f, 0f, 0f, 0.25f);
 
         private Rect leftRect;
         private bool isResizingLeftMargin;
         private Group pickedGroup;
         private Track _copyTrack;
-        private Track _pickedTrack;
 
         /// <summary>
         /// 轨道/轨道组 列表
         /// </summary>
         public void DrawGroupAndTrackListGUI()
         {
-            leftRect = G.LeftRect;
+            leftRect = view.LeftRect;
             var e = Event.current;
 
             var scaleRect = new Rect(leftRect.xMax - 4, leftRect.yMin, 4, leftRect.height);
-            TrackEditorWindow.current.AddCursorRect(scaleRect, MouseCursor.ResizeHorizontal);
+            AddCursorRect(scaleRect, MouseCursor.ResizeHorizontal);
             if (e.type == EventType.MouseDown && e.button == 0 && scaleRect.Contains(e.mousePosition))
             {
                 isResizingLeftMargin = true;
@@ -35,7 +36,8 @@ namespace TrackEditor
 
             if (isResizingLeftMargin)
             {
-                Styles.LEFT_MARGIN = e.mousePosition.x + 2;
+                view.LeftMargin = Mathf.Clamp(e.mousePosition.x + 2, 230, 400);
+                WillRepaint = true;
             }
 
             if (e.rawType == EventType.MouseUp)
@@ -43,7 +45,7 @@ namespace TrackEditor
                 isResizingLeftMargin = false;
             }
 
-            GUI.enabled = player.CurrentTime <= 0;
+            GUI.enabled = !IsPlay;
 
             var nextYPos = Styles.FIRST_GROUP_TOP_MARGIN;
             var wasEnabled = GUI.enabled;
@@ -51,22 +53,22 @@ namespace TrackEditor
             var collapseAllRect = Rect.MinMaxRect(leftRect.x + 5, leftRect.y + 4, 20, leftRect.y + 20 - 1);
             var searchRect = Rect.MinMaxRect(leftRect.x + 20, leftRect.y + 4, leftRect.xMax - 18, leftRect.y + 20 - 1);
             var searchCancelRect = Rect.MinMaxRect(searchRect.xMax, searchRect.y, leftRect.xMax - 4, searchRect.yMax);
-            var anyExpanded = asset.groups.Any(g => !g.IsCollapsed);
-            TrackEditorWindow.current.AddCursorRect(collapseAllRect, MouseCursor.Link);
+            var anyExpanded = asset.groups.Any(g => !IsGroupCollapsed(g));
+            AddCursorRect(collapseAllRect, MouseCursor.Link);
             GUI.color = Color.white.WithAlpha(0.5f);
             if (GUI.Button(collapseAllRect, anyExpanded ? "▼" : "►", (GUIStyle)"label"))
             {
                 foreach (var group in asset.groups)
                 {
-                    group.IsCollapsed = anyExpanded;
+                    collapsedGroups[group] = anyExpanded;
                 }
             }
 
             GUI.color = Color.white;
-            G.SearchString = EditorGUI.TextField(searchRect, G.SearchString, (GUIStyle)"ToolbarSeachTextField");
+            view.SearchString = EditorGUI.TextField(searchRect, view.SearchString, (GUIStyle)"ToolbarSeachTextField");
             if (GUI.Button(searchCancelRect, string.Empty, "ToolbarSeachCancelButton"))
             {
-                G.SearchString = string.Empty;
+                view.SearchString = string.Empty;
                 GUIUtility.keyboardControl = 0;
             }
 
@@ -76,10 +78,8 @@ namespace TrackEditor
             ShowListGroups(e, ref nextYPos);
             GUI.EndGroup();
 
-            G.TotalHeight = nextYPos;
-
-            var addButtonY = G.TotalHeight + Styles.TOP_MARGIN + Styles.TOOLBAR_HEIGHT + 20;
-            var addRect = Rect.MinMaxRect(leftRect.xMin + 10, addButtonY, leftRect.xMax - 10, addButtonY + 20);
+            var addButtonY = leftRect.y + nextYPos + AddGroupButtonGap;
+            var addRect = Rect.MinMaxRect(leftRect.xMin + 10, addButtonY, leftRect.xMax - 10, addButtonY + AddGroupButtonHeight);
             GUI.color = Color.white.WithAlpha(0.5f);
             if (GUI.Button(addRect, Lan.GroupAdd))
             {
@@ -90,11 +90,33 @@ namespace TrackEditor
             if (e.rawType == EventType.MouseUp)
             {
                 pickedGroup = null;
-                _pickedTrack = null;
             }
 
             GUI.enabled = true;
             GUI.color = Color.white;
+        }
+
+        private float GetTrackContentHeight()
+        {
+            var height = Styles.FIRST_GROUP_TOP_MARGIN + AddGroupButtonGap + AddGroupButtonHeight;
+            foreach (var group in asset.groups)
+            {
+                if (view.IsFilteredOutBySearch(group))
+                {
+                    continue;
+                }
+
+                height += Styles.GROUP_HEIGHT;
+                if (!IsGroupCollapsed(group))
+                {
+                    foreach (var track in group.Tracks)
+                    {
+                        height += track.ShowHeight + Styles.TRACK_MARGINS;
+                    }
+                }
+            }
+
+            return height;
         }
 
         private void DrawGroupContextMenu()
@@ -103,7 +125,7 @@ namespace TrackEditor
 
             foreach (var group in EditorTools.GetTypeMetaDerivedFrom(typeof(Group)))
             {
-                if (!group.attachableTypes.Contains(asset.GetType()))
+                if (!group.attachableTypes.Any(type => type.IsAssignableFrom(asset.GetType())))
                 {
                     continue;
                 }
@@ -124,7 +146,8 @@ namespace TrackEditor
                         false,
                         () =>
                         {
-                            asset.AddGroup(info.type, CreateAssetStorage());
+                            SelectedObject = asset.AddGroup(info.type);
+                            NotifyTimelineChanged(rebuildPreview: true);
                         }
                     );
                 }
@@ -134,7 +157,8 @@ namespace TrackEditor
             else if (attachableTypeInfos.Count > 0)
             {
                 var info = attachableTypeInfos[0];
-                asset.AddGroup(info.type, CreateAssetStorage());
+                SelectedObject = asset.AddGroup(info.type);
+                NotifyTimelineChanged(rebuildPreview: true);
             }
         }
 
@@ -144,18 +168,17 @@ namespace TrackEditor
             {
                 var group = asset.groups[g];
 
-                if (G.IsFilteredOutBySearch(group))
+                if (view.IsFilteredOutBySearch(group))
                 {
-                    group.IsCollapsed = true;
                     continue;
                 }
 
                 var groupRect = new Rect(4, nextYPos, leftRect.width - Styles.GROUP_RIGHT_MARGIN - 4, Styles.GROUP_HEIGHT - 3);
-                TrackEditorWindow.current?.AddCursorRect(groupRect, pickedGroup == null ? MouseCursor.Link : MouseCursor.MoveArrow);
+                AddCursorRect(groupRect, pickedGroup == null ? MouseCursor.Link : MouseCursor.MoveArrow);
                 nextYPos += Styles.GROUP_HEIGHT;
 
-                var groupSelected = (ReferenceEquals(group, DirectorUtility.selectedObject) || group == pickedGroup);
-                GUI.color = groupSelected ? LIST_SELECTION_COLOR : GROUP_COLOR;
+                var groupSelected = (ReferenceEquals(group, SelectedObject) || group == pickedGroup);
+                GUI.color = groupSelected ? Styles.TrackHeaderSelection : GROUP_COLOR;
                 GUI.Box(groupRect, string.Empty, Styles.headerBoxStyle);
                 GUI.color = Color.white;
 
@@ -174,6 +197,7 @@ namespace TrackEditor
                     if (GUI.Button(disableIconRect, Styles.hiddenIcon, GUIStyle.none))
                     {
                         group.IsActive = true;
+                        NotifyTimelineChanged(rebuildPreview: true);
                     }
                 }
 
@@ -183,13 +207,14 @@ namespace TrackEditor
                     if (GUI.Button(lockIconRect, Styles.lockIcon, GUIStyle.none))
                     {
                         group.IsLocked = false;
+                        NotifyTimelineChanged();
                     }
                 }
 
                 GUI.color = EditorGUIUtility.isProSkin ? Color.yellow : Color.white;
                 GUI.color = group.IsActive ? GUI.color : Color.grey;
                 var foldRect = new Rect(groupRect.x + 2, groupRect.y + 1, 20, groupRect.height);
-                group.IsCollapsed = !EditorGUI.Foldout(foldRect, !group.IsCollapsed, $"<b>{@group.Name}</b>");
+                collapsedGroups[group] = !EditorGUI.Foldout(foldRect, !IsGroupCollapsed(group), $"<b>{@group.Name}</b>");
                 GUI.color = Color.white;
 
                 //右键菜单
@@ -218,7 +243,8 @@ namespace TrackEditor
                                 false,
                                 () =>
                                 {
-                                    group.AddTrack(info.type, CreateAssetStorage());
+                                    SelectedObject = group.AddTrack(info.type);
+                                    NotifyTimelineChanged(rebuildPreview: true);
                                 }
                             );
                         }
@@ -236,9 +262,9 @@ namespace TrackEditor
                             false,
                             () =>
                             {
-                                var t = group.PasteTrack(_copyTrack, CreateAssetStorage());
-                                DirectorUtility.selectedObject = t;
-                                TrackEditorWindow.current.InitClipWrappers();
+                                var t = group.PasteTrack(_copyTrack);
+                                SelectedObject = t;
+                                NotifyTimelineChanged(rebuildPreview: true);
                             }
                         );
                     }
@@ -253,6 +279,7 @@ namespace TrackEditor
                         () =>
                         {
                             group.IsActive = !group.IsActive;
+                            NotifyTimelineChanged(rebuildPreview: true);
                         }
                     );
                     menu.AddItem(
@@ -261,6 +288,7 @@ namespace TrackEditor
                         () =>
                         {
                             group.IsLocked = !group.IsLocked;
+                            NotifyTimelineChanged();
                         }
                     );
 
@@ -271,8 +299,8 @@ namespace TrackEditor
                         false,
                         () =>
                         {
-                            asset.PasteGroup(group, CreateAssetStorage());
-                            TrackEditorWindow.current.InitClipWrappers();
+                            asset.PasteGroup(group);
+                            NotifyTimelineChanged(rebuildPreview: true);
                         }
                     );
 
@@ -291,7 +319,7 @@ namespace TrackEditor
                                 if (EditorUtility.DisplayDialog(Lan.GroupDelete, Lan.GroupDeleteTips, Lan.TipsConfirm, Lan.TipsCancel))
                                 {
                                     asset.DeleteGroup(group);
-                                    TrackEditorWindow.current.InitClipWrappers();
+                                    NotifyTimelineChanged(rebuildPreview: true);
                                 }
                             }
                         );
@@ -303,7 +331,7 @@ namespace TrackEditor
 
                 if (e.type == EventType.MouseDown && e.button == 0 && groupRect.Contains(e.mousePosition))
                 {
-                    DirectorUtility.selectedObject = group;
+                    SelectedObject = group;
 
                     pickedGroup = group;
 
@@ -329,15 +357,17 @@ namespace TrackEditor
                     {
                         asset.groups.Remove(pickedGroup);
                         asset.groups.Insert(g, pickedGroup);
+                        NotifyTimelineChanged(rebuildPreview: true);
                         pickedGroup = null;
                         e.Use();
                     }
                 }
 
-                if (!group.IsCollapsed)
+                ConsiderTrackDrop(group, 0, groupRect, groupRect.yMax - 2);
+                if (!IsGroupCollapsed(group))
                 {
                     ShowListTracks(e, group, ref nextYPos);
-                    GUI.color = groupSelected ? LIST_SELECTION_COLOR : GROUP_COLOR;
+                    GUI.color = groupSelected ? Styles.TrackHeaderSelection : GROUP_COLOR;
                     var verticalRect = Rect.MinMaxRect(groupRect.x, groupRect.yMax, groupRect.x + 3, nextYPos - 2);
                     GUI.DrawTexture(verticalRect, Styles.whiteTexture);
                     GUI.color = Color.white;
@@ -364,10 +394,9 @@ namespace TrackEditor
                 GUI.DrawTexture(trackRect, Styles.whiteTexture);
                 GUI.color = Color.white.WithAlpha(0.25f);
                 GUI.Box(trackRect, string.Empty, (GUIStyle)"flow node 0");
-                if (ReferenceEquals(track, DirectorUtility.selectedObject) || track == _pickedTrack)
+                if (IsTrackSelected(track))
                 {
-                    GUI.color = LIST_SELECTION_COLOR;
-                    GUI.DrawTexture(trackRect, Styles.whiteTexture);
+                    EditorGUI.DrawRect(trackRect, Styles.TrackHeaderSelection);
                 }
 
                 if (track.IsActive && track.Color != Color.white && track.Color.a > 0.2f)
@@ -380,10 +409,10 @@ namespace TrackEditor
                 GUI.color = Color.white;
 
                 GUI.BeginGroup(trackRect);
-                TrackDraw.Draw(track, trackRect);
+                TrackDraw.Draw(this, track, trackRect);
                 GUI.EndGroup();
 
-                TrackEditorWindow.current.AddCursorRect(trackRect, _pickedTrack == null ? MouseCursor.Link : MouseCursor.MoveArrow);
+                AddCursorRect(trackRect, itemDragger.ActiveTrack == null ? MouseCursor.Link : MouseCursor.MoveArrow);
 
                 //右键菜单
                 if (e.type == EventType.ContextClick && trackRect.Contains(e.mousePosition))
@@ -395,6 +424,7 @@ namespace TrackEditor
                         () =>
                         {
                             track.IsActive = !track.IsActive;
+                            NotifyTimelineChanged(rebuildPreview: true);
                         }
                     );
                     menu.AddItem(
@@ -403,6 +433,7 @@ namespace TrackEditor
                         () =>
                         {
                             track.IsLocked = !track.IsLocked;
+                            NotifyTimelineChanged();
                         }
                     );
 
@@ -413,7 +444,7 @@ namespace TrackEditor
                         false,
                         () =>
                         {
-                            _copyTrack = track;
+                            _copyTrack = TimelineJson.Clone(track);
                         }
                     );
 
@@ -424,9 +455,9 @@ namespace TrackEditor
                             false,
                             () =>
                             {
-                                var t1 = group.PasteTrack(track, CreateAssetStorage());
-                                TrackEditorWindow.current.InitClipWrappers();
-                                DirectorUtility.selectedObject = t1;
+                                var t1 = group.PasteTrack(track);
+                                NotifyTimelineChanged(rebuildPreview: true);
+                                SelectedObject = t1;
                             }
                         );
                     }
@@ -450,7 +481,7 @@ namespace TrackEditor
                                 if (EditorUtility.DisplayDialog(Lan.TrackDelete, Lan.TrackDeleteTips, Lan.TipsConfirm, Lan.TipsCancel))
                                 {
                                     group.DeleteTrack(track);
-                                    TrackEditorWindow.current.InitClipWrappers();
+                                    NotifyTimelineChanged(rebuildPreview: true);
                                 }
                             }
                         );
@@ -461,36 +492,36 @@ namespace TrackEditor
                 }
 
                 //选中
-                if (e.type == EventType.MouseDown && e.button == 0 && trackRect.Contains(e.mousePosition))
+                if (e.type == EventType.MouseDown && e.button == 0 && GUIUtility.hotControl == 0 && trackRect.Contains(e.mousePosition))
                 {
-                    DirectorUtility.selectedObject = track;
-                    _pickedTrack = track;
+                    SelectedObject = track;
+                    if (!track.IsLocked)
+                    {
+                        itemDragger.BeginTrack(track);
+                        CaptureItemDragControl();
+                    }
+
                     e.Use();
                 }
 
-                if (_pickedTrack != null && _pickedTrack != track && ReferenceEquals(_pickedTrack.Parent, group))
-                {
-                    if (trackRect.Contains(e.mousePosition))
-                    {
-                        var markRect = new Rect(
-                            trackRect.x,
-                            (group.Tracks.IndexOf(_pickedTrack) < t) ? trackRect.yMax - 2 : trackRect.y,
-                            trackRect.width,
-                            2
-                        );
-                        GUI.color = Color.grey;
-                        GUI.DrawTexture(markRect, Styles.whiteTexture);
-                        GUI.color = Color.white;
-                    }
+                var after = e.mousePosition.y >= trackRect.center.y;
+                ConsiderTrackDrop(group, after ? t + 1 : t, trackRect, after ? trackRect.yMax - 2 : trackRect.y);
+            }
+        }
+        private void ConsiderTrackDrop(Group group, int index, Rect area, float markerY)
+        {
+            var e = Event.current;
+            if (mousePosition.y < CenterRect.yMin || mousePosition.y >= TimelineBottom
+                || !area.Contains(e.mousePosition) || !itemDragger.CanDropTrack(group, index))
+            {
+                return;
+            }
 
-                    if (e.rawType == EventType.MouseUp && e.button == 0 && trackRect.Contains(e.mousePosition))
-                    {
-                        group.Tracks.Remove(_pickedTrack);
-                        group.Tracks.Insert(t, _pickedTrack);
-                        _pickedTrack = null;
-                        e.Use();
-                    }
-                }
+            EditorGUI.DrawRect(new Rect(area.xMin, markerY, area.width, 2), Color.grey);
+            if (e.rawType == EventType.MouseUp && e.button == 0)
+            {
+                trackDropGroup = group;
+                trackDropIndex = index;
             }
         }
     }

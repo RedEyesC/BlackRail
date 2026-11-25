@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
@@ -21,11 +22,13 @@ namespace TrackEditor
             DrawDefaultInspector();
         }
 
-        public void DrawDefaultInspector()
+        public void DrawDefaultInspector() => DrawFields(target);
+
+        private void DrawFields(object owner)
         {
-            var t = target.GetType();
+            var t = owner.GetType();
             //得到字段的值,只能得到public类型的字典的值
-            FieldInfo[] fieldInfos = t.GetFields();
+            FieldInfo[] fieldInfos = t.GetFields(BindingFlags.Public | BindingFlags.Instance);
             //排序一下，子类的字段在后，父类的在前
             Array.Sort(fieldInfos, FieldsSprtBy);
 
@@ -33,7 +36,7 @@ namespace TrackEditor
             List<FieldInfo> needShowField = new List<FieldInfo>();
             foreach (var field in fieldInfos)
             {
-                var need = true;
+                var need = !field.IsNotSerialized && !field.IsDefined(typeof(HideInInspector), true);
                 var attributes = field.GetCustomAttributes();
                 foreach (var attribute in attributes)
                 {
@@ -42,7 +45,7 @@ namespace TrackEditor
                         var relate = Array.Find(fieldInfos, f1 => f1.Name == option.argsName);
                         if (relate != null)
                         {
-                            var value = relate.GetValue(target);
+                            var value = relate.GetValue(owner);
                             var index = Array.FindIndex(option.argsValue, v1 => v1.Equals(value));
                             if (index < 0)
                             {
@@ -61,15 +64,17 @@ namespace TrackEditor
 
             foreach (var field in needShowField)
             {
-                FieldDefaultInspector(field);
+                FieldDefaultInspector(field, owner);
             }
         }
 
-        protected void FieldDefaultInspector(FieldInfo field)
+        protected void FieldDefaultInspector(FieldInfo field) => FieldDefaultInspector(field, target);
+
+        private void FieldDefaultInspector(FieldInfo field, object owner)
         {
             var fieldType = field.FieldType;
             var showType = field.FieldType;
-            var value = field.GetValue(target);
+            var value = field.GetValue(owner);
             var newValue = value;
 
             //首字母大写
@@ -102,76 +107,21 @@ namespace TrackEditor
                 }
             }
 
-            if (showType == typeof(int))
+            if (field.GetCustomAttribute<TimelineAssetReferenceAttribute>() is TimelineAssetReferenceAttribute assetReference)
             {
-                newValue = EditorGUILayout.IntField(name, (int)value);
-            }
-            else if (showType == typeof(float))
-            {
-                newValue = EditorGUILayout.FloatField(name, (float)value);
-            }
-            else if (showType == typeof(bool))
-            {
-                newValue = EditorGUILayout.Toggle(name, (bool)value);
-            }
-            else if (showType == typeof(string))
-            {
-                newValue = EditorGUILayout.TextField(name, (string)value);
-            }
-            else if (showType == typeof(Color))
-            {
-                newValue = EditorGUILayout.ColorField(name, (Color)value);
-            }
-            else if (showType.IsSubclassOf(typeof(Object)))
-            {
-                newValue = EditorGUILayout.ObjectField(name, (Object)value, fieldType, false);
-            }
-            else if (showType.IsEnum)
-            {
-                newValue = EditorGUILayout.EnumPopup(name, (Enum)value);
-            }
-            else if (showType == typeof(AnimationCurve))
-            {
-                AnimationCurve curve = field.GetValue(target) as AnimationCurve;
-                if (curve == null)
+                var current = AssetStorage.Resolve((TimelineAssetReference)value, assetReference.Type);
+                EditorGUI.BeginChangeCheck();
+                var selected = EditorGUILayout.ObjectField(name, current, assetReference.Type, false);
+                if (EditorGUI.EndChangeCheck())
                 {
-                    curve = new AnimationCurve();
+                    field.SetValue(owner, AssetStorage.ReferenceOf(selected));
                 }
-                newValue = EditorGUILayout.CurveField(name, curve);
+
+                return;
             }
-            else if (showType == typeof(Vector2))
-            {
-                newValue = EditorGUILayout.Vector2Field(name, (Vector2)value);
-            }
-            else if (showType == typeof(Vector3))
-            {
-                newValue = EditorGUILayout.Vector3Field(name, (Vector3)value);
-            }
-            else if (showType == typeof(Vector4))
-            {
-                newValue = EditorGUILayout.Vector4Field(name, (Vector4)value);
-            }
-            else if (showType == typeof(Vector2Int))
-            {
-                newValue = EditorGUILayout.Vector2IntField(name, (Vector2Int)value);
-            }
-            else if (showType == typeof(Vector3Int))
-            {
-                newValue = EditorGUILayout.Vector3IntField(name, (Vector3Int)value);
-            }
-            else if (showType == typeof(Rect))
-            {
-                newValue = EditorGUILayout.RectField(name, (Rect)value);
-            }
-            else if (showType == typeof(RectInt))
-            {
-                newValue = EditorGUILayout.RectIntField(name, (RectInt)value);
-            }
-            else if (showType == typeof(Bounds))
-            {
-                newValue = EditorGUILayout.BoundsField(name, (Bounds)value);
-            }
-            else if (showType == typeof(RangeAttribute))
+
+            EditorGUI.BeginChangeCheck();
+            if (showType == typeof(RangeAttribute))
             {
                 if (fieldType == typeof(float))
                 {
@@ -203,7 +153,7 @@ namespace TrackEditor
                 if (args[0] is Type type)
                 {
                     Object obj = null;
-                    var path = value.ToString();
+                    var path = value as string;
                     if (!string.IsNullOrEmpty(path))
                     {
                         obj = AssetDatabase.LoadAssetAtPath(path, type);
@@ -217,8 +167,153 @@ namespace TrackEditor
                 }
             }
 
-            if (value != newValue)
-                field.SetValue(target, newValue);
+            else
+            {
+                newValue = DrawValue(fieldType, name, value);
+            }
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                field.SetValue(owner, newValue);
+            }
+        }
+
+        private object DrawValue(Type type, string name, object value)
+        {
+            var newValue = value;
+            if (type == typeof(int))
+            {
+                newValue = EditorGUILayout.IntField(name, (int)value);
+            }
+            else if (type == typeof(float))
+            {
+                newValue = EditorGUILayout.FloatField(name, (float)value);
+            }
+            else if (type == typeof(bool))
+            {
+                newValue = EditorGUILayout.Toggle(name, (bool)value);
+            }
+            else if (type == typeof(string))
+            {
+                newValue = EditorGUILayout.TextField(name, (string)value ?? string.Empty);
+            }
+            else if (type == typeof(Color))
+            {
+                newValue = EditorGUILayout.ColorField(name, (Color)value);
+            }
+            else if (type.IsSubclassOf(typeof(Object)))
+            {
+                newValue = EditorGUILayout.ObjectField(name, (Object)value, type, false);
+            }
+            else if (type.IsEnum)
+            {
+                newValue = EditorGUILayout.EnumPopup(name, (Enum)value);
+            }
+            else if (type == typeof(AnimationCurve))
+            {
+                AnimationCurve curve = value as AnimationCurve;
+                if (curve == null)
+                {
+                    curve = new AnimationCurve();
+                }
+                newValue = EditorGUILayout.CurveField(name, curve);
+            }
+            else if (type == typeof(Vector2))
+            {
+                newValue = EditorGUILayout.Vector2Field(name, (Vector2)value);
+            }
+            else if (type == typeof(Vector3))
+            {
+                newValue = EditorGUILayout.Vector3Field(name, (Vector3)value);
+            }
+            else if (type == typeof(Vector4))
+            {
+                newValue = EditorGUILayout.Vector4Field(name, (Vector4)value);
+            }
+            else if (type == typeof(Vector2Int))
+            {
+                newValue = EditorGUILayout.Vector2IntField(name, (Vector2Int)value);
+            }
+            else if (type == typeof(Vector3Int))
+            {
+                newValue = EditorGUILayout.Vector3IntField(name, (Vector3Int)value);
+            }
+            else if (type == typeof(Rect))
+            {
+                newValue = EditorGUILayout.RectField(name, (Rect)value);
+            }
+            else if (type == typeof(RectInt))
+            {
+                newValue = EditorGUILayout.RectIntField(name, (RectInt)value);
+            }
+            else if (type == typeof(Bounds))
+            {
+                newValue = EditorGUILayout.BoundsField(name, (Bounds)value);
+            }
+            else if (type.IsArray && type.GetArrayRank() == 1)
+            {
+                newValue = DrawCollection(type, type.GetElementType(), name, (IList)value);
+            }
+            else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                newValue = DrawCollection(type, type.GetGenericArguments()[0], name, (IList)value);
+            }
+            else if (type.IsDefined(typeof(SerializableAttribute), false))
+            {
+                if (value == null && type.GetConstructor(Type.EmptyTypes) != null)
+                {
+                    if (GUILayout.Button($"Create {name}"))
+                    {
+                        GUI.changed = true;
+                        newValue = Activator.CreateInstance(type);
+                    }
+                }
+                else if (value != null)
+                {
+                    EditorGUILayout.LabelField(name, EditorStyles.miniBoldLabel);
+                    EditorGUI.indentLevel++;
+                    DrawFields(value);
+                    EditorGUI.indentLevel--;
+                }
+            }
+
+            return newValue;
+        }
+
+        private IList DrawCollection(Type type, Type elementType, string name, IList collection)
+        {
+            var oldCount = collection?.Count ?? 0;
+            var size = Mathf.Max(0, EditorGUILayout.DelayedIntField(name, oldCount));
+            EditorGUI.indentLevel++;
+            for (var index = 0; index < oldCount; index++)
+            {
+                EditorGUI.BeginChangeCheck();
+                var value = DrawValue(elementType, $"Element {index}", collection[index]);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    collection[index] = value;
+                }
+            }
+            EditorGUI.indentLevel--;
+
+            if (size == oldCount) return collection;
+
+            if (type.IsArray)
+            {
+                var resized = Array.CreateInstance(elementType, size);
+                if (collection != null) Array.Copy((Array)collection, resized, Mathf.Min(oldCount, size));
+                return resized;
+            }
+
+            collection = collection ?? (IList)Activator.CreateInstance(type);
+            while (collection.Count > size) collection.RemoveAt(collection.Count - 1);
+            while (collection.Count < size)
+            {
+                collection.Add(elementType == typeof(string) ? string.Empty
+                    : elementType.IsValueType ? Activator.CreateInstance(elementType) : null);
+            }
+
+            return collection;
         }
 
         private int FieldsSprtBy(FieldInfo f1, FieldInfo f2)

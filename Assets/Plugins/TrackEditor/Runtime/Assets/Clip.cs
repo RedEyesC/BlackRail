@@ -27,11 +27,11 @@ namespace TrackEditor
             get => startTime;
             set
             {
-                if (Math.Abs(startTime - value) > 0.0001f)
+                if (startTime != value)
                 {
                     startTime = Mathf.Max(value, 0);
-                    BlendIn = Mathf.Clamp(BlendIn, 0, Length - BlendOut);
-                    BlendOut = Mathf.Clamp(BlendOut, 0, Length - BlendIn);
+                    BlendIn = Mathf.Clamp(BlendIn, 0, Mathf.Max(0, Length - BlendOut));
+                    BlendOut = Mathf.Clamp(BlendOut, 0, Mathf.Max(0, Length - BlendIn));
                 }
             }
         }
@@ -41,11 +41,11 @@ namespace TrackEditor
             get => StartTime + Length;
             set
             {
-                if (Math.Abs(StartTime + Length - value) > 0.0001f) //if (StartTime + length != value)
+                if (EndTime != value) //if (StartTime + length != value)
                 {
                     Length = Mathf.Max(value - StartTime, 0);
-                    BlendOut = Mathf.Clamp(BlendOut, 0, Length - BlendIn);
-                    BlendIn = Mathf.Clamp(BlendIn, 0, Length - BlendOut);
+                    BlendOut = Mathf.Clamp(BlendOut, 0, Mathf.Max(0, Length - BlendIn));
+                    BlendIn = Mathf.Clamp(BlendIn, 0, Mathf.Max(0, Length - BlendOut));
                 }
             }
         }
@@ -84,7 +84,7 @@ namespace TrackEditor
 
         public float GetClipWeight(float time)
         {
-            return GetClipWeight(time, this.BlendIn, this.BlendOut);
+            return this.GetWeight(time);
         }
 
         public float GetClipWeight(float time, float blendInOut)
@@ -146,5 +146,44 @@ namespace TrackEditor
 
 #endif
         #endregion
+    }
+
+    [Serializable]
+    public abstract class ClipCrossBlend : Clip
+    {
+        [SerializeField, HideInInspector] private float blendIn;
+        [SerializeField, HideInInspector] private float blendOut;
+
+        protected ClipCrossBlend(float defaultBlend = 0)
+        {
+            blendIn = defaultBlend;
+            blendOut = defaultBlend;
+        }
+
+        public override bool CanCrossBlend => true;
+        public override float BlendIn
+        {
+            get => blendIn;
+            set => blendIn = Mathf.Clamp(value, 0, Mathf.Max(0, Length - blendOut));
+        }
+
+        public override float BlendOut
+        {
+            get => blendOut;
+            set => blendOut = Mathf.Clamp(value, 0, Mathf.Max(0, Length - blendIn));
+        }
+    }
+
+    [Serializable]
+    public abstract class ClipSignal : Clip
+    {
+        public bool Crossed(float from, float to) => IsActive
+            && (from < to ? from < StartTime && StartTime <= to : to <= StartTime && StartTime < from);
+
+        public sealed override float Length
+        {
+            get => 0;
+            set { }
+        }
     }
 }

@@ -40,6 +40,7 @@
         public static string PlayForwardTips = "跳转结尾处";
         public static string StepForwardTips = "跳转下一帧";
         public static string PauseTips = "点击暂停";
+        public static string JumpToStartTips = "\u8df3\u8f6c\u5230\u8d77\u70b9";
         public static string PlayTips = "点击播放";
         public static string StopTips = "点击停止播放";
         public static string StepBackwardTips = "跳转上一帧";

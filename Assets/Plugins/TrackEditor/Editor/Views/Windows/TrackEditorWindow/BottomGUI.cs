@@ -28,19 +28,9 @@ namespace TrackEditor
 
         public void DrawBottomGUI()
         {
-            var sliderRect = new Rect(G.CenterRect.x, G.ScreenHeight - G.BottomHeight, G.CenterRect.width, Styles.BOTTOM_HEIGHT);
-            ShowTimeSlider(sliderRect);
-        }
-
-        /// <summary>
-        /// 显示底部滚动信息
-        /// </summary>
-        void ShowTimeSlider(Rect rect)
-        {
-            GUILayout.BeginArea(rect);
-            var sliderRect = new Rect(2, 0, rect.width - 4, 18);
-            var timeMin = asset.ViewTimeMin;
-            var timeMax = asset.ViewTimeMax;
+            var sliderRect = Rect.MinMaxRect(view.CenterRect.xMin, TimelineBottom, view.ScreenWidth, view.ScreenHeight);
+            var timeMin = ViewTimeMin;
+            var timeMax = ViewTimeMax;
 
             var currentEvent = Event.current;
             if (
@@ -59,19 +49,21 @@ namespace TrackEditor
                 DrawTimeRangeScroller(sliderRect, ref timeMin, ref timeMax);
             }
 
-            if (!Mathf.Approximately(timeMin, asset.ViewTimeMin) || !Mathf.Approximately(timeMax, asset.ViewTimeMax))
+            if (!Mathf.Approximately(timeMin, ViewTimeMin) || !Mathf.Approximately(timeMax, ViewTimeMax))
             {
-                var isDraggingTimeMin = !Mathf.Approximately(timeMin, asset.ViewTimeMin) && Mathf.Approximately(timeMax, asset.ViewTimeMax);
+                var isDraggingTimeMin = !Mathf.Approximately(timeMin, ViewTimeMin) && Mathf.Approximately(timeMax, ViewTimeMax);
                 SetViewTimeRange(timeMin, timeMax, isDraggingTimeMin);
             }
 
-            GUI.color = Color.white.WithAlpha(0.1f);
-            GUI.DrawTexture(Rect.MinMaxRect(0, Styles.TOP_MARGIN - 1, G.TopMiddleRect.xMax, Styles.TOP_MARGIN), Styles.whiteTexture);
-            GUI.color = Color.white;
-
-            GUILayout.EndArea();
-
-            GUI.contentColor = Color.white;
+            if (currentEvent.type == EventType.Repaint)
+            {
+                var skin = GUI.skin;
+                var left = minMaxScroller == null ? 0 : skin.horizontalScrollbarLeftButton.fixedWidth;
+                var right = minMaxScroller == null ? 0 : skin.horizontalScrollbarRightButton.fixedWidth;
+                var fraction = player.CurrentTime / Mathf.Max(asset.Length, ViewTimeMax);
+                var x = Mathf.Lerp(sliderRect.xMin + left, sliderRect.xMax - right - 1, fraction);
+                EditorGUI.DrawRect(new Rect(x, sliderRect.y + 2, 1, sliderRect.height - 4), player.GetScriberColor());
+            }
         }
 
         private void DrawTimeRangeScroller(Rect sliderRect, ref float timeMin, ref float timeMax)
@@ -85,7 +77,7 @@ namespace TrackEditor
             var viewTime = timeMax - timeMin;
             var controlId = GUIUtility.GetControlID(timeSliderHash, FocusType.Passive, sliderRect);
             var skin = GUI.skin;
-            var thumbStyle = skin.FindStyle("MinMaxHorizontalSliderThumb") ?? skin.horizontalScrollbarThumb;
+            var thumbStyle = skin.FindStyle("horizontalMinMaxScrollbarThumb") ?? skin.horizontalScrollbarThumb;
 
             minMaxScroller(
                 sliderRect,
@@ -93,7 +85,7 @@ namespace TrackEditor
                 ref timeMin,
                 ref viewTime,
                 0,
-                asset.Length,
+                Mathf.Max(asset.Length, timeMax),
                 0,
                 float.PositiveInfinity,
                 skin.horizontalScrollbar,
@@ -125,30 +117,16 @@ namespace TrackEditor
         {
             const float minViewTime = 0.25f;
 
-            timeMin = Mathf.Max(0, timeMin);
-            timeMax = Mathf.Max(0, timeMax);
+            timeMin = preserveTimeMax
+                ? Mathf.Clamp(timeMin, 0, Mathf.Max(0, timeMax - minViewTime))
+                : Mathf.Max(0, timeMin);
 
-            if (timeMax - timeMin < minViewTime)
+            viewTimeRange = new Vector2(timeMin, Mathf.Max(timeMax, timeMin + minViewTime));
+            if (assetSource != null)
             {
-                if (preserveTimeMax)
-                {
-                    timeMin = Mathf.Max(0, timeMax - minViewTime);
-                }
-                else
-                {
-                    timeMax = timeMin + minViewTime;
-                }
+                viewTimeByAsset[assetSource] = viewTimeRange;
             }
-
-            if (timeMin > asset.ViewTimeMin)
-            {
-                asset.ViewTimeMax = timeMax;
-                asset.ViewTimeMin = timeMin;
-                return;
-            }
-
-            asset.ViewTimeMin = timeMin;
-            asset.ViewTimeMax = timeMax;
+            WillRepaint = true;
         }
     }
 }

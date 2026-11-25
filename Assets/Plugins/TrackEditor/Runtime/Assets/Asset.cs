@@ -1,130 +1,101 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace TrackEditor
 {
     [Serializable]
-    public abstract partial class Asset : DirectableAsset, IDirector
+    public abstract class Asset : DirectableAsset, IDirector
     {
-        [HideInInspector]
-        public List<Group> groups = new List<Group>();
+        [NonSerialized, HideInInspector] public List<Group> groups = new List<Group>();
+        [SerializeField] private float length = 5f;
 
-        [SerializeField]
-        private float length = 5f;
-
-        [SerializeField]
-        private float viewTimeMin = 0f;
-
-        [SerializeField]
-        private float viewTimeMax = 5f;
+        private readonly List<DirectableAsset> orderedItems = new List<DirectableAsset>();
+        public IReadOnlyList<DirectableAsset> directables => orderedItems;
 
         public float Length
         {
             get => length;
-            set => length = Mathf.Max(value, 0.1f);
+            set => length = Mathf.Max(0.1f, value);
         }
 
-        public float ViewTimeMin
+        public Group AddGroup(Type type)
         {
-            get => viewTimeMin;
-            set
-            {
-                if (ViewTimeMax > 0)
-                    viewTimeMin = Mathf.Max(0, Mathf.Min(value, ViewTimeMax - 0.25f));
-            }
-        }
-
-        public float ViewTimeMax
-        {
-            get => viewTimeMax;
-            set => viewTimeMax = Mathf.Max(value, ViewTimeMin + 0.25f, 0);
-        }
-
-        public float MaxTime => Mathf.Max(ViewTimeMax, Length);
-        public float ViewTime => ViewTimeMax - ViewTimeMin;
-
-        public List<DirectableAsset> directables { get; private set; }
-
-        public T AddGroup<T>(IAssetStorage storage)
-            where T : Group, new()
-        {
-            var newGroup = CreateInstance<T>();
-            newGroup.Name = "Group";
-            newGroup.Parent = this;
-            groups.Add(newGroup);
-            CreateUtilities.SaveAssetIntoObject(newGroup, this, storage);
-            DirectorUtility.selectedObject = newGroup;
-
-            return newGroup;
-        }
-
-        public Group AddGroup(Type type, IAssetStorage storage)
-        {
-            var catAtt = type.GetCustomAttributes(typeof(CategoryAttribute), true).FirstOrDefault() as CategoryAttribute;
-            var newGroup = CreateInstance(type) as Group;
-
-            if (newGroup != null)
-            {
-                newGroup.Name = "Group";
-                newGroup.Parent = this;
-                groups.Add(newGroup);
-                CreateUtilities.SaveAssetIntoObject(newGroup, this, storage);
-                DirectorUtility.selectedObject = newGroup;
-            }
-
-            return newGroup;
-        }
-
-        public void DeleteGroup(Group group)
-        {
-            groups.Remove(group);
-        }
-
-        public Group PasteGroup(Group group, IAssetStorage storage)
-        {
-            var newGroup = Instantiate(group);
-            if (newGroup != null)
-            {
-                newGroup.Parent = this;
-                groups.Add(newGroup);
-                CreateUtilities.SaveAssetIntoObject(newGroup, this, storage);
-                newGroup.Tracks.Clear();
-                foreach (var track in group.Tracks)
-                {
-                    newGroup.PasteTrack(track, storage);
-                }
-            }
-
-            return newGroup;
-        }
-
-        public static Asset Load(Object source, IAssetStorage storage)
-        {
-            if (!storage.CanLoad(source))
+            if (!typeof(Group).IsAssignableFrom(type) || type.IsAbstract || !CanAttach(type, GetType()))
             {
                 return null;
             }
 
-            var asset = storage.Load(source);
-            return asset;
+            var group = (Group)Activator.CreateInstance(type);
+            group.Name = "Group";
+            group.Parent = this;
+            groups.Add(group);
+            return group;
         }
 
-        public static void Save(Asset asset, Object source, IAssetStorage storage)
+        public void DeleteGroup(Group group)
         {
-            if (asset == null)
+            if (groups.Remove(group))
             {
-                return;
+                group.Parent = null;
+            }
+        }
+
+        public Group PasteGroup(Group group)
+        {
+            if (!CanAttach(group.GetType(), GetType()))
+            {
+                return null;
             }
 
-            storage.Save(asset, source);
+            var copy = TimelineJson.Clone(group);
+            copy.Parent = this;
+            groups.Add(copy);
+            return copy;
         }
 
-        public static void SaveAssetIntoObject(Object childAsset, Object masterAsset, IAssetStorage storage)
+        public void Validate()
         {
-            storage.SaveAssetIntoObject(childAsset, masterAsset);
+            if (float.IsNaN(length) || float.IsInfinity(length))
+            {
+                throw new InvalidOperationException("The timeline length must be finite.");
+            }
+
+            Length = length;
+            orderedItems.Clear();
+            foreach (var group in groups)
+            {
+                CheckAttachment(group, this);
+                group.Parent = this;
+                orderedItems.Add(group);
+                foreach (var track in group.Tracks)
+                {
+                    CheckAttachment(track, group);
+                    track.Parent = group;
+                    track.SortClips();
+                    orderedItems.Add(track);
+                    foreach (var clip in track.Clips)
+                    {
+                        CheckAttachment(clip, track);
+                        if (float.IsNaN(clip.StartTime) || float.IsInfinity(clip.EndTime) || float.IsNaN(clip.EndTime)
+                            || clip.StartTime < 0 || clip.Length < 0)
+                        {
+                            throw new InvalidOperationException($"Clip '{clip.name}' has an invalid time range.");
+                        }
+
+                        clip.Parent = track;
+                        orderedItems.Add(clip);
+                    }
+                }
+            }
+        }
+
+        private static void CheckAttachment(DirectableAsset item, DirectableAsset parent)
+        {
+            if (item == null || !CanAttach(item.GetType(), parent.GetType()))
+            {
+                throw new InvalidOperationException($"Invalid child object under '{parent.name}'.");
+            }
         }
     }
 }

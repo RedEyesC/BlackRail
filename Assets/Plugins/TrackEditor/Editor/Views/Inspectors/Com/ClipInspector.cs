@@ -40,14 +40,14 @@ namespace TrackEditor
 
         void ShowInOutControls()
         {
-            var previousClip = action.GetPreviousSibling();
+            var previousClip = action is ClipSignal ? null : action.GetPreviousSibling();
             var previousTime = previousClip != null ? previousClip.EndTime : action.Parent.StartTime;
             if (action.CanCrossBlend(previousClip))
             {
                 previousTime -= Mathf.Min(action.Length / 2, (previousClip.EndTime - previousClip.StartTime) / 2);
             }
 
-            var nextClip = action.GetNextSibling();
+            var nextClip = action is ClipSignal ? null : action.GetNextSibling();
             var nextTime = nextClip != null ? nextClip.StartTime : action.Parent.EndTime;
             if (action.CanCrossBlend(nextClip))
             {
@@ -139,8 +139,8 @@ namespace TrackEditor
                     _out = _in + _length;
                 }
 
-                _in = TimelineTime.Snap(_in);
-                _out = TimelineTime.Snap(_out);
+                _in = Prefs.SnapTime(_in);
+                _out = Prefs.SnapTime(_out);
 
                 _in = Mathf.Clamp(_in, previousTime, _out);
                 _out = Mathf.Clamp(_out, _in, nextClip != null ? nextTime : float.PositiveInfinity);

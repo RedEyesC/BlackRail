@@ -5,21 +5,24 @@ namespace TrackEditor
     {
         PreviewBase target { get; }
         float time { get; }
+        int order { get; }
         void TriggerForward(float currentTime, float previousTime);
         void TriggerBackward(float currentTime, float previousTime);
         void Update(float currentTime, float previousTime);
     }
 
-    public struct StartTimePointer : IDirectableTimePointer
+    public sealed class StartTimePointer : IDirectableTimePointer
     {
         private bool triggered;
         private float lastTargetStartTime;
         public PreviewBase target { get; private set; }
         float IDirectableTimePointer.time => target.directable.StartTime;
+        public int order { get; }
 
-        public StartTimePointer(PreviewBase target)
+        public StartTimePointer(PreviewBase target, int order)
         {
             this.target = target;
+            this.order = order;
             triggered = false;
             lastTargetStartTime = target.directable.StartTime;
         }
@@ -38,11 +41,10 @@ namespace TrackEditor
             }
         }
 
-        void IDirectableTimePointer.Update(float currentTime, float previousTime)
+        public void Update(float currentTime, float previousTime)
         {
             if (!target.directable.IsActive) return;
-            if (currentTime >= target.directable.StartTime && currentTime < target.directable.EndTime &&
-                currentTime > 0)
+            if (currentTime >= target.directable.StartTime && currentTime < target.directable.EndTime)
             {
                 var deltaMoveClip = target.directable.StartTime - lastTargetStartTime;
                 var localCurrentTime = target.directable.ToLocalTime(currentTime);
@@ -55,8 +57,7 @@ namespace TrackEditor
 
         void IDirectableTimePointer.TriggerBackward(float currentTime, float previousTime)
         {
-            if (!target.directable.IsActive) return;
-            if (currentTime < target.directable.StartTime || currentTime <= 0)
+            if (currentTime < target.directable.StartTime || currentTime < 0)
             {
                 if (triggered)
                 {
@@ -68,15 +69,17 @@ namespace TrackEditor
         }
     }
 
-    public struct EndTimePointer : IDirectableTimePointer
+    public sealed class EndTimePointer : IDirectableTimePointer
     {
         private bool triggered;
         public PreviewBase target { get; private set; }
         float IDirectableTimePointer.time => target.directable.EndTime;
+        public int order { get; }
 
-        public EndTimePointer(PreviewBase target)
+        public EndTimePointer(PreviewBase target, int order)
         {
             this.target = target;
+            this.order = order;
             triggered = false;
         }
 
@@ -95,7 +98,7 @@ namespace TrackEditor
         }
 
 
-        void IDirectableTimePointer.Update(float currentTime, float previousTime)
+        public void Update(float currentTime, float previousTime)
         {
             
         }
@@ -103,8 +106,7 @@ namespace TrackEditor
 
         void IDirectableTimePointer.TriggerBackward(float currentTime, float previousTime)
         {
-            if (!target.directable.IsActive) return;
-            if (currentTime < target.directable.EndTime || currentTime <= 0)
+            if (currentTime < target.directable.EndTime || currentTime < 0)
             {
                 if (triggered)
                 {

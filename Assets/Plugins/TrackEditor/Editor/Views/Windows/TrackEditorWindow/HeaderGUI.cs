@@ -13,14 +13,22 @@ namespace TrackEditor
 
         protected void DrawPlayControl()
         {
-            GUILayout.BeginArea(G.TopLeftRect);
+            GUILayout.BeginArea(view.TopLeftRect);
             GUILayout.BeginHorizontal(EditorStyles.toolbar);
 
-            DrawPlayControlLeft();
-
-            GUILayout.FlexibleSpace();
+            using (new EditorGUI.DisabledScope(Application.isPlaying))
+            {
+                DrawPlayControlLeft();
+            }
 
             DrawPlayControlRight();
+            GUILayout.Space(4);
+            using (new EditorGUI.DisabledScope(Application.isPlaying))
+            {
+                DrawPlayheadField();
+            }
+
+            GUILayout.FlexibleSpace();
 
             GUILayout.EndHorizontal();
             GUILayout.EndArea();
@@ -29,74 +37,18 @@ namespace TrackEditor
 
         protected virtual void DrawPlayControlLeft()
         {
-            if (
-                GUILayout.Button(
-                    new GUIContent(Styles.stepBackwardIcon, Lan.StepBackwardTips),
-                    EditorStyles.toolbarButton,
-                    GUILayout.Width(26)
-                )
-            )
-            {
-                StepBackward();
-                Event.current.Use();
-            }
+            DrawPlaybackButton(Styles.playBackwardIcon, Lan.JumpToStartTips, () => Seek(0));
+            DrawPlaybackButton(Styles.stepBackwardIcon, Lan.StepBackwardTips, StepBackward);
+            DrawPlaybackButton(IsPlay ? Styles.pauseIcon : Styles.playIcon, IsPlay ? Lan.PauseTips : Lan.PlayTips, TogglePlayback);
+            DrawPlaybackButton(Styles.stepForwardIcon, Lan.StepForwardTips, StepForward);
+            DrawPlaybackButton(Styles.playForwardIcon, Lan.PlayForwardTips, () => Seek(player.Length));
+        }
 
-            EditorGUI.BeginChangeCheck();
-
-            var playContent = new GUIContent(Styles.playIcon, !IsPlay ? Lan.PlayTips : Lan.StopTips);
-            var isPlaying = GUILayout.Toggle(IsPlay, playContent, EditorStyles.toolbarButton, GUILayout.Width(26));
-            if (EditorGUI.EndChangeCheck())
+        private static void DrawPlaybackButton(Texture icon, string tooltip, System.Action action)
+        {
+            if (GUILayout.Button(new GUIContent(icon, tooltip), EditorStyles.toolbarButton, GUILayout.Width(24)))
             {
-                if (isPlaying)
-                {
-                    Play();
-                }
-                else
-                {
-                    Stop(true);
-                }
-            }
-
-            EditorGUI.BeginChangeCheck();
-            var isPause = GUILayout.Toggle(
-                IsPlay && IsStop,
-                new GUIContent(Styles.pauseIcon, Lan.PauseTips),
-                EditorStyles.toolbarButton,
-                GUILayout.Width(26)
-            );
-            if (EditorGUI.EndChangeCheck())
-            {
-                if (isPause)
-                {
-                    Pause();
-                }
-                else
-                {
-                    Play();
-                }
-            }
-
-            if (
-                GUILayout.Button(
-                    new GUIContent(Styles.stepForwardIcon, Lan.StepForwardTips),
-                    EditorStyles.toolbarButton,
-                    GUILayout.Width(26)
-                )
-            )
-            {
-                StepForward();
-                Event.current.Use();
-            }
-
-            if (
-                GUILayout.Button(
-                    new GUIContent(Styles.playForwardIcon, Lan.PlayForwardTips),
-                    EditorStyles.toolbarButton,
-                    GUILayout.Width(26)
-                )
-            )
-            {
-                player.CurrentTime = player.Length;
+                action();
             }
         }
 
@@ -122,13 +74,14 @@ namespace TrackEditor
                 GUI.contentColor = Color.black.WithAlpha(0.7f);
             }
 
-            GUI.enabled = player.CurrentTime <= 0; //是否禁用工具条。播放时
+            GUI.enabled = !IsPlay; //是否禁用工具条。播放时
 
             GUI.backgroundColor = Color.white;
             GUI.color = Color.white;
             GUILayout.BeginHorizontal(EditorStyles.toolbar);
 
             DrawToolbarLeft();
+            GUI.enabled = true;
 
             GUILayout.FlexibleSpace();
 
@@ -161,8 +114,35 @@ namespace TrackEditor
             var con = new GUIContent(string.Format(Lan.HeaderSelectAsset, gName), Lan.SelectAssetTips);
             if (GUILayout.Button(con, EditorStyles.toolbarDropDown, GUILayout.Width(120)))
             {
-                //App.AutoSave(); //先保存当前的
-                //ObjectSelectorWindow.ShowObjectPicker<TextAsset>(App.AssetData, App.OnObjectPickerConfig, Prefs.savePath);
+                var menu = new GenericMenu();
+                menu.AddItem(new GUIContent("Open JSON"), false, () =>
+                    EditorGUIUtility.ShowObjectPicker<TextAsset>(assetSource as TextAsset, false, "t:TextAsset", GetInstanceID()));
+                menu.AddItem(new GUIContent("Asset Properties"), false, () => SelectedObject = asset);
+                var selectedTarget = Selection.activeGameObject;
+                if (selectedTarget != null && selectedTarget.scene.IsValid())
+                {
+                    menu.AddItem(new GUIContent("Use Selected Preview Target"), selectedTarget == previewTarget, () =>
+                    {
+                        previewTarget = selectedTarget;
+                        player.InvalidatePreview(rebuild: true);
+                    });
+                }
+
+                menu.ShowAsContext();
+            }
+        }
+
+        private void DrawPlayheadField()
+        {
+            var frames = Prefs.timeStepMode == Prefs.TimeStepMode.Frames;
+            var frameRate = Mathf.Max(1, Prefs.frameRate);
+            EditorGUI.BeginChangeCheck();
+            var time = frames
+                ? EditorGUILayout.DelayedIntField(Mathf.RoundToInt(player.CurrentTime * frameRate), GUILayout.Width(60)) / (float)frameRate
+                : EditorGUILayout.DelayedFloatField(player.CurrentTime, GUILayout.Width(60));
+            if (EditorGUI.EndChangeCheck() && !float.IsNaN(time))
+            {
+                Seek(time);
             }
         }
 
@@ -188,7 +168,7 @@ namespace TrackEditor
             )
             {
                 PreferencesWindow.Show(
-                    new Rect(G.ScreenWidth - 5 - 400, Styles.TOOLBAR_HEIGHT + 5, 400, G.ScreenHeight - Styles.TOOLBAR_HEIGHT - 50)
+                    new Rect(view.ScreenWidth - 5 - 400, Styles.TOOLBAR_HEIGHT + 5, 400, view.ScreenHeight - Styles.TOOLBAR_HEIGHT - 50)
                 );
             }
         }

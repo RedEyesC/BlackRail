@@ -58,14 +58,14 @@ namespace TrackEditor
         public static bool CanScale(this Clip directable)
         {
             var lengthProp = directable.GetType().GetProperty("Length", BindingFlags.Instance | BindingFlags.Public);
-            return lengthProp != null && lengthProp.CanWrite && lengthProp.DeclaringType != typeof(Clip);
+            return !(directable is ClipSignal) && lengthProp != null && lengthProp.CanWrite && lengthProp.DeclaringType != typeof(Clip);
         }
 
         public static Clip GetPreviousSibling(this Clip directable)
         {
             if (directable.Parent != null)
             {
-                return directable.Parent.Clips.LastOrDefault(d => d != directable && TimelineTime.IsBefore(d.StartTime, directable.StartTime));
+                return directable.Parent.Clips.LastOrDefault(d => d != directable && !(d is ClipSignal) && TimelineTime.IsBefore(d.StartTime, directable.StartTime));
             }
 
             return null;
@@ -87,16 +87,32 @@ namespace TrackEditor
         {
             if (directable.Parent != null)
             {
-                return directable.Parent.Clips.FirstOrDefault(d => d != directable && TimelineTime.IsAfter(d.StartTime, directable.StartTime));
+                return directable.Parent.Clips.FirstOrDefault(d => d != directable && !(d is ClipSignal) && TimelineTime.IsAfter(d.StartTime, directable.StartTime));
             }
 
             return null;
         }
 
+        public static float GetCrossBlendIn(this Clip clip, Clip previous) =>
+            clip.CanCrossBlend(previous) && previous.IsActive ? Mathf.Max(0, previous.EndTime - clip.StartTime) : 0;
+
+        public static float GetCrossBlendOut(this Clip clip, Clip next) =>
+            clip.CanCrossBlend(next) && next.IsActive ? Mathf.Max(0, clip.EndTime - next.StartTime) : 0;
+
+        public static Vector2 GetBlendDurations(this Clip clip, float overlapIn, float overlapOut)
+        {
+            return new Vector2(
+                overlapIn > 0 ? overlapIn : Mathf.Min(clip.BlendIn, Mathf.Max(0, clip.Length - overlapOut)),
+                overlapOut > 0 ? overlapOut : Mathf.Min(clip.BlendOut, Mathf.Max(0, clip.Length - overlapIn)));
+        }
+
         ///The weight at specified local time based on its blend properties.
         public static float GetWeight(this Clip directable, float time)
         {
-            return GetWeight(directable, time, directable.BlendIn, directable.BlendOut);
+            var blend = directable.GetBlendDurations(
+                directable.GetCrossBlendIn(directable.GetPreviousSibling()),
+                directable.GetCrossBlendOut(directable.GetNextSibling()));
+            return GetWeight(directable, time, blend.x, blend.y);
         }
 
         ///The weight at specified local time based on provided override blend in/out properties

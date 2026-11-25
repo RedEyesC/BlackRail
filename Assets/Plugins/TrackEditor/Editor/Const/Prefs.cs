@@ -163,6 +163,12 @@ namespace TrackEditor
             }
         }
 
+        public static float SnapTime(float time)
+        {
+            var interval = timeStepMode == TimeStepMode.Frames ? 1f / Mathf.Max(1, frameRate) : snapInterval;
+            return Mathf.Round(time / interval) * interval;
+        }
+
         static void Save()
         {
             System.IO.File.WriteAllText(CONFIG_PATH, JsonUtility.ToJson(data));

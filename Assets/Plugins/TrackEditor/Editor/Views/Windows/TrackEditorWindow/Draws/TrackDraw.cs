@@ -86,17 +86,15 @@ namespace TrackEditor.Draws
 
         #endregion
 
-        public static void Draw(Track track, Rect trackRect)
+        internal static void Draw(TrackEditorWindow window, Track track, Rect trackRect)
         {
-            var e = Event.current;
-
-            DoDefaultInfoGUI(track, e, trackRect);
+            DoDefaultInfoGUI(window, track, trackRect);
 
             GUI.color = Color.white;
             GUI.backgroundColor = Color.white;
         }
 
-        public static void DoDefaultInfoGUI(Track track, Event e, Rect trackRect)
+        private static void DoDefaultInfoGUI(TrackEditorWindow window, Track track, Rect trackRect)
         {
             var dopeRect = new Rect(0, 0, 4f, track.ShowHeight);
             GUI.color = track.GetColor();
@@ -117,7 +115,7 @@ namespace TrackEditor.Draws
             {
                 var iconRect = new Rect(0, 0, 16, 16);
                 iconRect.center = iconBGRect.center;
-                GUI.color = ReferenceEquals(DirectorUtility.selectedObject, track) ? Color.white : new Color(1, 1, 1, 0.8f);
+                GUI.color = ReferenceEquals(window.SelectedObject, track) ? Color.white : new Color(1, 1, 1, 0.8f);
                 GUI.DrawTexture(iconRect, icon);
                 GUI.color = Color.white;
             }
@@ -138,6 +136,7 @@ namespace TrackEditor.Draws
                 if (GUI.Button(hiddenRect, Styles.hiddenIcon, GUIStyle.none))
                 {
                     track.IsActive = !track.IsActive;
+                    window.NotifyTimelineChanged(rebuildPreview: true);
                 }
             }
 
@@ -152,6 +151,7 @@ namespace TrackEditor.Draws
                 if (GUI.Button(lockRect, Styles.lockIcon, GUIStyle.none))
                 {
                     track.IsLocked = !track.IsLocked;
+                    window.NotifyTimelineChanged();
                 }
             }
 
@@ -159,7 +159,7 @@ namespace TrackEditor.Draws
             GUI.enabled = wasEnable;
         }
 
-        public static void DrawTrackContextMenu(Track track, Event e, Rect posRect, float cursorTime)
+        internal static void DrawTrackContextMenu(TrackEditorWindow window, Track track, Event e, Rect posRect, float cursorTime)
         {
             var clipsPosRect = Rect.MinMaxRect(posRect.xMin, posRect.yMin, posRect.xMax, posRect.yMin + track.ShowHeight);
             if (e.type == EventType.ContextClick && clipsPosRect.Contains(e.mousePosition))
@@ -172,7 +172,7 @@ namespace TrackEditor.Draws
 
                 foreach (var clip in EditorTools.GetTypeMetaDerivedFrom(typeof(Clip)))
                 {
-                    if (!clip.attachableTypes.Contains(track.GetType()))
+                    if (!clip.attachableTypes.Any(type => type.IsAssignableFrom(track.GetType())))
                     {
                         continue;
                     }
@@ -203,12 +203,13 @@ namespace TrackEditor.Draws
                             false,
                             () =>
                             {
-                                track.AddAction(info.type, cursorTime, TrackEditorWindow.current.GetAssetStorage());
+                                window.SelectedObject = track.AddAction(info.type, cursorTime);
+                                window.NotifyTimelineChanged(rebuildPreview: true);
                             }
                         );
                     }
 
-                    var copyType = DirectorUtility.GetCopyType();
+                    var copyType = window.CopiedClip?.GetType();
                     if (copyType != null && attachableTypeInfos.Select(i => i.type).Contains(copyType))
                     {
                         menu.AddSeparator("/");
@@ -217,7 +218,8 @@ namespace TrackEditor.Draws
                             false,
                             () =>
                             {
-                                track.PasteClip(DirectorUtility.CopyClip, TrackEditorWindow.current.GetAssetStorage(), cursorTime);
+                                track.PasteClip(window.CopiedClip, cursorTime);
+                                window.NotifyTimelineChanged(rebuildPreview: true);
                             }
                         );
                     }

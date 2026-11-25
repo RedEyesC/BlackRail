@@ -10,26 +10,10 @@ namespace TrackEditor
     [CustomEditor(typeof(InspectorPreviewAsset))]
     public class InspectorPreviewAssetInspector : Editor
     {
-        private static Asset _lastAsset;
-        private static bool _willResample;
+        internal static event System.Action<InspectorPreviewAsset> SelectionEdited;
 
-        private static Dictionary<IData, InspectorsBase> directableEditors = new Dictionary<IData, InspectorsBase>();
-
-        private static InspectorsBase _currentDirectableEditor;
-        private static InspectorsBase _currentAssetEditor;
-
-        void OnEnable()
-        {
-            _currentDirectableEditor = null;
-            _willResample = false;
-        }
-
-        void OnDisable()
-        {
-            _currentDirectableEditor = null;
-            directableEditors.Clear();
-            _willResample = false;
-        }
+        private readonly Dictionary<IData, InspectorsBase> directableEditors = new Dictionary<IData, InspectorsBase>();
+        private InspectorsBase currentDirectableEditor;
 
         protected override void OnHeaderGUI()
         {
@@ -38,47 +22,27 @@ namespace TrackEditor
 
         public override void OnInspectorGUI()
         {
-            var ow = target as InspectorPreviewAsset;
-            if (ow == null || DirectorUtility.selectedObject == null)
+            var preview = (InspectorPreviewAsset)target;
+            var selection = preview.SelectedObject;
+            if (selection == null)
             {
+                currentDirectableEditor = null;
                 EditorGUILayout.HelpBox(Lan.NotSelectAsset, MessageType.Info);
                 return;
             }
 
             GUI.skin.GetStyle("label").richText = true;
-
             GUILayout.Space(5);
-
-            DoAssetInspector();
-            DoSelectionInspector();
-
-            if (_willResample)
+            EditorGUI.BeginChangeCheck();
+            DoSelectionInspector(selection);
+            if (EditorGUI.EndChangeCheck())
             {
-                _willResample = false;
-                EditorApplication.delayCall += () =>
-                {
-                    Debug.Log("cutscene.ReSample();");
-                };
+                SelectionEdited?.Invoke(preview);
             }
-
-            Repaint();
         }
 
-        void DoAssetInspector()
+        void DoSelectionInspector(DirectableAsset selection)
         {
-            //
-        }
-
-        void DoSelectionInspector()
-        {
-            var selection = DirectorUtility.selectedObject;
-
-            if (selection == null)
-            {
-                _currentDirectableEditor = null;
-                return;
-            }
-
             if (!(selection is IData data))
                 return;
 
@@ -87,7 +51,7 @@ namespace TrackEditor
                 directableEditors[data] = newEditor = EditorInspectorFactory.GetInspector(data);
             }
 
-            if (_currentDirectableEditor != newEditor)
+            if (currentDirectableEditor != newEditor)
             {
                 var enableMethod = newEditor
                     .GetType()
@@ -100,23 +64,23 @@ namespace TrackEditor
                     enableMethod.Invoke(newEditor, null);
                 }
 
-                _currentDirectableEditor = newEditor;
+                currentDirectableEditor = newEditor;
             }
 
             EditorTools.BoldSeparator();
             GUILayout.Space(4);
-            ShowPreliminaryInspector();
+            ShowPreliminaryInspector(selection);
 
-            if (_currentDirectableEditor != null)
-                _currentDirectableEditor.OnInspectorGUI();
+            if (currentDirectableEditor != null)
+                currentDirectableEditor.OnInspectorGUI();
         }
 
         /// <summary>
         /// 选中对象基本信息
         /// </summary>
-        void ShowPreliminaryInspector()
+        void ShowPreliminaryInspector(DirectableAsset selection)
         {
-            var type = DirectorUtility.selectedObject.GetType();
+            var type = selection.GetType();
             var nameAtt = type.GetCustomAttributes(typeof(NameAttribute), false).FirstOrDefault() as NameAttribute;
             var name = nameAtt != null ? nameAtt.name : type.Name.SplitCamelCase();
 

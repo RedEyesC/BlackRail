@@ -1,17 +1,15 @@
-﻿using System;
-using UnityEditor;
+﻿using UnityEditor;
 using UnityEngine;
 
 namespace TrackEditor
 {
-    public class G
+    internal sealed class G
     {
-        public static string SearchString;
+        public string SearchString;
 
-        public static float timeInfoInterval = 1000000f;
-        public static float timeInfoHighMod = timeInfoInterval;
-        public static float timeInfoStart;
-        public static float timeInfoEnd;
+        public float TickInterval;
+        public int FirstTick;
+        public int LastTick;
 
         public static float SnapTime(float time)
         {
@@ -20,53 +18,52 @@ namespace TrackEditor
                 return time;
             }
 
-            return TimelineTime.Snap(time);
+            return Prefs.SnapTime(time);
         }
 
         #region Size
 
-        public static float TotalHeight;
+        public float ContentHeight { get; private set; }
 
-        public static float ScreenWidth => TrackEditorWindow.current != null
-            ? TrackEditorWindow.current.position.width
-            : Screen.width / EditorGUIUtility.pixelsPerPoint;
+        public float ScreenWidth;
+        public float ScreenHeight;
+        public float LeftMargin;
 
-        public static float ScreenHeight => TrackEditorWindow.current != null
-            ? TrackEditorWindow.current.position.height
-            : Screen.height / EditorGUIUtility.pixelsPerPoint;
+        public Vector2 ScrollPos;
 
-        public static Vector2 ScrollPos;
+        public Rect TopLeftRect;
 
-        public static readonly float BottomHeight = Styles.BOTTOM_HEIGHT * 2;
+        public Rect LeftRect;
 
-        public static Rect TopLeftRect;
+        public Rect TopMiddleRect;
 
-        public static Rect LeftRect;
+        public Rect CenterRect;
 
-        public static Rect TopMiddleRect;
-
-        public static Rect CenterRect;
-
-        public static void Reset()
+        public void Reset(Rect windowRect, float contentHeight)
         {
-            TopLeftRect = new Rect(0, Styles.TOOLBAR_HEIGHT, Styles.LEFT_MARGIN, Styles.TOP_MARGIN);
+            ScreenWidth = windowRect.width;
+            ScreenHeight = windowRect.height;
+            ContentHeight = contentHeight;
+            TopLeftRect = new Rect(0, Styles.TOOLBAR_HEIGHT, LeftMargin, Styles.TOP_MARGIN);
 
+            var viewportHeight = ScreenHeight - Styles.TOOLBAR_HEIGHT - Styles.TOP_MARGIN - Styles.BOTTOM_HEIGHT;
+            var maxScroll = Mathf.Max(0, ContentHeight - viewportHeight);
+            ScrollPos.y = Mathf.Clamp(ScrollPos.y, 0, maxScroll);
+            var scrollbarWidth = maxScroll > 0 ? Styles.VERTICAL_SCROLLBAR_WIDTH : 0;
+            var centerWidth = ScreenWidth - LeftMargin - scrollbarWidth;
 
-            var centerHeight = ScreenHeight - Styles.TOOLBAR_HEIGHT - Styles.TOP_MARGIN + ScrollPos.y;
-            var centerWidth = ScreenWidth - Styles.LEFT_MARGIN - Styles.RIGHT_MARGIN;
+            TopMiddleRect = new Rect(LeftMargin, Styles.TOOLBAR_HEIGHT, centerWidth, Styles.TOP_MARGIN);
 
-            TopMiddleRect = new Rect(Styles.LEFT_MARGIN, Styles.TOOLBAR_HEIGHT, centerWidth, Styles.TOP_MARGIN);
+            LeftRect = new Rect(0, Styles.TOOLBAR_HEIGHT + Styles.TOP_MARGIN, LeftMargin, viewportHeight + ScrollPos.y);
 
-            LeftRect = new Rect(0, Styles.TOOLBAR_HEIGHT + Styles.TOP_MARGIN, Styles.LEFT_MARGIN, centerHeight);
-
-            CenterRect = new Rect(Styles.LEFT_MARGIN, Styles.TOP_MARGIN + Styles.TOOLBAR_HEIGHT, centerWidth,
-                centerHeight - BottomHeight);
+            CenterRect = new Rect(LeftMargin, Styles.TOP_MARGIN + Styles.TOOLBAR_HEIGHT, centerWidth,
+                viewportHeight + ScrollPos.y);
         }
 
         #endregion
         
         
-        internal static bool IsFilteredOutBySearch(ScriptableObject direct)
+        internal bool IsFilteredOutBySearch(DirectableAsset direct)
         {
             if (string.IsNullOrEmpty(SearchString))
             {
@@ -78,7 +75,7 @@ namespace TrackEditor
                 return true;
             }
 
-            return !direct.name.ToLower().Contains(SearchString.ToLower());
+            return direct.name.IndexOf(SearchString, System.StringComparison.OrdinalIgnoreCase) < 0;
         }
     }
 }

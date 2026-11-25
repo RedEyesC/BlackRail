@@ -9,7 +9,7 @@ namespace TrackEditor
     [Attachable(typeof(Asset))]
     public class Group : DirectableAsset
     {
-        [SerializeField, HideInInspector]
+        [NonSerialized, HideInInspector]
         private List<Track> tracks = new List<Track>();
 
         [SerializeField, HideInInspector]
@@ -29,7 +29,7 @@ namespace TrackEditor
 
 
         public override float StartTime => 0;
-        public override float EndTime => Parent.Length;
+        public override float EndTime => Parent?.Length ?? 0;
 
         public string Name
         {
@@ -86,75 +86,76 @@ namespace TrackEditor
                 return false;
             }
 
-            var attachAtt = type.RTGetAttribute<AttachableAttribute>(true);
-            if (attachAtt == null || attachAtt.Types == null || attachAtt.Types.All(t => t != this.GetType()))
-            {
-                return false;
-            }
-
-            return true;
+            return CanAttach(type, GetType());
         }
 
-        public T AddTrack<T>(IAssetStorage storage, string _name = null)
-            where T : Track
+        public Track AddTrack(Type type, string trackName = null)
         {
-            return (T)AddTrack(typeof(T), storage, _name);
-        }
-
-        public Track AddTrack(Type type, IAssetStorage storage, string _name = null)
-        {
-            var newTrack = CreateInstance(type);
-            if (newTrack is Track track)
+            if (!CanAddTrackOfType(type))
             {
-                track.Name = string.IsNullOrEmpty(_name) ? type.Name : _name;
-                track.Parent = this;
-                Tracks.Add(track);
-
-                CreateUtilities.SaveAssetIntoObject(track, this, storage);
-                DirectorUtility.selectedObject = track;
-
-                return track;
+                return null;
             }
 
-            return null;
+            var track = (Track)Activator.CreateInstance(type);
+            track.Name = string.IsNullOrEmpty(trackName) ? type.Name : trackName;
+            track.Parent = this;
+            Tracks.Add(track);
+            return track;
         }
 
         public void DeleteTrack(Track track)
         {
-            // Undo.RegisterCompleteObjectUndo(this, "Delete Track");
-            Tracks.Remove(track);
-            if (ReferenceEquals(DirectorUtility.selectedObject, track))
+            if (Tracks.Remove(track))
             {
-                DirectorUtility.selectedObject = null;
+                track.Parent = null;
             }
-
-            // Undo.DestroyObjectImmediate(track);
-            // EditorUtility.SetDirty(this);
-            // root?.Validate();
-            // root?.SaveToAssets();
         }
 
-        public Track PasteTrack(Track track, IAssetStorage storage)
+        public bool CanMoveTrack(Track track, int index)
+        {
+            if (track?.Parent == null || Parent == null || Parent != track.Parent.Parent
+                || track.IsLocked || IsLocked || index < 0 || index > Tracks.Count)
+            {
+                return false;
+            }
+
+            var current = track.Parent.Tracks.IndexOf(track);
+            return current >= 0 && (track.Parent == this
+                ? index != current && index != current + 1
+                : CanAddTrack(track));
+        }
+
+        public bool MoveTrack(Track track, int index)
+        {
+            if (!CanMoveTrack(track, index))
+            {
+                return false;
+            }
+
+            var source = track.Parent;
+            var current = source.Tracks.IndexOf(track);
+            if (source == this && current < index)
+            {
+                index--;
+            }
+
+            source.Tracks.RemoveAt(current);
+            Tracks.Insert(index, track);
+            track.Parent = this;
+            return true;
+        }
+
+        public Track PasteTrack(Track track)
         {
             if (!CanAddTrack(track))
             {
                 return null;
             }
 
-            var newTrack = Instantiate(track);
-            if (newTrack != null)
-            {
-                newTrack.Parent = this;
-                Tracks.Add(newTrack);
-                CreateUtilities.SaveAssetIntoObject(newTrack, this, storage);
-                newTrack.Clips.Clear();
-                foreach (var clip in track.Clips)
-                {
-                    newTrack.PasteClip(clip, storage);
-                }
-            }
-
-            return newTrack;
+            var copy = TimelineJson.Clone(track);
+            copy.Parent = this;
+            Tracks.Add(copy);
+            return copy;
         }
 
         #endregion

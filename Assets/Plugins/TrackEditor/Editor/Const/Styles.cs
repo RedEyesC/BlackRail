@@ -30,15 +30,20 @@ namespace TrackEditor
 
         private static GUISkin styleSheet;
 
-        public static Color HIGHLIGHT_COLOR => EditorGUIUtility.isProSkin ? new Color(0.65f, 0.65f, 1) : new Color(0.1f, 0.1f, 0.1f);
+        public static Color TrackHeaderSelection => EditorGUIUtility.isProSkin
+            ? new Color32(55, 99, 151, 255)
+            : new Color32(88, 139, 197, 255);
 
-        public static readonly Color LIST_SELECTION_COLOR = new Color(0.5f, 0.5f, 1, 0.3f);
+        public static Color TrackLaneSelection => EditorGUIUtility.isProSkin
+            ? new Color(0.33f, 0.56f, 0.83f, 0.26f)
+            : new Color(0.26f, 0.48f, 0.76f, 0.22f);
+
+        public static Color DurationMarker => EditorGUIUtility.isProSkin
+            ? new Color32(106, 148, 190, 255)
+            : new Color32(53, 95, 149, 255);
         public static readonly Color GROUP_COLOR = new Color(0f, 0f, 0f, 0.25f);
 
-        /// <summary>
-        /// 右边边距
-        /// </summary>
-        public const float RIGHT_MARGIN = 16;
+        public const float VERTICAL_SCROLLBAR_WIDTH = 16;
 
         /// <summary>
         /// 工具栏的高度
@@ -78,7 +83,7 @@ namespace TrackEditor
         /// <summary>
         /// 底部滚动条高度
         /// </summary>
-        public const float BOTTOM_HEIGHT = 20;
+        public const float BOTTOM_HEIGHT = 16;
 
         public static float LEFT_MARGIN
         {

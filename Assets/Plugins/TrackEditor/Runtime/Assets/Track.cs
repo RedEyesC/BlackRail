@@ -9,7 +9,7 @@ namespace TrackEditor
     [Attachable(typeof(Group))]
     public abstract class Track : DirectableAsset
     {
-        [SerializeField]
+        [NonSerialized, HideInInspector]
         private List<Clip> actionClips = new List<Clip>();
 
         [SerializeField]
@@ -75,92 +75,62 @@ namespace TrackEditor
 
         #region 增删
 
-#if UNITY_EDITOR
-        public T AddAction<T>(float time, IAssetStorage storage)
-            where T : Clip
+        public Clip AddAction(Type type, float time)
         {
-            return (T)AddAction(typeof(T), time, storage);
-        }
-
-        public Clip AddAction(Type type, float time, IAssetStorage storage)
-        {
-            var catAtt = type.GetCustomAttributes(typeof(CategoryAttribute), true).FirstOrDefault() as CategoryAttribute;
-            if (catAtt != null && Clips.Count == 0)
+            if (!typeof(Clip).IsAssignableFrom(type) || type.IsAbstract || !CanAttach(type, GetType()))
             {
-                Name = catAtt.category + " Track";
+                return null;
             }
 
-            var newAction = CreateInstance(type) as Clip;
-
-            CreateUtilities.SaveAssetIntoObject(newAction, this, storage);
-            DirectorUtility.selectedObject = newAction;
-
-            if (newAction != null)
+            var category = type.RTGetAttribute<CategoryAttribute>(true);
+            if (category != null && Clips.Count == 0)
             {
-                newAction.Parent = this;
-                newAction.StartTime = time;
-                Clips.Add(newAction);
-
-                var nextAction = Clips.FirstOrDefault(a => TimelineTime.IsAfter(a.StartTime, newAction.StartTime));
-                if (nextAction != null)
-                {
-                    newAction.EndTime = Mathf.Min(newAction.EndTime, nextAction.StartTime);
-                }
+                Name = category.category + " Track";
             }
 
-            return newAction;
+            return InsertClip((Clip)Activator.CreateInstance(type), time);
         }
 
-        public void DeleteAction(Clip action)
+        public void DeleteAction(Clip clip)
         {
-            Clips.Remove(action);
-            if (ReferenceEquals(DirectorUtility.selectedObject, action))
+            if (Clips.Remove(clip))
             {
-                DirectorUtility.selectedObject = null;
+                clip.Parent = null;
             }
         }
 
-        public Clip PasteClip(Clip clip, IAssetStorage storage, float time = 0)
+        public Clip PasteClip(Clip clip, float time)
         {
-            var newClip = Instantiate(clip);
-            if (newClip != null)
-            {
-                if (time > 0)
-                {
-                    newClip.StartTime = time;
-                    var nextClip = Clips.FirstOrDefault(a => TimelineTime.IsAfter(a.StartTime, newClip.StartTime));
-                    if (nextClip != null && TimelineTime.IsAfter(newClip.EndTime, nextClip.StartTime))
-                    {
-                        newClip.EndTime = nextClip.StartTime;
-                    }
-                }
+            return CanAttach(clip.GetType(), GetType()) ? InsertClip(TimelineJson.Clone(clip), time) : null;
+        }
 
-                newClip.Parent = this;
-                Clips.Add(newClip);
-                CreateUtilities.SaveAssetIntoObject(newClip, this, storage);
+        private Clip InsertClip(Clip clip, float time)
+        {
+            clip.Parent = this;
+            clip.StartTime = time;
+            var next = Clips.FirstOrDefault(other => !(other is ClipSignal) && other.StartTime > clip.StartTime);
+            if (next != null && !(clip is ClipSignal))
+            {
+                clip.EndTime = Mathf.Min(clip.EndTime, next.StartTime);
             }
 
-            return newClip;
+            Clips.Add(clip);
+            SortClips();
+            return clip;
         }
-#endif
-
-        #endregion
-
-
-        internal bool IsCompilable()
-        {
-            return true;
-        }
-
-        bool m_CacheSorted;
 
         public void SortClips()
         {
-            if (!m_CacheSorted)
+            for (var i = 1; i < Clips.Count; i++)
             {
-                Clips.Sort((clip1, clip2) => TimelineTime.ToUnits(clip1.StartTime).CompareTo(TimelineTime.ToUnits(clip2.StartTime)));
-                m_CacheSorted = true;
+                if (Clips[i].StartTime < Clips[i - 1].StartTime)
+                {
+                    Clips = Clips.OrderBy(clip => clip.StartTime).ToList();
+                    return;
+                }
             }
         }
+
+        #endregion
     }
 }

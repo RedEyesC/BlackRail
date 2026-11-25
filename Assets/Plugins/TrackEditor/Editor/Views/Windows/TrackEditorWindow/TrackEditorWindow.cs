@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -13,47 +13,82 @@ namespace TrackEditor
     {
         [NonSerialized]
         private float editorPreviousTime;
+        private bool previewRequested;
 
         [NonSerialized]
         internal bool WillRepaint;
 
-        [NonSerialized]
-        internal bool ShowDragDropInfo;
-
         [SerializeField]
         internal bool isLocked;
 
-        public Asset asset;
+        [NonSerialized] public Asset asset;
 
         [SerializeField]
         public UnityEngine.Object assetSource;
 
-        int UID(int g, int t, int a)
+        [SerializeField] private GameObject previewTarget;
+        private InspectorPreviewAsset inspectorSelection;
+        private string appliedSnapshot;
+        private bool editPending;
+        private bool assetDirty;
+        private double nextAutoSave;
+        internal Clip CopiedClip { get; private set; }
+
+        internal DirectableAsset SelectedObject
         {
-            var A = g.ToString("D3");
-            var B = t.ToString("D3");
-            var C = a.ToString("D4");
-            return int.Parse(A + B + C);
+            get => inspectorSelection.SelectedObject;
+            set
+            {
+                if (!(value is Clip clip) || !selectedClips.Contains(clip))
+                {
+                    selectedClips.Clear();
+                    if (value is Clip single) selectedClips.Add(single);
+                }
+
+                inspectorSelection.SelectedObject = value;
+                if (value != null)
+                {
+                    Selection.activeObject = inspectorSelection;
+                }
+
+                EditorUtility.SetDirty(inspectorSelection);
+                WillRepaint = true;
+            }
         }
 
-        #region 静态接口
+        #region Window
 
-        public static TrackEditorWindow current;
-
+        [MenuItem("Window/Track Editor")]
         public static void ShowWindow()
         {
             ShowWindow<TrackEditorWindow>();
         }
 
-        public static void ShowWindow<TWindow>()
+        public static void ShowWindow<TWindow>(UnityEngine.Object source = null)
+            where TWindow : TrackEditorWindow => TryShowWindow<TWindow>(source);
+
+        internal static bool TryShowWindow<TWindow>(UnityEngine.Object source)
             where TWindow : TrackEditorWindow
         {
-            var window = GetWindow(typeof(TWindow)) as TWindow;
-            if (window == null)
-                return;
-            window.InitializeAll();
+            var existingWindow = FindWindow<TWindow>();
+            var window = existingWindow ?? CreateInstance<TWindow>();
+            if (source == null)
+            {
+                window.InitializeAll();
+            }
+            else if (!window.TryOpenAsset(source))
+            {
+                if (existingWindow == null) DestroyImmediate(window);
+                return false;
+            }
+
             window.Show();
+            window.Focus();
+            return true;
         }
+
+        private static TWindow FindWindow<TWindow>() where TWindow : TrackEditorWindow =>
+            Resources.FindObjectsOfTypeAll<TWindow>().FirstOrDefault(window => window.GetType() == typeof(TWindow));
 
         public static void CloseWindow()
         {
@@ -63,20 +98,7 @@ namespace TrackEditor
         protected static void CloseWindow<TWindow>()
             where TWindow : TrackEditorWindow
         {
-            var window = GetWindow(typeof(TWindow)) as TWindow;
-            if (window == null)
-                return;
-            window.Close();
-        }
-
-        static bool Quit()
-        {
-            if (current != null)
-            {
-                current.Close();
-            }
-
-            return true;
+            FindWindow<TWindow>()?.Close();
         }
 
         #endregion
@@ -85,8 +107,12 @@ namespace TrackEditor
 
         void OnEnable()
         {
-            current = this;
             Styles.Load();
+            view.LeftMargin = Styles.LEFT_MARGIN;
+            inspectorSelection = CreateInstance<InspectorPreviewAsset>();
+            inspectorSelection.hideFlags = HideFlags.HideAndDontSave;
+            InspectorPreviewAssetInspector.SelectionEdited += OnInspectorSelectionEdited;
+            Undo.undoRedoPerformed += RestoreUndoSnapshot;
 
             EditorSceneManager.sceneSaving -= OnWillSaveScene;
             EditorSceneManager.sceneSaving += OnWillSaveScene;
@@ -97,9 +123,6 @@ namespace TrackEditor
             EditorApplication.update -= OnEditorUpdate;
             EditorApplication.update += OnEditorUpdate;
 
-            EditorApplication.wantsToQuit -= Quit;
-            EditorApplication.wantsToQuit += Quit;
-
             Selection.selectionChanged += OnSelectionChanged;
 
             Tools.hidden = false;
@@ -107,7 +130,6 @@ namespace TrackEditor
             minSize = new Vector2(500, 250);
 
             WillRepaint = true;
-            ShowDragDropInfo = true;
 
             pendingGuides = new List<GuideLine>();
 
@@ -123,14 +145,16 @@ namespace TrackEditor
             EditorApplication.update -= OnEditorUpdate;
 
             Selection.selectionChanged -= OnSelectionChanged;
+            InspectorPreviewAssetInspector.SelectionEdited -= OnInspectorSelectionEdited;
+            Undo.undoRedoPerformed -= RestoreUndoSnapshot;
+            FlushEdits();
+            DestroyImmediate(inspectorSelection);
 
             Tools.hidden = false;
             if (asset != null && !Application.isPlaying)
             {
                 Stop(true);
             }
-
-            EditorApplication.wantsToQuit -= Quit;
         }
 
         void OnPlay()
@@ -163,73 +187,81 @@ namespace TrackEditor
 
         void OnEditorUpdate()
         {
-            if (asset == null)
+            if (asset != null && !Application.isPlaying)
             {
-                return;
-            }
-
-            if (EditorApplication.isCompiling)
-            {
-                Stop(true);
-                return;
-            }
-
-            var delta = (Time.realtimeSinceStartup - editorPreviousTime) * Time.timeScale;
-
-            editorPreviousTime = Time.realtimeSinceStartup;
-
-            player.Sample();
-
-            if (EditorPlaybackState == EditorPlaybackState.Stoped)
-            {
-                return;
-            }
-
-            if (player.CurrentTime >= asset.Length && EditorPlaybackState == EditorPlaybackState.PlayingForwards)
-            {
-                if (EditorPlaybackWrapMode == WrapMode.Once)
+                if (EditorApplication.isCompiling)
                 {
-                    Stop(true);
-                    return;
+                    if (previewRequested)
+                    {
+                        Stop(true);
+                    }
                 }
-
-                if (EditorPlaybackWrapMode == WrapMode.Loop)
+                else
                 {
-                    player.Sample(0);
-                    player.Sample(delta);
-                    return;
+                    CommitEdits();
+                    if (assetDirty && !itemDragger.IsDragging && Prefs.autoSaveSeconds > 0 && EditorApplication.timeSinceStartup >= nextAutoSave)
+                    {
+                        nextAutoSave = EditorApplication.timeSinceStartup + Prefs.autoSaveSeconds;
+                        TrySaveCurrentAsset();
+                    }
+
+                    UpdatePreview();
                 }
             }
 
-            if (player.CurrentTime <= 0 && EditorPlaybackState == EditorPlaybackState.PlayingBackwards)
-            {
-                Stop(true);
-                return;
-            }
-
-            player.CurrentTime += EditorPlaybackState == EditorPlaybackState.PlayingForwards ? delta : -delta;
-        }
-
-        void Update()
-        {
             if (WillRepaint)
             {
                 WillRepaint = false;
-                Repaint(); //重新绘制窗口
+                Repaint();
+            }
+        }
+
+        private void UpdatePreview()
+        {
+            if (sortClips && !itemDragger.IsDragging)
+            {
+                SortClips();
             }
 
-            player.Sample();
+            if (IsPlay)
+            {
+                var now = Time.realtimeSinceStartup;
+                var delta = (now - editorPreviousTime) * Time.timeScale;
+                editorPreviousTime = now;
+                var time = player.CurrentTime + (EditorPlaybackState == EditorPlaybackState.PlayingForwards ? delta : -delta);
+                if (time >= asset.Length && EditorPlaybackWrapMode == WrapMode.Loop)
+                {
+                    player.Sample(asset.Length);
+                    player.RevertPreview();
+                    time = Mathf.Repeat(time, asset.Length);
+                }
+                else if (EditorPlaybackState == EditorPlaybackState.PlayingForwards ? time >= asset.Length : time <= 0)
+                {
+                    Pause();
+                }
+
+                player.CurrentTime = time;
+            }
+
+            if (previewRequested)
+            {
+                WillRepaint |= player.Sample();
+            }
         }
 
         void OnGUI()
         {
-            G.Reset();
             GUI.skin.label.richText = true;
             GUI.skin.label.alignment = TextAnchor.UpperLeft;
             EditorStyles.label.richText = true;
             EditorStyles.textField.wordWrap = true;
             EditorStyles.foldout.richText = true;
             var e = Event.current;
+            if (e.commandName == "ObjectSelectorClosed" && EditorGUIUtility.GetObjectPickerControlID() == GetInstanceID())
+            {
+                TryOpenAsset(EditorGUIUtility.GetObjectPickerObject());
+                e.Use();
+            }
 
             if (asset == null)
             {
@@ -249,6 +281,7 @@ namespace TrackEditor
                 RemoveNotification();
             }
 
+            view.Reset(position, GetTrackContentHeight());
             DrawHeaderGUI();
 
             if (asset == null)
@@ -260,12 +293,15 @@ namespace TrackEditor
 
             DrawBottomGUI();
 
+            var ruler = view.TopMiddleRect;
+            EditorGUI.DrawRect(new Rect(ruler.xMin - 1, ruler.yMin, 1, view.ScreenHeight - ruler.yMin), Color.black);
+
             DoKeyboardShortcuts();
         }
 
         void OnWillSaveScene(UnityEngine.SceneManagement.Scene scene, string path)
         {
-            if (asset != null && player.CurrentTime > 0)
+            if (previewRequested)
             {
                 Stop(true);
                 Debug.LogWarning(
@@ -276,54 +312,125 @@ namespace TrackEditor
 
         void OnSelectionChanged()
         {
-            if (isLocked)
+            if (!isLocked && (asset == null || focusedWindow == this))
             {
-                //TODO - if the target object is deleted we need to prevent entering an invalid state.
-                return;
-            }
-            if (TargetCurrentSelection())
-            {
-                RebuildPlayer();
+                TryOpenAsset(GetSelectedAssetSource());
             }
         }
 
-        bool TargetCurrentSelection()
+        internal bool TryOpenAsset(UnityEngine.Object source)
         {
-            var source = GetSelectedAssetSource();
-            var selectAsset = LoadAssetFromSource(source);
-            if (selectAsset != null)
+            if (source == null || (source == assetSource && asset != null))
             {
-                asset = selectAsset;
-                assetSource = source;
+                return asset != null && source == assetSource;
+            }
+
+            Asset selected;
+            try
+            {
+                selected = LoadAssetFromSource(source);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+                return false;
+            }
+
+            if (selected == null || !FlushEdits())
+            {
+                return false;
+            }
+
+            asset = selected;
+            assetSource = source;
+            BeginDocument();
+            return true;
+        }
+
+        protected virtual UnityEngine.Object GetSelectedAssetSource() => Selection.activeObject;
+
+        protected virtual Type AssetType => typeof(Asset);
+
+        protected virtual Asset LoadAssetFromSource(UnityEngine.Object source) =>
+            CreateAssetStorage().Load(source, AssetType);
+
+        protected virtual void SaveCurrentAsset() => CreateAssetStorage().Save(asset, assetSource);
+
+        protected virtual IAssetStorage CreateAssetStorage() => AssetStorage.Default;
+
+        private bool FlushEdits()
+        {
+            CommitEdits(force: true);
+            return !assetDirty || TrySaveCurrentAsset();
+        }
+
+        private bool TrySaveCurrentAsset()
+        {
+            try
+            {
+                SaveCurrentAsset();
+                assetDirty = false;
                 return true;
             }
-
-            return false;
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+                return false;
+            }
         }
 
-        protected virtual UnityEngine.Object GetSelectedAssetSource()
+        private void BeginDocument()
         {
-            return Selection.activeObject;
+            Undo.ClearUndo(inspectorSelection);
+            appliedSnapshot = asset == null ? null : TimelineJson.Serialize(asset);
+            inspectorSelection.Snapshot = appliedSnapshot;
+            editPending = false;
+            assetDirty = false;
+            RebuildPlayer();
         }
 
-        protected virtual Asset LoadAssetFromSource(UnityEngine.Object source)
+        private void CommitEdits(bool force = false)
         {
-            return Asset.Load(source, CreateAssetStorage());
+            if (!editPending || (!force && (itemDragger.IsDragging || isMovingEndCarret)))
+            {
+                return;
+            }
+
+            var snapshot = TimelineJson.Serialize(asset);
+            editPending = false;
+            if (snapshot == appliedSnapshot)
+            {
+                return;
+            }
+
+            Undo.IncrementCurrentGroup();
+            Undo.RegisterCompleteObjectUndo(inspectorSelection, "Edit Timeline");
+            inspectorSelection.Snapshot = appliedSnapshot = snapshot;
+            EditorUtility.SetDirty(inspectorSelection);
+            assetDirty = true;
+            nextAutoSave = EditorApplication.timeSinceStartup + Prefs.autoSaveSeconds;
         }
 
-        protected virtual void SaveCurrentAsset()
+        private void RestoreUndoSnapshot()
         {
-            Asset.Save(asset, assetSource, CreateAssetStorage());
-        }
+            var snapshot = inspectorSelection.Snapshot;
+            if (asset == null || snapshot == appliedSnapshot || string.IsNullOrEmpty(snapshot))
+            {
+                return;
+            }
 
-        protected virtual IAssetStorage CreateAssetStorage()
-        {
-            return AssetStorage.Default;
-        }
-
-        internal IAssetStorage GetAssetStorage()
-        {
-            return CreateAssetStorage();
+            var time = player.CurrentTime;
+            var hadPreview = previewRequested;
+            asset = TimelineJson.Deserialize(snapshot, AssetType);
+            appliedSnapshot = snapshot;
+            assetDirty = true;
+            editPending = false;
+            nextAutoSave = EditorApplication.timeSinceStartup + Prefs.autoSaveSeconds;
+            RebuildPlayer();
+            if (hadPreview)
+            {
+                Seek(time);
+            }
         }
 
         protected virtual string CreateWindowTitle()
@@ -338,27 +445,76 @@ namespace TrackEditor
 
         private void RestoreEditorState()
         {
-            if (assetSource != null)
+            if (asset == null && assetSource != null)
             {
-                var restoredAsset = Asset.Load(assetSource, CreateAssetStorage());
-                if (restoredAsset != null)
+                try
                 {
-                    asset = restoredAsset;
+                    asset = LoadAssetFromSource(assetSource);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogException(exception);
                 }
             }
 
-            RebuildPlayer();
+            if (appliedSnapshot == null)
+            {
+                BeginDocument();
+            }
+            else
+            {
+                RebuildPlayer();
+            }
         }
+
+        protected virtual GameObject FindPreviewTarget() => null;
+
+        protected virtual AnimationClip ResolvePreviewAnimation(string path) =>
+            AssetDatabase.LoadAssetAtPath<AnimationClip>(path);
+
+        protected virtual void OnPreviewSignal(ClipSignal signal, bool reverse) { }
 
         private void RebuildPlayer()
         {
-            player = new AssetPlayer(asset);
+            Stop(true);
+            player = new AssetPlayer(asset, new PreviewContext(
+                () => previewTarget != null ? previewTarget : FindPreviewTarget(),
+                ResolvePreviewAnimation));
+            player.SignalCrossed += OnPreviewSignal;
 
-            if (asset != null && !Application.isPlaying)
+            SelectedObject = null;
+            itemDragger.Reset();
+            multiSelectStartPos = null;
+            pickedGroup = null;
+            clipWrappers.Clear();
+            durationSnapTimes = null;
+            view.ScrollPos = Vector2.zero;
+            sortClips = true;
+
+            if (asset != null && (assetSource == null || !viewTimeByAsset.TryGetValue(assetSource, out viewTimeRange)))
             {
-                Stop(true);
+                SetViewTimeRange(0, Mathf.Max(5, asset.Length));
+            }
+        }
+
+        private void OnInspectorSelectionEdited(InspectorPreviewAsset selection)
+        {
+            if (selection == inspectorSelection)
+            {
+                NotifyTimelineChanged(rebuildPreview: true);
+            }
+        }
+
+        internal void NotifyTimelineChanged(bool rebuildPreview = false)
+        {
+            editPending = true;
+            sortClips = true;
+            if (rebuildPreview)
+            {
+                PruneClipWrappers();
             }
 
+            player.InvalidatePreview(rebuildPreview);
             WillRepaint = true;
         }
 
@@ -366,12 +522,7 @@ namespace TrackEditor
 
         #region Init
 
-        public void InitializeAll()
-        {
-            TargetCurrentSelection();
-
-            RebuildPlayer();
-        }
+        public void InitializeAll() => TryOpenAsset(GetSelectedAssetSource());
 
         #endregion
 
@@ -391,9 +542,9 @@ namespace TrackEditor
                 //Ctrl +
                 if (isCtrl)
                 {
-                    if (e.keyCode == KeyCode.S)
+                    if (e.keyCode == KeyCode.S && !itemDragger.IsDragging)
                     {
-                        SaveCurrentAsset();
+                        FlushEdits();
                         e.Use();
                     }
                 }
@@ -401,21 +552,28 @@ namespace TrackEditor
                 //play
                 if (e.keyCode == KeyCode.Space && !e.shift)
                 {
-                    if (EditorPlaybackState != EditorPlaybackState.Stoped)
-                    {
-                        Pause();
-                    }
-                    else
-                    {
-                        Play();
-                    }
-
+                    TogglePlayback();
                     e.Use();
                 }
 
                 if (e.keyCode == KeyCode.Escape)
                 {
-                    Stop(false);
+                    if (itemDragger.IsDragging)
+                    {
+                        if (itemDragger.Cancel()) NotifyTimelineChanged();
+                        ReleaseItemDragControl();
+                    }
+                    else if (multiSelectStartPos.HasValue)
+                    {
+                        multiSelectStartPos = null;
+                        ReleaseItemDragControl();
+                    }
+                    else
+                    {
+                        Stop(true);
+                    }
+
+                    e.Use();
                 }
 
                 //下一帧
@@ -442,34 +600,40 @@ namespace TrackEditor
 
         private Action postWindowsGUI;
 
-        private Vector2 scrollPos;
+        private readonly G view = new G();
+        private readonly Dictionary<UnityEngine.Object, Vector2> viewTimeByAsset = new Dictionary<UnityEngine.Object, Vector2>();
+        private readonly Dictionary<Group, bool> collapsedGroups = new Dictionary<Group, bool>();
+        private Vector2 viewTimeRange;
+        private float ViewTimeMin => viewTimeRange.x;
+        private float ViewTimeMax => viewTimeRange.y;
+        private float ViewTime => ViewTimeMax - ViewTimeMin;
+
+        private float TimeToPos(float time) => view.CenterRect.TimeToPos(viewTimeRange, time);
+        private float PosToTime(float pos) => view.CenterRect.PosToTime(viewTimeRange, pos);
+        private bool IsGroupCollapsed(Group group) =>
+            collapsedGroups.TryGetValue(group, out var collapsed) ? collapsed : group.IsCollapsed;
+
+        private bool sortClips = true;
+
         internal Vector2 mousePosition;
 
-        private Dictionary<int, ActionClipWrapper> clipWrappers = new Dictionary<int, ActionClipWrapper>();
+        private readonly Dictionary<Clip, ActionClipWrapper> clipWrappers = new Dictionary<Clip, ActionClipWrapper>();
 
-        private Dictionary<Clip, ActionClipWrapper> clipWrappersMap = new Dictionary<Clip, ActionClipWrapper>();
-
-        ActionClipWrapper interactingClip;
-
-        [NonSerialized]
+        private static readonly int ItemDragControlHint = "TrackEditorItemDrag".GetHashCode();
+        private readonly ItemDragger itemDragger = new ItemDragger();
+        private readonly List<Clip> selectedClips = new List<Clip>();
+        private int itemDragControl;
+        private Group trackDropGroup;
+        private int trackDropIndex;
         private Vector2? multiSelectStartPos;
-
-        [NonSerialized]
-        private Rect preMultiSelectionRetimeMinMax;
-
-        [NonSerialized]
-        private int multiSelectionScaleDirection;
-        List<ActionClipWrapper> multiSelection;
+        private readonly List<Clip> marqueeHits = new List<Clip>();
 
         internal List<GuideLine> pendingGuides;
-
-        internal float[] magnetSnapTimesCache;
-
-        private float MAGNET_SNAP_INTERVAL => asset.ViewTime * 0.01f;
+        private float[] durationSnapTimes;
+        private float MagnetTolerance => ViewTime * 10 / CenterRect.width;
 
         private Section draggedSection;
 
-        private bool isMovingScrubCarret;
         private bool isMovingEndCarret;
         private bool isMouseButton2Down;
 
@@ -478,14 +642,9 @@ namespace TrackEditor
         private float wheelZoomMouseX;
 
         private Rect CenterRect;
-
-        internal void SafeDoAction(Action call)
-        {
-            var time = player.CurrentTime;
-            Stop(true);
-            call();
-            player.CurrentTime = time;
-        }
+        private GUIStyle timelineVerticalScrollbar;
+        private float TimelineBottom => view.ScreenHeight - Styles.BOTTOM_HEIGHT;
+        private Rect TimelineViewport => Rect.MinMaxRect(CenterRect.xMin, CenterRect.yMin, CenterRect.xMax, TimelineBottom);
 
         public void DrawTimelineInfo()
         {
@@ -502,57 +661,48 @@ namespace TrackEditor
             }
 
             mousePosition = e.mousePosition;
-            if (interactingClip == null && e.type == EventType.Layout)
+            CenterRect = view.CenterRect;
+
+            itemDragControl = GUIUtility.GetControlID(ItemDragControlHint, FocusType.Passive);
+            trackDropGroup = null;
+            if (itemDragger.IsDragging)
             {
-                foreach (var group in asset.groups)
-                {
-                    foreach (var track in group.Tracks)
-                    {
-                        track.Clips = track.Clips.OrderBy(a => a.StartTime).ToList();
-                    }
-                }
+                UpdateItemDrag(e);
+            }
+            else
+            {
+                DoScrubControls();
+                DoZoomAndPan();
             }
 
-            CenterRect = G.CenterRect;
+            var scrollView = Rect.MinMaxRect(0, CenterRect.yMin, view.ScreenWidth, TimelineBottom);
+            var contentRect = new Rect(0, scrollView.y, CenterRect.xMax, view.ContentHeight);
+            if (timelineVerticalScrollbar == null)
+            {
+                timelineVerticalScrollbar = new GUIStyle(GUI.skin.verticalScrollbar)
+                {
+                    fixedWidth = Styles.VERTICAL_SCROLLBAR_WIDTH,
+                    margin = new RectOffset()
+                };
+            }
 
-            DoScrubControls();
-            DoZoomAndPan();
-
-            var scrollRect1 = Rect.MinMaxRect(0, CenterRect.yMin, G.ScreenWidth, G.ScreenHeight - 5);
-            var scrollRect2 = Rect.MinMaxRect(0, CenterRect.yMin, G.ScreenWidth, G.TotalHeight + 150);
-            G.ScrollPos = GUI.BeginScrollView(scrollRect1, G.ScrollPos, scrollRect2);
+            view.ScrollPos = GUI.BeginScrollView(scrollView, view.ScrollPos, contentRect, GUIStyle.none, timelineVerticalScrollbar);
+            CenterRect.height = scrollView.height + view.ScrollPos.y;
 
             DrawGroupAndTrackListGUI();
 
             ShowTimeLines(CenterRect);
             GUI.EndScrollView();
-
-            DrawGuides();
-
-            AcceptDrops();
+            FinishItemDrag(e);
 
             if (e.type == EventType.MouseDown && e.button == 0 && GUIUtility.hotControl == 0)
             {
-                if (CenterRect.Contains(mousePosition))
+                if (TimelineViewport.Contains(mousePosition))
                 {
-                    DirectorUtility.selectedObject = null;
-                    multiSelection = null;
+                    SelectedObject = null;
                 }
 
                 GUIUtility.keyboardControl = 0;
-                ShowDragDropInfo = false;
-            }
-
-            if (ShowDragDropInfo && asset.groups.Find(g => g.GetType() == typeof(Group)) == null)
-            {
-                var label = "Drag & Drop GameObjects or Prefabs in this window to create Actor Groups";
-                var size = new GUIStyle("label").CalcSize(new GUIContent(label));
-                var notificationRect = new Rect(0, 0, size.x, size.y);
-                notificationRect.center = new Vector2(
-                    (G.ScreenWidth / 2) + (Styles.LEFT_MARGIN / 2),
-                    (G.ScreenHeight / 2) + Styles.TOP_MARGIN
-                );
-                GUI.Label(notificationRect, label);
             }
 
             if (e.type == EventType.MouseDrag || e.type == EventType.MouseUp || GUI.changed)
@@ -562,243 +712,198 @@ namespace TrackEditor
 
             Handles.color = Color.black;
             Handles.DrawLine(new Vector2(0, CenterRect.y + 1), new Vector2(CenterRect.xMax, CenterRect.y + 1));
-            Handles.DrawLine(new Vector2(CenterRect.x, CenterRect.y + 1), new Vector2(CenterRect.x, CenterRect.yMax));
             Handles.color = Color.white;
+            DrawGuides();
 
             GUI.color = Color.white;
             GUI.backgroundColor = Color.white;
             GUI.skin = null;
         }
 
-        void AcceptDrops()
+        private void UpdateItemDrag(Event e)
         {
-            if (player.CurrentTime > 0)
+            if (!itemDragger.IsClipDrag || e.type != EventType.MouseDrag || GUIUtility.hotControl != itemDragControl)
             {
                 return;
             }
 
-            var e = Event.current;
-            if (e.type == EventType.DragUpdated)
-            {
-                DragAndDrop.visualMode = DragAndDropVisualMode.Link;
-            }
+            var changed = itemDragger.UpdateClips(
+                PosToTime(mousePosition.x), !e.control, e.shift, Prefs.magnetSnapping && !e.control, MagnetTolerance);
+            if (changed) NotifyTimelineChanged();
+            e.Use();
         }
 
-        #region Magnet Snap
-
-        void CacheMagnetSnapTimes(Clip clip = null)
+        private void FinishItemDrag(Event e)
         {
-            var result = new List<float>();
-            result.Add(0);
-            result.Add(asset.Length);
-            result.Add(player.CurrentTime);
-
-            foreach (var cw in clipWrappers)
+            if (!itemDragger.IsDragging || e.rawType != EventType.MouseUp || e.button != 0)
             {
-                var action = cw.Value.action;
-                if (clip == null || (action != clip && action.Parent.Parent == clip.Parent.Parent))
-                {
-                    result.Add(action.StartTime);
-                    result.Add(action.EndTime);
-                }
+                return;
             }
 
-            magnetSnapTimesCache = result.Distinct().ToArray();
+            if (trackDropGroup != null && itemDragger.DropTrack(trackDropGroup, trackDropIndex))
+            {
+                collapsedGroups[trackDropGroup] = false;
+                NotifyTimelineChanged(rebuildPreview: true);
+            }
+
+            itemDragger.Reset();
+            ReleaseItemDragControl();
+            if (e.type != EventType.Used) e.Use();
         }
 
-        float? MagnetSnapTime(float time, float[] snapTimes)
+        private void CaptureItemDragControl()
         {
-            if (snapTimes == null)
-            {
-                return null;
-            }
-
-            var bestDistance = float.PositiveInfinity;
-            var bestTime = float.PositiveInfinity;
-            for (var i = 0; i < snapTimes.Length; i++)
-            {
-                var snapTime = snapTimes[i];
-                var distance = Mathf.Abs(snapTime - time);
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    bestTime = snapTime;
-                }
-            }
-
-            if (Mathf.Abs(bestTime - time) <= MAGNET_SNAP_INTERVAL)
-            {
-                return bestTime;
-            }
-
-            return null;
+            GUIUtility.keyboardControl = 0;
+            GUIUtility.hotControl = itemDragControl;
         }
 
-        #endregion
-
-        #region 多选
-
-        /// <summary>
-        /// 多选
-        /// </summary>
-        void DoMultiSelection()
+        private void ReleaseItemDragControl()
         {
-            var e = Event.current;
+            if (GUIUtility.hotControl == itemDragControl) GUIUtility.hotControl = 0;
+            WillRepaint = true;
+        }
 
-            var r = new Rect();
-            var bigEnough = false;
-            if (multiSelectStartPos != null)
+        private void BeginClipDrag(ItemDragType type, Clip clip)
+        {
+            IEnumerable<Clip> items =
+                type == ItemDragType.Position || type == ItemDragType.ScaleStart || type == ItemDragType.ScaleEnd
+                    ? selectedClips : new[] { clip };
+            itemDragger.BeginClips(type, clip, items, asset, PosToTime(mousePosition.x), player.CurrentTime);
+            CaptureItemDragControl();
+        }
+
+        private void SelectClip(Clip clip, bool toggle)
+        {
+            if (toggle && selectedClips.Remove(clip))
             {
-                var start = (Vector2)multiSelectStartPos;
-                if ((start - e.mousePosition).magnitude > 10)
-                {
-                    bigEnough = true;
-                    r.xMin = Mathf.Max(Mathf.Min(start.x, e.mousePosition.x), 0);
-                    r.xMax = Mathf.Min(Mathf.Max(start.x, e.mousePosition.x), G.ScreenWidth);
-                    r.yMin = Mathf.Min(start.y, e.mousePosition.y);
-                    r.yMax = Mathf.Max(start.y, e.mousePosition.y);
-                    GUI.color = isProSkin ? Color.white : Color.white.WithAlpha(0.3f);
-                    GUI.Box(r, string.Empty, Styles.hollowFrameStyle);
-                    GUI.color = Color.white.WithAlpha(0.05f);
-                    GUI.DrawTexture(r, Styles.whiteTexture);
-                    GUI.color = Color.white;
-                    foreach (var wrapper in clipWrappers.Values.Where(b => r.Encapsulates(b.rect) && !b.action.IsLocked))
-                    {
-                        GUI.color = new Color(0.5f, 0.5f, 1, 0.5f);
-                        GUI.Box(wrapper.rect, string.Empty, Styles.clipBoxStyle);
-                        GUI.color = Color.white;
-                    }
-                }
+                SelectedObject = selectedClips.LastOrDefault();
+                return;
             }
 
-            if (e.rawType == EventType.MouseUp)
+            if (toggle) selectedClips.Add(clip);
+            SelectedObject = clip;
+        }
+
+        private void DoMultiSelection(Event e)
+        {
+            if (multiSelectStartPos.HasValue)
             {
-                if (bigEnough)
+                var start = multiSelectStartPos.Value;
+                if ((start - e.mousePosition).sqrMagnitude > 100)
                 {
-                    multiSelection = clipWrappers.Values.Where(b => r.Encapsulates(b.rect) && !b.action.IsLocked).ToList();
-                    if (multiSelection.Count == 1)
+                    var area = Rect.MinMaxRect(Mathf.Min(start.x, e.mousePosition.x), Mathf.Min(start.y, e.mousePosition.y),
+                        Mathf.Max(start.x, e.mousePosition.x), Mathf.Max(start.y, e.mousePosition.y));
+                    marqueeHits.Clear();
+                    foreach (var pair in clipWrappers)
                     {
-                        DirectorUtility.selectedObject = multiSelection[0].action;
-                        multiSelection = null;
+                        if (!pair.Key.IsLocked && pair.Value.rect.width > 0 && area.Overlaps(pair.Value.rect))
+                        {
+                            marqueeHits.Add(pair.Key);
+                            if (e.type == EventType.Repaint) DrawClipSelection(pair.Value.rect);
+                        }
+                    }
+
+                    if (e.type == EventType.Repaint)
+                    {
+                        GUI.Box(area, string.Empty, Styles.hollowFrameStyle);
+                        EditorGUI.DrawRect(area, Color.white.WithAlpha(0.05f));
+                    }
+
+                    if (e.rawType == EventType.MouseUp && e.button == 0)
+                    {
+                        selectedClips.Clear();
+                        selectedClips.AddRange(marqueeHits);
+                        SelectedObject = selectedClips.LastOrDefault();
                     }
                 }
 
-                multiSelectStartPos = null;
+                if (e.rawType == EventType.MouseUp && e.button == 0)
+                {
+                    multiSelectStartPos = null;
+                    ReleaseItemDragControl();
+                    if (e.type != EventType.Used) e.Use();
+                }
+
+                return;
             }
 
-            if (multiSelection != null)
+            if (e.type == EventType.MouseDown && e.button == 0 && GUIUtility.hotControl == 0 && TimelineViewport.Contains(mousePosition))
             {
-                var boundRect = RectUtility.GetBoundRect(multiSelection.Select(b => b.rect).ToArray()).ExpandBy(4);
-
-                var leftDragRect = new Rect(boundRect.xMin - 6, boundRect.yMin, 4, boundRect.height);
-                var rightDragRect = new Rect(boundRect.xMax + 2, boundRect.yMin, 4, boundRect.height);
-                AddCursorRect(leftDragRect, MouseCursor.ResizeHorizontal);
-                AddCursorRect(rightDragRect, MouseCursor.ResizeHorizontal);
-                GUI.color = isProSkin ? new Color(0.7f, 0.7f, 0.7f) : Color.grey;
-                GUI.DrawTexture(leftDragRect, Styles.whiteTexture);
-                GUI.DrawTexture(rightDragRect, Styles.whiteTexture);
-                GUI.color = Color.white;
-
-                if (e.type == EventType.MouseDown && (leftDragRect.Contains(e.mousePosition) || rightDragRect.Contains(e.mousePosition)))
-                {
-                    multiSelectionScaleDirection = leftDragRect.Contains(e.mousePosition) ? -1 : 1;
-                    var minTime = Mathf.Min(multiSelection.Select(b => b.action.StartTime).ToArray());
-                    var maxTime = Mathf.Max(multiSelection.Select(b => b.action.EndTime).ToArray());
-                    preMultiSelectionRetimeMinMax = Rect.MinMaxRect(minTime, 0, maxTime, 0);
-                    foreach (var wrapper in multiSelection)
-                    {
-                        wrapper.BeginClipAdjust();
-                    }
-
-                    e.Use();
-                }
-
-                if (e.type == EventType.MouseDrag && multiSelectionScaleDirection != 0)
-                {
-                    foreach (var clipWrapper in multiSelection)
-                    {
-                        var preTimeMin = preMultiSelectionRetimeMinMax.xMin;
-                        var preTimeMax = preMultiSelectionRetimeMinMax.xMax;
-                        var pointerTime = G.SnapTime(asset.PosToTime(mousePosition.x));
-
-                        var lerpMin = multiSelectionScaleDirection == -1 ? Mathf.Clamp(pointerTime, 0, preTimeMax) : preTimeMin;
-                        var lerpMax = multiSelectionScaleDirection == 1 ? Mathf.Max(pointerTime, preTimeMin) : preTimeMax;
-
-                        var normIn = Mathf.InverseLerp(preTimeMin, preTimeMax, clipWrapper.preScaleStartTime);
-                        clipWrapper.action.StartTime = Mathf.Lerp(lerpMin, lerpMax, normIn);
-
-                        var normOut = Mathf.InverseLerp(preTimeMin, preTimeMax, clipWrapper.preScaleEndTime);
-                        clipWrapper.action.EndTime = Mathf.Lerp(lerpMin, lerpMax, normOut);
-                    }
-
-                    e.Use();
-                }
-
-                if (e.rawType == EventType.MouseUp)
-                {
-                    multiSelectionScaleDirection = 0;
-                    foreach (var clipWrapper in multiSelection)
-                    {
-                        clipWrapper.EndClipAdjust();
-                    }
-                }
-            }
-
-            if (e.type == EventType.MouseDown && e.button == 0 && GUIUtility.hotControl == 0)
-            {
-                multiSelection = null;
+                SelectedObject = null;
                 multiSelectStartPos = e.mousePosition;
+                CaptureItemDragControl();
+                e.Use();
             }
-
-            GUI.color = Color.white;
         }
 
-        #endregion
+        private void DrawSelectionHandles(Event e)
+        {
+            if (selectedClips.Count < 2)
+            {
+                return;
+            }
 
-        #region 辅助标线
+            var rects = selectedClips.Where(clip => !clip.IsLocked && clipWrappers.ContainsKey(clip))
+                .Select(clip => clipWrappers[clip].rect).Where(rect => rect.width > 0).ToArray();
+            if (rects.Length < 2)
+            {
+                return;
+            }
 
-        /// <summary>
-        /// 绘制时间参考线
-        /// </summary>
+            var bounds = RectUtility.GetBoundRect(rects).ExpandBy(4);
+            var left = new Rect(bounds.xMin - 6, bounds.yMin, 4, bounds.height);
+            var right = new Rect(bounds.xMax + 2, bounds.yMin, 4, bounds.height);
+            AddCursorRect(left, MouseCursor.ResizeHorizontal);
+            AddCursorRect(right, MouseCursor.ResizeHorizontal);
+            var color = isProSkin ? new Color(0.7f, 0.7f, 0.7f) : Color.grey;
+            EditorGUI.DrawRect(left, color);
+            EditorGUI.DrawRect(right, color);
+            if (e.type == EventType.MouseDown && e.button == 0 && GUIUtility.hotControl == 0
+                && (left.Contains(e.mousePosition) || right.Contains(e.mousePosition)))
+            {
+                BeginClipDrag(left.Contains(e.mousePosition) ? ItemDragType.ScaleStart : ItemDragType.ScaleEnd,
+                    selectedClips.First(clip => !clip.IsLocked && clip.Parent != null));
+                e.Use();
+            }
+        }
+
         void DrawGuides()
         {
+            var height = TimelineViewport.height;
             //区间开始时间参考线
-            DrawGuideLine(0, isProSkin ? Color.gray : Color.black);
+            DrawGuideLine(0, isProSkin ? Color.gray : Color.black, height);
 
             //区间结束时间参考线
-            DrawGuideLine(asset.Length, isProSkin ? Color.white : Color.black);
-
-            //当前播放帧的实际参考线
-            if (player.CurrentTime > 0)
-            {
-                DrawGuideLine(player.CurrentTime, player.GetScriberColor());
-            }
+            DrawGuideLine(asset.Length, Styles.DurationMarker, height);
 
             // 开始和结束时间标线
-            if (interactingClip != null)
+            var activeClip = itemDragger.ActiveClip;
+            if (activeClip != null)
             {
-                if (interactingClip.isDragging || interactingClip.isScalingStart)
-                {
-                    DrawGuideLine(interactingClip.action.StartTime, Color.yellow.WithAlpha(0.2f));
-                }
+                var color = Color.yellow.WithAlpha(0.2f);
+                if (itemDragger.Type == ItemDragType.Position || itemDragger.Type == ItemDragType.TrimStart)
+                    DrawGuideLine(activeClip.StartTime, color, height);
+                if (itemDragger.Type == ItemDragType.Position || itemDragger.Type == ItemDragType.TrimEnd)
+                    DrawGuideLine(activeClip.EndTime, color, height);
+            }
 
-                if (interactingClip.isDragging || interactingClip.isScalingEnd)
-                {
-                    DrawGuideLine(interactingClip.action.EndTime, Color.yellow.WithAlpha(0.2f));
-                }
+            if (itemDragger.SnappedTime.HasValue)
+            {
+                DrawGuideLine(itemDragger.SnappedTime.Value, Color.white, height);
             }
 
             if (draggedSection != null)
             {
-                DrawGuideLine(draggedSection.time, draggedSection.color);
+                DrawGuideLine(draggedSection.time, draggedSection.color, height);
             }
 
             for (var i = 0; i < pendingGuides.Count; i++)
             {
-                DrawGuideLine(pendingGuides[i].time, pendingGuides[i].color);
+                DrawGuideLine(pendingGuides[i].time, pendingGuides[i].color, height);
             }
 
             pendingGuides.Clear();
+            DrawGuideLine(player.CurrentTime, player.GetScriberColor(), height);
         }
 
         /// <summary>
@@ -806,15 +911,11 @@ namespace TrackEditor
         /// </summary>
         /// <param name="time"></param>
         /// <param name="color"></param>
-        void DrawGuideLine(float time, Color color)
+        void DrawGuideLine(float time, Color color, float height)
         {
-            if (time >= asset.ViewTimeMin && time <= asset.ViewTimeMax)
+            if (IsTimeVisible(time))
             {
-                var xPos = asset.TimeToPos(time);
-                var guideRect = new Rect(xPos + CenterRect.x - 1, CenterRect.y, 1, CenterRect.height);
-                GUI.color = color;
-                GUI.DrawTexture(guideRect, Styles.whiteTexture);
-                GUI.color = Color.white;
+                EditorGUI.DrawRect(new Rect(CenterRect.x + TimeToGuideX(time), CenterRect.y, 1, height), color);
             }
         }
 
@@ -836,69 +937,80 @@ namespace TrackEditor
         /// </summary>
         void DoScrubControls()
         {
-            if (player.IsActive)
+            if (Application.isPlaying)
             {
                 return;
             }
 
             var e = Event.current;
-            if (e.type == EventType.MouseDown && G.TopMiddleRect.Contains(mousePosition))
+            var ruler = view.TopMiddleRect;
+            var control = GUIUtility.GetControlID(FocusType.Passive, ruler);
+            var overPlayhead = IsTimeVisible(player.CurrentTime) && PlayheadRect(ruler).Contains(mousePosition);
+            var overEndHandle = IsTimeVisible(asset.Length) && !overPlayhead && DurationHandleRect(ruler).ExpandBy(4, 0).Contains(mousePosition);
+            var movesEnd = GUIUtility.hotControl == control ? isMovingEndCarret : overEndHandle;
+            EditorGUIUtility.AddCursorRect(ruler, movesEnd ? MouseCursor.MoveArrow : MouseCursor.Arrow);
+
+            if (e.type == EventType.MouseDown && ruler.Contains(mousePosition))
             {
-                var carretPos = asset.TimeToPos(asset.Length) + G.LeftRect.width;
-                var isEndCarret = Mathf.Abs(mousePosition.x - carretPos) < 10 || e.control;
-
-                if (e.button == 0)
+                if (e.button == 0 && GUIUtility.hotControl == 0)
                 {
-                    isMovingEndCarret = isEndCarret;
-                    isMovingScrubCarret = !isMovingEndCarret;
-                    Pause();
+                    GUIUtility.hotControl = control;
+                    GUIUtility.keyboardControl = 0;
+                    isMovingEndCarret = overEndHandle;
+                    if (isMovingEndCarret)
+                    {
+                        Pause();
+                        durationSnapTimes = ItemDragger.GetSnapTimes(asset, player.CurrentTime);
+                    }
                 }
-
-                if (e.button == 1 && isEndCarret && asset.directables != null)
+                else if (e.button == 1 && overEndHandle)
                 {
                     var menu = new GenericMenu();
-                    menu.AddItem(
-                        new GUIContent("Set To Last Clip Time"),
-                        false,
-                        () =>
-                        {
-                            var lastClip = asset.directables.Where(d => d is Clip).OrderBy(d => d.EndTime).LastOrDefault();
-                            if (lastClip != null)
-                            {
-                                asset.Length = lastClip.EndTime;
-                            }
-                        }
-                    );
+                    menu.AddItem(new GUIContent("Set To Last Clip Time"), false, () =>
+                    {
+                        var clips = asset.groups.SelectMany(group => group.Tracks).SelectMany(track => track.Clips);
+                        SetSequenceLength(clips.Select(clip => clip.EndTime).DefaultIfEmpty(asset.Length).Max());
+                    });
                     menu.ShowAsContext();
+                    e.Use();
+                }
+            }
+
+            if (GUIUtility.hotControl != control)
+            {
+                return;
+            }
+
+            if (e.type == EventType.MouseDown || e.type == EventType.MouseDrag)
+            {
+                var time = Mathf.Clamp(G.SnapTime(PosToTime(mousePosition.x)), ViewTimeMin, ViewTimeMax);
+                if (isMovingEndCarret)
+                {
+                    if (e.type == EventType.MouseDrag)
+                    {
+                        var snapped = Prefs.magnetSnapping && !e.control ? ItemDragger.FindSnap(time, durationSnapTimes, MagnetTolerance) : null;
+                        SetSequenceLength(snapped ?? time);
+                    }
+                }
+                else
+                {
+                    Seek(time, reveal: false);
                 }
 
                 e.Use();
             }
-
-            if (e.button == 0 && e.rawType == EventType.MouseUp)
+            else if (e.rawType == EventType.MouseUp)
             {
-                isMovingScrubCarret = false;
+                GUIUtility.hotControl = 0;
                 isMovingEndCarret = false;
+                e.Use();
             }
+        }
 
-            var pointerTime = asset.PosToTime(mousePosition.x);
-            if (isMovingScrubCarret)
-            {
-                player.CurrentTime = G.SnapTime(pointerTime);
-                player.CurrentTime = Mathf.Clamp(
-                    player.CurrentTime,
-                    Mathf.Max(asset.ViewTimeMin, 0) + float.Epsilon,
-                    asset.ViewTimeMax - float.Epsilon
-                );
-            }
-
-            if (isMovingEndCarret)
-            {
-                asset.Length = G.SnapTime(pointerTime);
-                var magnetSnap = MagnetSnapTime(asset.Length, magnetSnapTimesCache);
-                asset.Length = magnetSnap != null ? magnetSnap.Value : asset.Length;
-                asset.Length = Mathf.Clamp(asset.Length, asset.ViewTimeMin + float.Epsilon, asset.ViewTimeMax - float.Epsilon);
-            }
+        private void SetSequenceLength(float length)
+        {
+            asset.Length = length;
+            NotifyTimelineChanged();
         }
 
         /// <summary>
@@ -906,7 +1018,7 @@ namespace TrackEditor
         /// </summary>
         void DoZoomAndPan()
         {
-            if (!CenterRect.Contains(mousePosition))
+            if (!TimelineViewport.Contains(mousePosition))
             {
                 wheelZoomActive = false;
                 return;
@@ -925,7 +1037,7 @@ namespace TrackEditor
                 if (!wheelZoomActive || Mathf.Abs(wheelZoomMouseX - mousePosition.x) > 1f)
                 {
                     wheelZoomMouseX = mousePosition.x;
-                    wheelZoomFocalTime = asset.PosToTime(mousePosition.x);
+                    wheelZoomFocalTime = PosToTime(mousePosition.x);
                 }
 
                 var zoomFactor = 1f - e.delta.y * 0.02f;
@@ -952,15 +1064,8 @@ namespace TrackEditor
                     || e.type == EventType.MouseUp
                 )
                 {
-                    var pointerTimeA = asset.PosToTime(mousePosition.x);
-                    var delta = -e.delta.x * 0.1f;
-                    var t = (Mathf.Abs(delta * 25) / CenterRect.width) * asset.ViewTime;
-                    asset.ViewTimeMin += delta > 0 ? -t : t;
-                    asset.ViewTimeMax += delta > 0 ? t : -t;
-                    var pointerTimeB = asset.PosToTime(mousePosition.x + e.delta.x);
-                    var diff = pointerTimeA - pointerTimeB;
-                    asset.ViewTimeMin += diff;
-                    asset.ViewTimeMax += diff;
+                    var focalTime = PosToTime(mousePosition.x);
+                    ZoomTimeRange(1f - e.delta.x * 0.01f, focalTime);
                     e.Use();
                 }
             }
@@ -971,10 +1076,9 @@ namespace TrackEditor
                 AddCursorRect(CenterRect, MouseCursor.Pan);
                 if (e.type == EventType.MouseDrag || e.type == EventType.MouseDown || e.type == EventType.MouseUp)
                 {
-                    var t = (Mathf.Abs(e.delta.x) / CenterRect.width) * asset.ViewTime;
-                    asset.ViewTimeMin += e.delta.x > 0 ? -t : t;
-                    asset.ViewTimeMax += e.delta.x > 0 ? -t : t;
-                    G.ScrollPos.y -= e.delta.y;
+                    var offset = Mathf.Max(-ViewTimeMin, -e.delta.x / CenterRect.width * ViewTime);
+                    SetViewTimeRange(ViewTimeMin + offset, ViewTimeMax + offset);
+                    view.ScrollPos.y -= e.delta.y;
                     e.Use();
                 }
             }
@@ -989,8 +1093,8 @@ namespace TrackEditor
                 return;
             }
 
-            var timeMin = asset.ViewTimeMin;
-            var timeMax = asset.ViewTimeMax;
+            var timeMin = ViewTimeMin;
+            var timeMax = ViewTimeMax;
             var focal = Mathf.Max(focalTime, timeMin);
             var zoomedTimeMin = (timeMin + focal * (zoomFactor - 1f)) / zoomFactor;
             var zoomedTimeMax = (timeMax + focal * (zoomFactor - 1f)) / zoomFactor;
@@ -1000,7 +1104,8 @@ namespace TrackEditor
                 return;
             }
 
-            SetViewTimeRange(zoomedTimeMin, zoomedTimeMax);
+            var offset = Mathf.Max(0, -zoomedTimeMin);
+            SetViewTimeRange(zoomedTimeMin + offset, zoomedTimeMax + offset);
         }
 
         #endregion
@@ -1008,49 +1113,35 @@ namespace TrackEditor
         #region 时间轴
 
         //初始化动作剪辑包装器
-        internal void InitClipWrappers()
+        private void PruneClipWrappers()
         {
-            if (asset == null)
+            var clips = new HashSet<Clip>(asset.groups.SelectMany(group => group.Tracks).SelectMany(track => track.Clips));
+            foreach (var removed in clipWrappers.Keys.Where(clip => !clips.Contains(clip)).ToArray())
             {
-                return;
+                clipWrappers.Remove(removed);
             }
 
-            var lastTime = player.CurrentTime;
+            selectedClips.RemoveAll(clip => !clips.Contains(clip));
 
-            if (!Application.isPlaying)
+            if (SelectedObject is Clip clip && !clips.Contains(clip)
+                || SelectedObject is Track track && (track.Parent == null || !asset.groups.Contains(track.Parent) || !track.Parent.Tracks.Contains(track))
+                || SelectedObject is Group group && !asset.groups.Contains(group))
             {
-                Stop(true);
+                SelectedObject = null;
             }
+        }
 
-            clipWrappers = new Dictionary<int, ActionClipWrapper>();
-            clipWrappersMap = new Dictionary<Clip, ActionClipWrapper>();
-            for (int g = 0; g < asset.groups.Count; g++)
+        private void SortClips()
+        {
+            foreach (var group in asset.groups)
             {
-                for (int t = 0; t < asset.groups[g].Tracks.Count; t++)
+                foreach (var track in group.Tracks)
                 {
-                    for (int a = 0; a < asset.groups[g].Tracks[t].Clips.Count; a++)
-                    {
-                        var id = UID(g, t, a);
-                        if (clipWrappers.ContainsKey(id))
-                        {
-                            Debug.LogError("Collided UIDs. This should really not happen but it did!");
-                            continue;
-                        }
-
-                        var clip = asset.groups[g].Tracks[t].Clips[a];
-                        var wrapper = new ActionClipWrapper(clip);
-                        clipWrappers[id] = wrapper;
-                        clipWrappersMap[clip] = wrapper;
-                    }
+                    track.SortClips();
                 }
             }
 
-            player.InitializePreviewPointers();
-
-            if (lastTime > 0)
-            {
-                player.CurrentTime = lastTime;
-            }
+            sortClips = false;
         }
 
         /// <summary>
@@ -1062,9 +1153,9 @@ namespace TrackEditor
             var e = Event.current;
             var bgRect = Rect.MinMaxRect(
                 centerRect.xMin,
-                Styles.TOP_MARGIN + Styles.TOOLBAR_HEIGHT + G.ScrollPos.y,
+                Styles.TOP_MARGIN + Styles.TOOLBAR_HEIGHT + view.ScrollPos.y,
                 centerRect.xMax,
-                G.ScreenHeight - Styles.TOOLBAR_HEIGHT + G.ScrollPos.y
+                view.ScreenHeight - Styles.TOOLBAR_HEIGHT + view.ScrollPos.y
             );
             GUI.color = Color.black.WithAlpha(0.1f);
             GUI.DrawTexture(bgRect, Styles.whiteTexture);
@@ -1073,17 +1164,13 @@ namespace TrackEditor
             GUI.color = Color.white;
 
             // 绘制时间参考线
-            for (var _i = G.timeInfoStart; _i <= G.timeInfoEnd; _i += G.timeInfoInterval)
+            for (var tick = view.FirstTick; tick <= view.LastTick; tick++)
             {
-                var i = Mathf.Round(_i * 10) / 10;
-                DrawGuideLine(i, Color.black.WithAlpha(0.05f));
-                if (i % G.timeInfoHighMod == 0)
-                {
-                    DrawGuideLine(i, Color.black.WithAlpha(0.05f));
-                }
+                DrawGuideLine(tick * view.TickInterval, Color.black.WithAlpha(0.05f), CenterRect.height);
             }
 
             GUI.BeginGroup(centerRect);
+            if (e.type == EventType.MouseDown) DrawSelectionHandles(e);
 
             var nextYPos = Styles.FIRST_GROUP_TOP_MARGIN;
 
@@ -1092,7 +1179,7 @@ namespace TrackEditor
             for (int g = 0; g < asset.groups.Count; g++)
             {
                 var group = asset.groups[g];
-                ShowGroupArea(group, g, e, ref nextYPos);
+                ShowGroupArea(group, e, ref nextYPos);
             }
 
             EndWindows();
@@ -1104,7 +1191,8 @@ namespace TrackEditor
             }
 
             //片段多选
-            DoMultiSelection();
+            if (e.type == EventType.Repaint) DrawSelectionHandles(e);
+            DoMultiSelection(e);
 
             GUI.EndGroup();
 
@@ -1113,53 +1201,40 @@ namespace TrackEditor
             GUI.color = Color.white;
 
             //超出范围的变暗
-            if (asset.ViewTimeMax > asset.Length)
+            if (ViewTimeMax > asset.Length)
             {
-                var endPos = Mathf.Max(asset.TimeToPos(asset.Length) + G.LeftRect.width, centerRect.xMin);
+                var endPos = Mathf.Max(TimeToPos(asset.Length) + view.LeftRect.width, centerRect.xMin);
                 var darkRect = Rect.MinMaxRect(endPos, centerRect.yMin, centerRect.xMax, centerRect.yMax);
-                GUI.color = Color.black.WithAlpha(0.3f);
-                GUI.Box(darkRect, string.Empty, (GUIStyle)"TextField");
-                GUI.color = Color.white;
+                EditorGUI.DrawRect(darkRect, Color.black.WithAlpha(isProSkin ? 0.22f : 0.12f));
             }
             //超出范围的变暗
-            if (asset.ViewTimeMin < 0)
+            if (ViewTimeMin < 0)
             {
-                var startPos = Mathf.Min(asset.TimeToPos(0) + G.LeftRect.width, centerRect.xMax);
+                var startPos = Mathf.Min(TimeToPos(0) + view.LeftRect.width, centerRect.xMax);
                 var darkRect = Rect.MinMaxRect(centerRect.xMin, centerRect.yMin, startPos, centerRect.yMax);
                 GUI.color = Color.black.WithAlpha(0.3f);
                 GUI.Box(darkRect, string.Empty, (GUIStyle)"TextField");
                 GUI.color = Color.white;
             }
 
-            //确保剪辑不交叉
-            if (e.rawType == EventType.MouseUp)
-            {
-                if (interactingClip != null)
-                {
-                    interactingClip.ResetInteraction();
-                    interactingClip.EndClipAdjust();
-                    interactingClip = null;
-                }
-            }
         }
 
-        void ShowGroupArea(Group group, int groupIndex, Event e, ref float nextYPos)
+        void ShowGroupArea(Group group, Event e, ref float nextYPos)
         {
-            if (G.IsFilteredOutBySearch(group))
+            if (view.IsFilteredOutBySearch(group))
             {
-                group.IsCollapsed = true;
                 return;
             }
 
             var groupRect = Rect.MinMaxRect(
-                Mathf.Max(asset.TimeToPos(asset.ViewTimeMin), asset.TimeToPos(0)),
+                Mathf.Max(TimeToPos(ViewTimeMin), TimeToPos(0)),
                 nextYPos,
-                asset.TimeToPos(asset.ViewTimeMax),
+                TimeToPos(ViewTimeMax),
                 nextYPos + Styles.GROUP_HEIGHT
             );
             nextYPos += Styles.GROUP_HEIGHT;
 
-            if (group.IsCollapsed)
+            if (IsGroupCollapsed(group))
             {
                 GUI.color = Color.black.WithAlpha(0.15f);
                 var collapseRect = Rect.MinMaxRect(groupRect.xMin + 2, groupRect.yMin + 2, groupRect.xMax, groupRect.yMax - 4);
@@ -1169,8 +1244,8 @@ namespace TrackEditor
                 {
                     foreach (var clip in track.Clips)
                     {
-                        var start = asset.TimeToPos(clip.StartTime);
-                        var end = asset.TimeToPos(clip.EndTime);
+                        var start = TimeToPos(clip.StartTime);
+                        var end = TimeToPos(clip.EndTime);
                         GUI.DrawTexture(
                             Rect.MinMaxRect(start + 0.5f, collapseRect.y + 2, end - 0.5f, collapseRect.yMax - 2),
                             Styles.whiteTexture
@@ -1185,10 +1260,10 @@ namespace TrackEditor
             for (int t = 0; t < group.Tracks.Count; t++)
             {
                 var track = group.Tracks[t];
-                ShowTrackArea(track, groupIndex, t, e, ref nextYPos);
+                ShowTrackArea(track, e, ref nextYPos);
             }
 
-            if (ReferenceEquals(DirectorUtility.selectedObject, group))
+            if (ReferenceEquals(SelectedObject, group))
             {
                 var r = Rect.MinMaxRect(groupRect.xMin, groupRect.yMin, groupRect.xMax, nextYPos);
                 GUI.color = Color.grey;
@@ -1197,38 +1272,39 @@ namespace TrackEditor
             }
         }
 
-        void ShowTrackArea(Track track, int groupIndex, int trackIndex, Event e, ref float nextYPos)
+        private bool IsTrackSelected(Track track) => ReferenceEquals(SelectedObject, track) || track == itemDragger.ActiveTrack;
+
+        void ShowTrackArea(Track track, Event e, ref float nextYPos)
         {
             var yPos = nextYPos;
 
             var trackPosRect = Rect.MinMaxRect(
-                Mathf.Max(asset.TimeToPos(asset.ViewTimeMin), asset.TimeToPos(track.StartTime)),
+                Mathf.Max(TimeToPos(ViewTimeMin), TimeToPos(track.StartTime)),
                 yPos,
-                asset.TimeToPos(asset.ViewTimeMax),
+                TimeToPos(ViewTimeMax),
                 yPos + track.ShowHeight
             );
 
             nextYPos += track.ShowHeight + Styles.TRACK_MARGINS;
 
-            //GRAPHICS
-            GUI.color = Color.black.WithAlpha(isProSkin ? 0.06f : 0.1f);
-            GUI.DrawTexture(trackPosRect, Styles.whiteTexture);
+            var trackColor = IsTrackSelected(track) ? Styles.TrackLaneSelection : Color.black.WithAlpha(isProSkin ? 0.06f : 0.1f);
+            EditorGUI.DrawRect(trackPosRect, trackColor);
             Handles.color = ColorUtility.Grey(isProSkin ? 0.15f : 0.4f);
             Handles.DrawLine(
-                new Vector2(asset.TimeToPos(asset.ViewTimeMin), trackPosRect.y + 1),
+                new Vector2(TimeToPos(ViewTimeMin), trackPosRect.y + 1),
                 new Vector2(trackPosRect.xMax, trackPosRect.y + 1)
             );
             Handles.DrawLine(
-                new Vector2(asset.TimeToPos(asset.ViewTimeMin), trackPosRect.yMax),
+                new Vector2(TimeToPos(ViewTimeMin), trackPosRect.yMax),
                 new Vector2(trackPosRect.xMax, trackPosRect.yMax)
             );
 
             Handles.color = Color.white;
-            if (asset.ViewTimeMin < 0)
+            if (ViewTimeMin < 0)
             {
                 //just visual clarity
                 GUI.Box(
-                    Rect.MinMaxRect(asset.TimeToPos(asset.ViewTimeMin), trackPosRect.yMin, asset.TimeToPos(0), trackPosRect.yMax),
+                    Rect.MinMaxRect(TimeToPos(ViewTimeMin), trackPosRect.yMin, TimeToPos(0), trackPosRect.yMax),
                     string.Empty
                 );
             }
@@ -1240,8 +1316,8 @@ namespace TrackEditor
                 GUI.color = Color.black.WithAlpha(0.2f);
                 if (track.StartTime > track.Parent.StartTime)
                 {
-                    var tStart = asset.TimeToPos(track.StartTime);
-                    var r = Rect.MinMaxRect(asset.TimeToPos(0), yPos, tStart, yPos + track.ShowHeight);
+                    var tStart = TimeToPos(track.StartTime);
+                    var r = Rect.MinMaxRect(TimeToPos(0), yPos, tStart, yPos + track.ShowHeight);
                     GUI.DrawTexture(r, Styles.whiteTexture);
                     GUI.DrawTextureWithTexCoords(r, Styles.stripes, new Rect(0, 0, r.width / 7, r.height / 7));
                     var a = new Vector2(tStart, trackPosRect.yMin);
@@ -1251,8 +1327,8 @@ namespace TrackEditor
 
                 if (track.EndTime < track.Parent.EndTime)
                 {
-                    var tEnd = asset.TimeToPos(track.EndTime);
-                    var r = Rect.MinMaxRect(tEnd, yPos, asset.TimeToPos(asset.Length), yPos + track.ShowHeight);
+                    var tEnd = TimeToPos(track.EndTime);
+                    var r = Rect.MinMaxRect(tEnd, yPos, TimeToPos(asset.Length), yPos + track.ShowHeight);
                     GUI.DrawTexture(r, Styles.whiteTexture);
                     GUI.DrawTextureWithTexCoords(r, Styles.stripes, new Rect(0, 0, r.width / 7, r.height / 7));
                     var a = new Vector2(tEnd, trackPosRect.yMin);
@@ -1265,14 +1341,6 @@ namespace TrackEditor
             }
 
             GUI.backgroundColor = Color.white;
-
-            //highlight selected track
-            if (ReferenceEquals(DirectorUtility.selectedObject, track))
-            {
-                GUI.color = Color.grey;
-                GUI.Box(trackPosRect.ExpandBy(0, 2), string.Empty, Styles.hollowFrameHorizontalStyle);
-                GUI.color = Color.white;
-            }
 
             if (track.IsLocked)
             {
@@ -1343,164 +1411,32 @@ namespace TrackEditor
             //绘制轨道片段
             for (int a = 0; a < track.Clips.Count; a++)
             {
-                ShowClipArea(track, yPos, groupIndex, trackIndex, a, e);
+                ShowClipArea(track, yPos, a, e);
             }
 
-            var cursorTime = G.SnapTime(asset.PosToTime(mousePosition.x));
+            var cursorTime = G.SnapTime(PosToTime(mousePosition.x));
 
-            TrackDraw.DrawTrackContextMenu(track, e, trackPosRect, cursorTime);
+            TrackDraw.DrawTrackContextMenu(this, track, e, trackPosRect, cursorTime);
         }
 
-        void ShowClipArea(Track track, float nextYPos, int groupIndex, int trackIndex, int clipIndex, Event e)
+        void ShowClipArea(Track track, float nextYPos, int clipIndex, Event e)
         {
             var action = track.Clips[clipIndex];
-            var ID = UID(groupIndex, trackIndex, clipIndex);
-
-            if (!clipWrappers.TryGetValue(ID, out var clipWrapper) || clipWrapper.action != action)
+            if (!clipWrappers.TryGetValue(action, out var clipWrapper))
             {
-                InitClipWrappers();
-                clipWrapper = clipWrappers[ID];
+                clipWrapper = new ActionClipWrapper(this, action);
+                clipWrappers.Add(action, clipWrapper);
             }
-
-            //查找并存储下一个/上一个剪辑到包装器
-            var nextClip = clipIndex < track.Clips.Count - 1 ? track.Clips[clipIndex + 1] : null;
-            var previousClip = clipIndex != 0 ? track.Clips[clipIndex - 1] : null;
-            clipWrapper.nextClip = nextClip;
-            clipWrapper.previousClip = previousClip;
 
             var clipRect = clipWrapper.rect;
 
             clipRect.y = nextYPos;
-            clipRect.width = Mathf.Max(action.Length / asset.ViewTime * CenterRect.width, 6);
+            clipRect.width = Mathf.Max(action.Length / ViewTime * CenterRect.width, 6);
             clipRect.height = track.ShowHeight;
 
-            //获取动作时间和位置
-            var xTime = action.StartTime;
-
-            if (interactingClip != null && ReferenceEquals(interactingClip.action, action) && interactingClip.isDragging)
-            {
-                var mx = e.mousePosition.x - interactingClip.dragOffset;
-
-                var lastTime = xTime;
-                xTime = asset.PosToTime(mx + G.LeftRect.width);
-                xTime = G.SnapTime(xTime);
-                xTime = Mathf.Clamp(xTime, 0, asset.MaxTime - 0.1f);
-
-                // 处理multisection。限制xmin和xmax的边界
-                if (multiSelection != null && multiSelection.Count > 1)
-                {
-                    var delta = xTime - lastTime;
-                    var boundMin = Mathf.Min(multiSelection.Select(b => b.action.StartTime).ToArray());
-                    if (boundMin + delta < 0)
-                    {
-                        xTime -= delta;
-                        delta = 0;
-                    }
-
-                    foreach (var cw in multiSelection)
-                    {
-                        if (cw.action != action)
-                        {
-                            cw.action.StartTime += delta;
-                        }
-                    }
-                }
-
-                //夹紧和交叉混合之间的其他附近的剪辑
-                if (multiSelection == null || multiSelection.Count < 1)
-                {
-                    var cursorTime = G.SnapTime(asset.PosToTime(mousePosition.x));
-
-                    var preCursorClip = track.Clips.LastOrDefault(x => x != action && x.StartTime < cursorTime);
-                    var postCursorClip = track.Clips.FirstOrDefault(x => x != action && x.EndTime > cursorTime);
-
-                    //转变/涟漪剪辑
-                    //当移动轨道夹子总是夹到以前的夹子，不需要夹到下一个
-                    if (e.shift)
-                    {
-                        preCursorClip = previousClip;
-                        postCursorClip = null;
-                    }
-
-                    var preTime = preCursorClip != null ? preCursorClip.EndTime : 0;
-                    var postTime = postCursorClip != null ? postCursorClip.StartTime : asset.MaxTime + action.Length;
-
-                    //拖拽夹子时磁铁会断裂
-                    if (Prefs.magnetSnapping && !e.control)
-                    {
-                        var snapStart = MagnetSnapTime(xTime, magnetSnapTimesCache);
-                        var snapEnd = MagnetSnapTime(xTime + action.Length, magnetSnapTimesCache);
-                        if (snapStart != null && snapEnd != null)
-                        {
-                            var distStart = Mathf.Abs(snapStart.Value - xTime);
-                            var distEnd = Mathf.Abs(snapEnd.Value - (xTime + action.Length));
-                            var bestTime = distEnd < distStart ? snapEnd.Value : snapStart.Value;
-                            pendingGuides.Add(new GuideLine(bestTime, Color.white));
-                            xTime = distEnd < distStart ? snapEnd.Value - action.Length : snapStart.Value;
-                        }
-                        else
-                        {
-                            if (snapEnd != null)
-                            {
-                                pendingGuides.Add(new GuideLine(snapEnd.Value, Color.white));
-                                xTime = snapEnd.Value - action.Length;
-                            }
-
-                            if (snapStart != null)
-                            {
-                                pendingGuides.Add(new GuideLine(snapStart.Value, Color.white));
-                                xTime = snapStart.Value;
-                            }
-                        }
-                    }
-
-                    //如果可混合，则延长可能的时间
-                    if (action.CanCrossBlend(preCursorClip))
-                    {
-                        preTime -= Mathf.Min(action.Length / 2, preCursorClip.Length / 2);
-                    }
-
-                    if (action.CanCrossBlend(postCursorClip))
-                    {
-                        postTime += Mathf.Min(action.Length / 2, postCursorClip.Length / 2);
-                    }
-
-                    //合身吗?
-                    if (action.Length > postTime - preTime)
-                    {
-                        xTime = lastTime;
-                    }
-
-                    if (xTime != lastTime)
-                    {
-                        xTime = Mathf.Clamp(xTime, preTime, postTime - action.Length);
-                        //Shift all the next clips along with this one if shift is down
-                        if (e.shift)
-                        {
-                            foreach (
-                                var cw in clipWrappers.Values.Where(c =>
-                                    c.action.Parent == action.Parent && c.action != action && c.action.StartTime > lastTime
-                                )
-                            )
-                            {
-                                cw.action.StartTime += xTime - lastTime;
-                            }
-                        }
-                    }
-                }
-
-                //Apply xTime
-                action.StartTime = xTime;
-            }
-
-            //apply xPos
-            clipRect.x = asset.TimeToPos(xTime);
-
-            //dont draw if outside of view range and not selected
-            var isSelected =
-                ReferenceEquals(DirectorUtility.selectedObject, action)
-                || (multiSelection != null && multiSelection.Select(b => b.action).Contains(action));
-            var isVisible = Rect.MinMaxRect(0, G.ScrollPos.y, CenterRect.width, CenterRect.height).Overlaps(clipRect);
+            clipRect.x = TimeToPos(action.StartTime);
+            var isSelected = selectedClips.Contains(action);
+            var isVisible = Rect.MinMaxRect(0, view.ScrollPos.y, CenterRect.width, CenterRect.height).Overlaps(clipRect);
             if (!isSelected && !isVisible)
             {
                 //we basicaly "nullify" the rect. Too much trouble to work with nullable rect.
@@ -1508,13 +1444,9 @@ namespace TrackEditor
                 return;
             }
 
-            //draw selection graphics rect
-            if (isSelected)
+            if (isSelected && e.type == EventType.Repaint)
             {
-                var selRect = clipRect.ExpandBy(2);
-                GUI.color = Styles.HIGHLIGHT_COLOR;
-                GUI.DrawTexture(selRect, Styles.whiteTexture);
-                GUI.color = Color.white;
+                postWindowsGUI += () => DrawClipSelection(clipRect);
             }
 
             //determine color and draw clip
@@ -1524,30 +1456,35 @@ namespace TrackEditor
             GUI.color = color;
             GUI.Box(clipRect, string.Empty, Styles.clipBoxHorizontalStyle);
             clipWrapper.rect = clipRect;
-            ShowActionClipWindow(ID, clipRect);
+            GUI.BeginClip(clipRect);
+            var start = action.StartTime;
+            var end = action.EndTime;
+            var blendIn = action.BlendIn;
+            var blendOut = action.BlendOut;
+            clipWrapper.OnClipGUI();
+            GUI.EndClip();
+            if (start != action.StartTime || end != action.EndTime || blendIn != action.BlendIn || blendOut != action.BlendOut)
+            {
+                NotifyTimelineChanged();
+            }
 
             //右键菜单
             if (e.type == EventType.ContextClick && clipRect.Contains(e.mousePosition))
             {
                 var menu = new GenericMenu();
-                if (multiSelection != null && multiSelection.FindIndex(a => a.action == action) != -1)
+                if (selectedClips.Count > 1 && isSelected)
                 {
                     menu.AddItem(
                         new GUIContent(Lan.ClipDelete),
                         false,
                         () =>
                         {
-                            SafeDoAction(() =>
+                            foreach (var selected in selectedClips.ToArray())
                             {
-                                foreach (var act in multiSelection.Select(b => b.action).ToArray())
-                                {
-                                    if (act.Parent != null)
-                                        act.Parent.DeleteAction(act);
-                                }
+                                if (!selected.IsLocked) selected.Parent.DeleteAction(selected);
+                            }
 
-                                InitClipWrappers();
-                                multiSelection = null;
-                            });
+                            NotifyTimelineChanged(rebuildPreview: true);
                         }
                     );
 
@@ -1561,7 +1498,7 @@ namespace TrackEditor
                     false,
                     () =>
                     {
-                        DirectorUtility.CopyClip = action;
+                        CopiedClip = TimelineJson.Clone(action);
                     }
                 );
                 menu.AddItem(
@@ -1569,7 +1506,9 @@ namespace TrackEditor
                     false,
                     () =>
                     {
-                        DirectorUtility.CutClip(action);
+                        CopiedClip = TimelineJson.Clone(action);
+                        action.Parent.DeleteAction(action);
+                        NotifyTimelineChanged(rebuildPreview: true);
                     }
                 );
 
@@ -1582,6 +1521,7 @@ namespace TrackEditor
                         () =>
                         {
                             action.TryMatchPreviousSubClipLoop();
+                            NotifyTimelineChanged();
                         }
                     );
                     menu.AddItem(
@@ -1590,6 +1530,7 @@ namespace TrackEditor
                         () =>
                         {
                             action.TryMatchSubClipLength();
+                            NotifyTimelineChanged();
                         }
                     );
                     menu.AddItem(
@@ -1598,6 +1539,7 @@ namespace TrackEditor
                         () =>
                         {
                             action.TryMatchNexSubClipLoop();
+                            NotifyTimelineChanged();
                         }
                     );
                 }
@@ -1609,12 +1551,8 @@ namespace TrackEditor
                     false,
                     () =>
                     {
-                        SafeDoAction(() =>
-                        {
-                            if (action.Parent != null)
-                                action.Parent.DeleteAction(action);
-                            InitClipWrappers();
-                        });
+                        action.Parent.DeleteAction(action);
+                        NotifyTimelineChanged(rebuildPreview: true);
                     }
                 );
 
@@ -1631,8 +1569,10 @@ namespace TrackEditor
 
             GUI.color = Color.white;
 
-            var nextPosX = asset.TimeToPos(nextClip != null ? nextClip.StartTime : asset.ViewTimeMax);
-            var prevPosX = asset.TimeToPos(previousClip != null ? previousClip.EndTime : asset.ViewTimeMin);
+            var nextClip = clipIndex < track.Clips.Count - 1 ? track.Clips[clipIndex + 1] : null;
+            var previousClip = clipIndex > 0 ? track.Clips[clipIndex - 1] : null;
+            var nextPosX = TimeToPos(nextClip != null ? nextClip.StartTime : ViewTimeMax);
+            var prevPosX = TimeToPos(previousClip != null ? previousClip.EndTime : ViewTimeMin);
             var extRectLeft = Rect.MinMaxRect(prevPosX, clipRect.yMin, clipRect.xMin, clipRect.yMax);
             var extRectRight = Rect.MinMaxRect(clipRect.xMax, clipRect.yMin, nextPosX, clipRect.yMax);
             action.ShowClipGUIExternal(extRectLeft, extRectRight);
@@ -1644,14 +1584,12 @@ namespace TrackEditor
             }
         }
 
-        void ShowActionClipWindow(int id, Rect rect)
+        private static void DrawClipSelection(Rect rect)
         {
-            if (clipWrappers.TryGetValue(id, out ActionClipWrapper wrapper))
-            {
-                GUI.BeginClip(rect);
-                wrapper.OnClipGUI(id);
-                GUI.EndClip();
-            }
+            EditorGUI.DrawRect(new Rect(rect.xMin, rect.yMin, rect.width, 1), Color.white);
+            EditorGUI.DrawRect(new Rect(rect.xMin, rect.yMax - 1, rect.width, 1), Color.white);
+            EditorGUI.DrawRect(new Rect(rect.xMin, rect.yMin, 1, rect.height), Color.white);
+            EditorGUI.DrawRect(new Rect(rect.xMax - 1, rect.yMin, 1, rect.height), Color.white);
         }
 
         /// <summary>
@@ -1662,97 +1600,50 @@ namespace TrackEditor
             const float CLIP_BLOCK_COLOR_HEIGHT = 4f;
             const float SCALE_RECT_WIDTH = 5;
 
-            public float dragOffset;
-            public Clip action;
-            public bool isDragging;
-            public bool isScalingStart;
-            public bool isScalingEnd;
-            public bool isControlingBlendIn;
-            public bool isControlingBlendOut;
-
-            public float preScaleStartTime;
-            public float preScaleEndTime;
-
-            public Clip previousClip;
-            public Clip nextClip;
-
-            private Event e;
-            private int clipID;
-            private bool isWaitingMouseDrag;
+            public readonly Clip action;
             private float overlapIn;
             private float overlapOut;
             private float blendInPosX;
-
             private float blendOutPosX;
-
-            private float pointerTime;
-            private float snapedPointerTime;
-            private bool allowScale;
-
-            private Rect dragRect;
-            private Rect controlRectIn;
-            private Rect controlRectOut;
-
-            private TrackEditorWindow editor => TrackEditorWindow.current;
-
-            private List<ActionClipWrapper> multiSelection
-            {
-                get => editor.multiSelection;
-                set => editor.multiSelection = value;
-            }
+            private readonly TrackEditorWindow editor;
 
             private Rect _rect;
 
             public Rect rect
             {
-                get => action.IsCollapsed ? default : _rect;
+                get => editor.IsGroupCollapsed(action.Parent.Parent) || editor.view.IsFilteredOutBySearch(action.Parent.Parent) ? default : _rect;
                 set => _rect = value;
             }
 
-            public ActionClipWrapper(Clip action)
+            public ActionClipWrapper(TrackEditorWindow editor, Clip action)
             {
+                this.editor = editor;
                 this.action = action;
             }
 
-            public void ResetInteraction()
+            public void OnClipGUI()
             {
-                isWaitingMouseDrag = false;
-                isDragging = false;
-                isControlingBlendIn = false;
-                isControlingBlendOut = false;
-                isScalingStart = false;
-                isScalingEnd = false;
-            }
+                var e = Event.current;
 
-            public void OnClipGUI(int clipID)
-            {
-                this.clipID = clipID;
-                e = Event.current;
-
-                overlapIn = previousClip != null ? Mathf.Max(previousClip.EndTime - action.StartTime, 0) : 0;
-                overlapOut = nextClip != null ? Mathf.Max(action.EndTime - nextClip.StartTime, 0) : 0;
-                blendInPosX = (action.BlendIn / action.Length) * rect.width;
-                blendOutPosX = ((action.Length - action.BlendOut) / action.Length) * rect.width;
-
-                pointerTime = editor.asset.PosToTime(editor.mousePosition.x);
-                snapedPointerTime = G.SnapTime(pointerTime);
-
-                allowScale = action.CanScale() && action.Length > 0 && rect.width > SCALE_RECT_WIDTH * 2;
-
-                var minusHeight = rect.height;
-
-                dragRect = new Rect(0, 0, rect.width, minusHeight).ExpandBy(allowScale ? -SCALE_RECT_WIDTH : 0, 0);
-                controlRectIn = new Rect(0, 0, SCALE_RECT_WIDTH, minusHeight);
-                controlRectOut = new Rect(rect.width - SCALE_RECT_WIDTH, 0, SCALE_RECT_WIDTH, minusHeight);
-
-                editor.AddCursorRect(dragRect, MouseCursor.Link);
-                if (allowScale) //增加拖动游标
-                {
-                    editor.AddCursorRect(controlRectIn, MouseCursor.ResizeHorizontal);
-                    editor.AddCursorRect(controlRectOut, MouseCursor.ResizeHorizontal);
-                }
+                overlapIn = action.CanCrossBlend ? action.GetCrossBlendIn(action.GetPreviousSibling()) : 0;
+                overlapOut = action.CanCrossBlend ? action.GetCrossBlendOut(action.GetNextSibling()) : 0;
+                var blend = action.GetBlendDurations(overlapIn, overlapOut);
+                blendInPosX = action.Length > 0 ? Mathf.Clamp01(blend.x / action.Length) * rect.width : 0;
+                blendOutPosX = action.Length > 0 ? Mathf.Clamp01(1 - blend.y / action.Length) * rect.width : rect.width;
 
                 var wholeRect = new Rect(0, 0, rect.width, rect.height);
+                var canScale = action.CanScale() && action.Length > 0 && rect.width > SCALE_RECT_WIDTH * 2;
+                var canBlend = action.Length > 0 && (action.CanBlendIn() || action.CanBlendOut());
+                var left = new Rect(0, 0, SCALE_RECT_WIDTH, rect.height);
+                var right = new Rect(rect.width - SCALE_RECT_WIDTH, 0, SCALE_RECT_WIDTH, rect.height);
+
+                editor.AddCursorRect(wholeRect, MouseCursor.Link);
+                if (canScale || canBlend)
+                {
+                    editor.AddCursorRect(left, MouseCursor.ResizeHorizontal);
+                    editor.AddCursorRect(right, MouseCursor.ResizeHorizontal);
+                }
+
                 if (action.IsLocked && e.isMouse && wholeRect.Contains(e.mousePosition))
                 {
                     e.Use();
@@ -1771,85 +1662,37 @@ namespace TrackEditor
 
                 ShowClipBlockColor(wholeRect);
 
-                //设置交叉混合的重叠属性。当没有剪辑互动或没有剪辑拖拽时做这个
-                //这种方式避免了在另一边移动剪辑时的问题，但至少在缩放剪辑时保持重叠交互。
-                if (editor.interactingClip == null || !editor.interactingClip.isDragging)
-                {
-                    var overlap = previousClip != null ? Mathf.Max(previousClip.EndTime - action.StartTime, 0) : 0;
-                    if (overlap > 0)
-                    {
-                        action.BlendIn = overlap;
-                        previousClip.BlendOut = overlap;
-                    }
-                }
-
-                if (e.type == EventType.MouseDown)
-                {
-                    if (e.button == 0)
-                    {
-                        if (dragRect.Contains(e.mousePosition))
-                        {
-                            isWaitingMouseDrag = true;
-                        }
-
-                        editor.interactingClip = this;
-                        editor.CacheMagnetSnapTimes(action);
-                    }
-
-                    if (e.control && dragRect.Contains(e.mousePosition))
-                    {
-                        if (multiSelection == null)
-                        {
-                            multiSelection = new List<ActionClipWrapper>() { this };
-                        }
-
-                        if (multiSelection.Contains(this))
-                        {
-                            multiSelection.Remove(this);
-                        }
-                        else
-                        {
-                            multiSelection.Add(this);
-                        }
-                    }
-                    else
-                    {
-                        DirectorUtility.selectedObject = action;
-                        if (multiSelection != null && !multiSelection.Select(cw => cw.action).Contains(action))
-                        {
-                            multiSelection = null;
-                        }
-                    }
-                }
-
-                if (e.type == EventType.MouseDrag && isWaitingMouseDrag)
-                {
-                    if (!isDragging)
-                        dragOffset = e.mousePosition.x;
-                    isDragging = true;
-                }
-
                 DrawBlendGraphics();
-                DoEdgeControls();
-
-                if (e.rawType == EventType.MouseUp)
+                if (e.type == EventType.Repaint && !action.IsLocked && !editor.itemDragger.IsDragging)
                 {
-                    if (editor.interactingClip != null)
-                    {
-                        editor.interactingClip.EndClipAdjust();
-                        editor.interactingClip.ResetInteraction();
-                        editor.interactingClip = null;
-                    }
-                }
-                else if (e.type == EventType.MouseDown)
-                {
-                    if (DirectorUtility.selectedObject == action)
-                    {
-                        e.Use();
-                    }
+                    var hover = Color.white.WithAlpha(0.5f);
+                    if ((canScale || e.control && action.CanBlendIn()) && left.Contains(e.mousePosition))
+                        EditorGUI.DrawRect(left, hover);
+                    if ((canScale || e.control && action.CanBlendOut()) && right.Contains(e.mousePosition))
+                        EditorGUI.DrawRect(right, hover);
                 }
 
-                //宽度足够，显示文本信息
+                if (e.type == EventType.MouseDown && e.button == 0 && GUIUtility.hotControl == 0
+                    && wholeRect.Contains(e.mousePosition))
+                {
+                    var inEdge = left.Contains(e.mousePosition);
+                    var outEdge = right.Contains(e.mousePosition);
+                    var type = ItemDragType.Position;
+                    if (e.control && inEdge && canBlend && action.CanBlendIn()) type = ItemDragType.BlendIn;
+                    else if (e.control && outEdge && canBlend && action.CanBlendOut()) type = ItemDragType.BlendOut;
+                    else if (canScale && inEdge && !e.control) type = ItemDragType.TrimStart;
+                    else if (canScale && outEdge && !e.control) type = ItemDragType.TrimEnd;
+
+                    var toggle = e.control && type == ItemDragType.Position;
+                    editor.SelectClip(action, toggle);
+                    if (!toggle || editor.selectedClips.Contains(action))
+                    {
+                        editor.BeginClipDrag(type, action);
+                    }
+
+                    e.Use();
+                }
+
                 if (rect.width > 20)
                 {
                     var r = new Rect(0, 0, rect.width, rect.height);
@@ -1875,7 +1718,7 @@ namespace TrackEditor
             /// </summary>
             void DrawBlendGraphics()
             {
-                if (action.BlendIn > 0)
+                if (blendInPosX > 0)
                 {
                     Handles.color = Color.black.WithAlpha(0.5f);
                     Handles.DrawAAPolyLine(2, new Vector2(0, rect.height), new Vector2(blendInPosX, 0));
@@ -1905,143 +1748,6 @@ namespace TrackEditor
             }
 
             /// <summary>
-            /// 片段长度控制器
-            /// </summary>
-            void DoEdgeControls()
-            {
-                var canBlendIn = action.CanBlendIn() && action.Length > 0;
-                var canBlendOut = action.CanBlendOut() && action.Length > 0;
-                if (!isScalingStart && !isScalingEnd && !isControlingBlendIn && !isControlingBlendOut)
-                {
-                    if (allowScale || canBlendIn)
-                    {
-                        if (controlRectIn.Contains(e.mousePosition))
-                        {
-                            GUI.DrawTexture(controlRectIn.ExpandBy(0, -2), Styles.whiteTexture);
-                            if (e.type == EventType.MouseDown && e.button == 0)
-                            {
-                                if (allowScale && !e.control)
-                                {
-                                    isScalingStart = true;
-                                }
-
-                                if (canBlendIn && e.control)
-                                {
-                                    isControlingBlendIn = true;
-                                }
-
-                                BeginClipAdjust();
-                                e.Use();
-                            }
-                        }
-                    }
-
-                    if (allowScale || canBlendOut)
-                    {
-                        if (controlRectOut.Contains(e.mousePosition))
-                        {
-                            GUI.DrawTexture(controlRectOut.ExpandBy(0, -2), Styles.whiteTexture);
-                            if (e.type == EventType.MouseDown && e.button == 0)
-                            {
-                                if (allowScale && !e.control)
-                                {
-                                    isScalingEnd = true;
-                                }
-
-                                if (canBlendOut && e.control)
-                                {
-                                    isControlingBlendOut = true;
-                                }
-
-                                BeginClipAdjust();
-                                e.Use();
-                            }
-                        }
-                    }
-                }
-
-                if (isControlingBlendIn)
-                {
-                    action.BlendIn = Mathf.Clamp(pointerTime - action.StartTime, 0, action.Length - action.BlendOut);
-                }
-
-                if (isControlingBlendOut)
-                {
-                    action.BlendOut = Mathf.Clamp(action.EndTime - pointerTime, 0, action.Length - action.BlendIn);
-                }
-
-                if (isScalingStart)
-                {
-                    var prevTime = previousClip?.EndTime ?? 0;
-                    //magnet snap
-                    if (Prefs.magnetSnapping && !e.control)
-                    {
-                        var snapStart = editor.MagnetSnapTime(snapedPointerTime, editor.magnetSnapTimesCache);
-                        if (snapStart != null)
-                        {
-                            snapedPointerTime = snapStart.Value;
-                            editor.pendingGuides.Add(new GuideLine(snapedPointerTime, Color.white));
-                        }
-                    }
-
-                    if (action.CanCrossBlend(previousClip))
-                    {
-                        prevTime -= Mathf.Min(action.Length / 2, previousClip.Length / 2);
-                    }
-
-                    action.StartTime = snapedPointerTime;
-                    action.StartTime = Mathf.Clamp(action.StartTime, prevTime, preScaleEndTime);
-                    action.EndTime = preScaleEndTime;
-                }
-
-                if (isScalingEnd)
-                {
-                    var nextTime = nextClip != null ? nextClip.StartTime : editor.asset.MaxTime;
-                    //magnet snap
-                    if (Prefs.magnetSnapping && !e.control)
-                    {
-                        var snapEnd = editor.MagnetSnapTime(snapedPointerTime, editor.magnetSnapTimesCache);
-                        if (snapEnd != null)
-                        {
-                            snapedPointerTime = snapEnd.Value;
-                            editor.pendingGuides.Add(new GuideLine(snapedPointerTime, Color.white));
-                        }
-                    }
-
-                    if (action.CanCrossBlend(nextClip))
-                    {
-                        nextTime += Mathf.Min(action.Length / 2, nextClip.Length / 2);
-                    }
-
-                    action.EndTime = snapedPointerTime;
-                    action.EndTime = Mathf.Clamp(action.EndTime, 0, nextTime);
-                }
-            }
-
-            public void BeginClipAdjust()
-            {
-                preScaleStartTime = action.StartTime;
-                preScaleEndTime = action.EndTime;
-                // // preScaleKeys = action.GetCurvesAll().ToDictionary(k => k, k => k.keys);
-                // if (action is ISubClipContainable containable)
-                // {
-                //     preScaleSubclipOffset = containable.subClipOffset;
-                //     preScaleSubclipSpeed = containable.subClipSpeed;
-                // }
-
-                editor.CacheMagnetSnapTimes(action);
-            }
-
-            public void EndClipAdjust()
-            {
-                // preScaleKeys = null;
-                // if (Prefs.autoCleanKeysOffRange)
-                // {
-                //     // CleanKeysOffRange();
-                // }
-            }
-
-            /// <summary>
             /// 显示剪辑的底部色块
             /// </summary>
             /// <param name="rect"></param>
@@ -2060,73 +1766,101 @@ namespace TrackEditor
 
         #endregion
 
-        #endregion
-
         #region 播放相关
 
         public AssetPlayer player;
 
-        public bool IsStop =>
-            Application.isPlaying ? player.IsPaused || !player.IsActive : EditorPlaybackState == EditorPlaybackState.Stoped;
+        public bool IsStop => !IsPlay;
+        public bool IsPlay => EditorPlaybackState != EditorPlaybackState.Stoped;
 
         internal EditorPlaybackState EditorPlaybackState = EditorPlaybackState.Stoped;
 
         public WrapMode EditorPlaybackWrapMode = WrapMode.Loop;
 
-        public bool IsPlay => player.CurrentTime > 0;
-
         public void Play(Action callback = null)
         {
-            Play(EditorPlaybackState.PlayingForwards, callback);
-        }
-
-        private void Play(EditorPlaybackState playbackState, Action callback = null)
-        {
-            if (Application.isPlaying)
+            if (asset == null || Application.isPlaying)
             {
                 return;
             }
 
-            EditorPlaybackState = playbackState;
+            if (player.CurrentTime >= player.Length)
+            {
+                Seek(0);
+            }
+
+            EditorPlaybackState = EditorPlaybackState.PlayingForwards;
+            previewRequested = true;
+            player.IsActive = true;
             OnPlay();
+            WillRepaint = true;
         }
 
         public void Pause()
         {
             EditorPlaybackState = EditorPlaybackState.Stoped;
+            if (player != null)
+            {
+                player.IsActive = false;
+            }
+
             OnStop();
         }
 
         public void Stop(bool forceRewind)
         {
-            if (asset != null)
+            Pause();
+            if (forceRewind && player != null)
+            {
+                previewRequested = false;
+                player.RevertPreview();
                 player.CurrentTime = 0;
-            EditorPlaybackState = EditorPlaybackState.Stoped;
-            // WillRepaint = true;
-
-            OnStop();
+            }
         }
 
-        public void StepForward()
+        private void TogglePlayback()
         {
-            if (Math.Abs(player.CurrentTime - player.Length) < 0.00001f)
+            if (IsPlay)
             {
-                player.CurrentTime = 0;
-                return;
+                Pause();
             }
-
-            player.CurrentTime += Prefs.snapInterval;
+            else
+            {
+                Play();
+            }
         }
 
-        public void StepBackward()
+        private void Seek(float time, bool reveal = true)
         {
-            if (player.CurrentTime == 0)
+            Pause();
+            previewRequested = true;
+            player.CurrentTime = time;
+            if (reveal && (player.CurrentTime < ViewTimeMin || player.CurrentTime > ViewTimeMax))
             {
-                player.CurrentTime = player.Length;
-                return;
+                var start = Mathf.Max(0, player.CurrentTime - ViewTime * 0.5f);
+                SetViewTimeRange(start, start + ViewTime);
+            }
+        }
+
+        public void StepForward() => Step(1);
+
+        public void StepBackward() => Step(-1);
+
+        private void Step(int direction)
+        {
+            var interval = Prefs.timeStepMode == Prefs.TimeStepMode.Frames
+                ? 1f / Mathf.Max(1, Prefs.frameRate)
+                : Prefs.snapInterval;
+            var units = player.CurrentTime / interval;
+            // Round only to recognize an existing step despite floating-point error.
+            var nearest = Mathf.Round(units);
+            if (Mathf.Approximately(player.CurrentTime, nearest * interval))
+            {
+                units = nearest;
             }
 
-            player.CurrentTime -= Prefs.snapInterval;
+            var next = direction > 0 ? Mathf.Floor(units) + 1 : Mathf.Ceil(units) - 1;
+            Seek(next * interval);
         }
 
         #endregion
