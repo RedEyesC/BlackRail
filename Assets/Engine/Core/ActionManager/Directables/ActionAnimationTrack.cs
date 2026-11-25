@@ -7,5 +7,6 @@ namespace GameFramework.Action
     [ShowIcon(typeof(UnityEngine.AnimationClip))]
     [Color(0.48f, 0.71f, 0.84f)]
     [Attachable(typeof(ActionGroup))]
+    [System.Serializable]
     public class ActionAnimationTrack : Track { }
 }

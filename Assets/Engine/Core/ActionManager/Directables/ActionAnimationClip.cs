@@ -5,19 +5,14 @@ namespace GameFramework.Action
 {
     [Color(0.48f, 0.71f, 0.84f)]
     [Attachable(typeof(ActionAnimationTrack))]
-    public class ActionAnimationClip : Clip, ISubClipContainable
+    [System.Serializable]
+    public class ActionAnimationClip : ClipCrossBlend, ISubClipContainable
     {
         [SerializeField]
         [HideInInspector]
         private float length = 1f;
 
-        [SerializeField]
-        [HideInInspector]
-        private float blendIn = 0.25f;
-
-        [SerializeField]
-        [HideInInspector]
-        private float blendOut = 0.25f;
+        public ActionAnimationClip() : base(0.25f) { }
 
         public string resPath = "";
 
@@ -28,22 +23,14 @@ namespace GameFramework.Action
 
         public float subClipLength;
 
+        [System.NonSerialized] private float? resolvedSourceLength;
+
+        public void SetResolvedSourceLength(float? length) => resolvedSourceLength = length;
+
         public override float Length
         {
             get => length;
             set => length = value;
-        }
-
-        public override float BlendIn
-        {
-            get => blendIn;
-            set => blendIn = value;
-        }
-
-        public override float BlendOut
-        {
-            get => blendOut;
-            set => blendOut = value;
         }
 
         public virtual float SubClipOffset
@@ -54,7 +41,7 @@ namespace GameFramework.Action
 
         public virtual float SubClipLength
         {
-            get => subClipLength;
+            get => resolvedSourceLength ?? subClipLength;
             set => subClipLength = Mathf.Max(0, value);
         }
 

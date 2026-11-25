@@ -8,5 +8,6 @@ namespace GameFramework.Action
     [ShowIcon(typeof(UnityEngine.EventSystems.EventSystem))]
     [Color(0.95f, 0.62f, 0.25f)]
     [Attachable(typeof(ActionGroup))]
+    [System.Serializable]
     public class ActionEventTrack : Track { }
 }

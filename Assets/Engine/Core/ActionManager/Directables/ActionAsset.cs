@@ -2,8 +2,6 @@ using TrackEditor;
 
 namespace GameEditor.ActionEditor
 {
+    [System.Serializable]
     public class ActionAsset : Asset { }
-
-    [Attachable(typeof(ActionAsset))]
-    public class ActionGroup : Group { }
 }
